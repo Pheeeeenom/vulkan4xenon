@@ -7,8 +7,8 @@
 enum {
 	// Odd on purpose, so the requirement's rounding shows.
 	BUFFER_BYTES = 100,
-	BUFFER_ALIGNMENT = 16,
-	ROUNDED_BYTES = 112,
+	BUFFER_ALIGNMENT = 64,
+	ROUNDED_BYTES = 128,
 };
 
 static const uint32_t unknown_spirv[] = { 0x07230203, 0x00010000, 0, 1, 0 };
