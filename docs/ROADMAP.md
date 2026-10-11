@@ -142,7 +142,7 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
 - **Presenting:** all 121 frames were shown, 121 flips over 132 vblanks. The 10 missed vblanks came from the test,
   which waits for each frame and reads it back before presenting it.
 - **Seen on screen,** the user reported: the logo faded in, held for a second or two, the dark green flashed, then the
-  triangle showed.
+  triangle showed. The triangle's capture is `results/2026-10-11-milestone-1/triangle.png`.
 
 **Decisions:**
 - **The library and its handles.**
