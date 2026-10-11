@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestone 1 is under way. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestone 1 is done; milestone 2 is next. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -122,7 +122,7 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
 5. **The benchmark.** Done when the same scenes run through the raw GPU layer and through Vulkan, with the gap
    measured on the console and its causes named.
 
-### Milestone 1: a triangle through Vulkan (in progress)
+### Milestone 1: a triangle through Vulkan (done)
 
 **Done when** `build/vulkan4xenon_test.xex`, on the console:
 - shows the boot logo from `vkCreateDevice` until its first present;
@@ -130,7 +130,18 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
 - checks the image the display shows: each corner's colour, and the clear colour outside the triangle;
 - passes every check, and returns to the Aurora dashboard.
 
-**Passed on hardware:** not yet.
+**Passed on hardware** on 2026-10-11, at `aba67e7` with xsdk at `7420d94`
+(`results/2026-10-11-milestone-1/xsdk.log`). All 20 checks passed, and the console went back to the Aurora dashboard.
+- **The boot logo:**
+  - the display moved from XAM's surface at 0 to the logo's buffer;
+  - it stayed there once the swapchain existed;
+  - the first present replaced it with the app's dark green, read back exactly (00 60 00).
+- **The triangle:** every one of the 120 frames had its corners and clear colour.
+- **What was on screen at the end:** the corners, the clear colour, and 259,200 drawn pixels, the triangle's area
+  (960 x 540 / 2).
+- **Presenting:** all 121 frames were shown, 121 flips over 132 vblanks. The 10 missed vblanks came from the test,
+  which waits for each frame and reads it back before presenting it.
+- **Not checked:** the logo's look, which needs a capture.
 
 **Decisions:**
 - **The library and its handles.**
