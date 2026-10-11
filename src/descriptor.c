@@ -145,6 +145,7 @@ static void write_descriptor(Descriptor *descriptor, const VkWriteDescriptorSet 
 	const Buffer *const buffer = v4x_object(info->buffer);
 	const VkDeviceSize range = info->range == VK_WHOLE_SIZE ? buffer->size - info->offset : info->range;
 	descriptor->buffer = buffer->memory->pointer + (buffer->offset_bytes + (uint32_t)info->offset) / 4;
+	descriptor->buffer_address = buffer->memory->address + buffer->offset_bytes + (uint32_t)info->offset;
 	descriptor->range_bytes = (uint32_t)range;
 }
 

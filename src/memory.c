@@ -6,8 +6,9 @@
 #include "xsdk/log.h"
 
 enum {
-	// A vertex fetch constant holds a dword address (xsdk:src/gpu_draw.c, xsdk_gpu_set_vertices).
-	BUFFER_ALIGNMENT = 16,
+	// A vertex fetch constant needs a dword address (xsdk:src/gpu_draw.c), and the GPU loads uniform blocks from
+	// 64-byte aligned memory (xsdk:include/xsdk/gpu.h).
+	BUFFER_ALIGNMENT = 64,
 	MEMORY_TYPE_BITS = 1,
 };
 

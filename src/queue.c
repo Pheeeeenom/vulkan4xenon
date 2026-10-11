@@ -17,6 +17,10 @@ enum {
 	ALL_MEMORY_BYTES = 0x20000000,
 	// Fetch constant slots a texture can take (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_texture).
 	TEXTURE_SLOTS = 32,
+	// The GPU loads constants in whole groups of 4 from a multiple of 4, from 64-byte aligned memory
+	// (xsdk:include/xsdk/gpu.h); xost gives each uniform block such groups to itself.
+	CONSTANT_GROUP = 4,
+	LOAD_ALIGNMENT_BYTES = 64,
 };
 
 typedef struct {
@@ -120,6 +124,27 @@ static void read_uniform_buffer(const Replay *replay, const V4xShaderResource *r
 }
 
 // Each draw writes every block its shaders read into constants, and points their samplers' fetch constants.
+// Has the GPU load the block straight from the buffer, when the block starts a group and the buffer covers it; the
+// padding past the block takes whatever follows it, which nothing reads.
+static bool load_uniform_buffer(const Replay *replay, const V4xShaderResource *resource, bool vertex)
+{
+	const DescriptorSet *const set = replay->sets[resource->set];
+	const Descriptor *const descriptor = &set->descriptors[resource->binding];
+	const LayoutBinding *const binding = &set->layout->bindings[resource->binding];
+	uint32_t address = descriptor->buffer_address;
+	if (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+		address += replay->dynamic_offsets[resource->set][binding->dynamic_index];
+	if (resource->first % CONSTANT_GROUP || address % LOAD_ALIGNMENT_BYTES ||
+		descriptor->range_bytes < resource->count * 16)
+		return false;
+	const uint32_t count = (resource->count + CONSTANT_GROUP - 1) / CONSTANT_GROUP * CONSTANT_GROUP;
+	if (vertex)
+		xsdk_gpu_load_vertex_constants(resource->first, address, count);
+	else
+		xsdk_gpu_load_pixel_constants(resource->first, address, count);
+	return true;
+}
+
 // Points a slot at the texture and sampler unless it already is.
 static void point_texture(Replay *replay, uint32_t slot, const Descriptor *descriptor)
 {
@@ -143,8 +168,10 @@ static void apply_resources(const Pipeline *pipeline, Replay *replay)
 		if (!replay->sets[resource->set])
 			continue;
 		if (resource->kind == V4X_RESOURCE_UNIFORM_BUFFER) {
-			read_uniform_buffer(replay, resource);
-			write_constants(vertex, resource->first, block, resource->count);
+			if (!load_uniform_buffer(replay, resource, vertex)) {
+				read_uniform_buffer(replay, resource);
+				write_constants(vertex, resource->first, block, resource->count);
+			}
 			continue;
 		}
 		point_texture(replay, resource->first, &replay->sets[resource->set]->descriptors[resource->binding]);

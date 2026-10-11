@@ -56,7 +56,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   - reading it back is slow, as it isn't cached.
 - Coherence: `vkQueueSubmit` drains the CPU's write-combining (`sync`) before replaying, so flushing ranges does
   nothing and isn't needed.
-- Buffers: 16-byte alignment, sizes rounded up to it. Sparse buffers return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- Buffers: 64-byte alignment, sizes rounded up to it, so the GPU can load uniform blocks straight from them. Sparse
+  buffers return `VK_ERROR_FEATURE_NOT_PRESENT`.
 
 ## Shaders
 
@@ -175,9 +176,12 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   samplers return `VK_ERROR_FEATURE_NOT_PRESENT`.
 - A write of several descriptors fills consecutive bindings.
 - Pools hold any number of sets; their sizes and limits are ignored.
-- **How draws read them:** each draw copies every uniform block its shaders read into float constants, from the
-  buffer at the descriptor's offset plus any dynamic offset, as section 2 of the roadmap decided. Bytes past the
-  descriptor's range read as 0. Mapped memory isn't cached, so each read is slow; milestone 5 measures it.
+- **How draws read them:** each draw puts every uniform block its shaders read into float constants, from the
+  buffer at the descriptor's offset plus any dynamic offset, as section 2 of the roadmap decided.
+  - The GPU loads a block straight from the buffer when its address is 64-byte aligned and the descriptor's range
+    covers it, which buffers and offsets of 256 make the usual case (milestone 7).
+  - Otherwise the CPU reads it, 16 bytes at a time where it can, and bytes past the descriptor's range read as 0.
+    Mapped memory isn't cached, so each read goes to memory.
 - Push constants are copied in the same way, from what `vkCmdPushConstants` recorded.
 
 ## Commands

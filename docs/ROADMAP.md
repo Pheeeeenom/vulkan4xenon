@@ -124,6 +124,8 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
 6. **The replay's cost,** agreed on 2026-10-11 after milestone 5 and xsdk milestones 19 and 20 measured it. Done when
    the replay points streams and textures only when they change, and uniform buffers no longer cost the CPU an
    uncached read a word.
+7. **Uniform blocks the GPU loads,** agreed on 2026-10-11 after milestone 6. Done when the GPU loads each uniform block
+   straight from its buffer, and reading uniform buffers costs a draw next to nothing.
 
 ### Milestone 1: a triangle through Vulkan (done)
 
@@ -642,6 +644,29 @@ log and CSVs, and the test title's tail).
   reads at all.
 - **Pointing is forgotten at each render pass's start,** not tracked through the resolves and the image drawn back:
   draws happen only inside passes, and the first draw of each points what it needs.
+
+### Milestone 7: uniform blocks the GPU loads
+
+**Why.** Milestone 6 left uniform buffers costing 0.87 us a draw: the CPU reads each block from write-combined memory,
+16 bytes at a time. The console loads float constants from memory with `LOAD_ALU_CONSTANT`, but only in whole groups
+of 4 from a multiple of 4 (xsdk:docs/HARDWARE.md), and xost placed blocks wherever the last one ended, so a load would
+overwrite whatever shared a block's groups.
+
+**In three parts,** run on the console together:
+1. **xost gives each uniform block whole groups of 4 to itself** (xost `b9b38e9`): it starts on a multiple of 4, and
+   whatever follows it, another block or the literal pool, starts on the next. Push constant blocks stay packed, as the
+   CPU writes them.
+2. **xsdk loads float constants from memory** (xsdk `5d4bda6`): `xsdk_gpu_load_vertex_constants` and
+   `xsdk_gpu_load_pixel_constants`, whole groups of 4 from a multiple of 4, from 64-byte aligned memory, as the console
+   loaded them.
+3. **The replay has the GPU load each uniform block** from its buffer, its padding taking whatever follows the block,
+   which nothing reads. A block whose buffer isn't 64-byte aligned, or whose descriptor's range doesn't cover it, still
+   goes through the CPU. Buffers are 64-byte aligned now, and uniform offsets go in 256s.
+
+**Done when,** on the console:
+- vkbench's `uniforms_1000` through the layer costs at most 0.2 us a draw more than `draws_1000`, from 0.87;
+- xsdk_test and vulkan4xenon_test pass in full, and vkbench's backends still draw the same pictures;
+- xost's tests pass.
 
 ## 5. The Dusklight track
 

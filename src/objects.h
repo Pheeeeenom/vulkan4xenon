@@ -154,8 +154,9 @@ typedef struct {
 
 typedef struct {
 	VkDescriptorType type;
-	// A uniform buffer's bytes, mapped, and how many of them the descriptor covers.
+	// A uniform buffer's bytes, mapped and as the GPU addresses them, and how many of them the descriptor covers.
 	volatile const uint32_t *buffer;
+	uint32_t buffer_address;
 	uint32_t range_bytes;
 	const Image *image;
 	const Sampler *sampler;
