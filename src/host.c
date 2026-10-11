@@ -20,6 +20,13 @@ void *v4x_host_alloc(const VkAllocationCallbacks *allocator, size_t size_bytes, 
 	return memory;
 }
 
+void *v4x_host_realloc(
+	const VkAllocationCallbacks *allocator, void *memory, size_t size_bytes, VkSystemAllocationScope scope)
+{
+	return allocator ? allocator->pfnReallocation(allocator->pUserData, memory, size_bytes, HOST_ALIGNMENT, scope)
+					 : realloc(memory, size_bytes);
+}
+
 void v4x_host_free(const VkAllocationCallbacks *allocator, void *memory)
 {
 	if (!memory)

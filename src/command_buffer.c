@@ -6,7 +6,7 @@
 #include "host.h"
 #include "objects.h"
 
-// Commands go into a list each command buffer gets when it's allocated; vkQueueSubmit replays them (queue.c).
+// Commands go into a list that grows as a command buffer records; vkQueueSubmit replays them (queue.c).
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateCommandPool(VkDevice device, const VkCommandPoolCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkCommandPool *pCommandPool)
@@ -72,13 +72,16 @@ static struct VkCommandBuffer_T *allocate_buffer(VkDevice device, CommandPool *p
 	if (!buffer)
 		return NULL;
 	buffer->commands =
-		v4x_host_alloc(allocator, V4X_COMMANDS_PER_BUFFER * sizeof(Command), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	buffer->data = v4x_host_alloc(allocator, V4X_COMMAND_DATA_BYTES, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+		v4x_host_alloc(allocator, V4X_FIRST_COMMANDS * sizeof(Command), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	buffer->data = v4x_host_alloc(allocator, V4X_FIRST_COMMAND_DATA_BYTES, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!buffer->commands || !buffer->data) {
+		v4x_host_free(allocator, buffer->data);
 		v4x_host_free(allocator, buffer->commands);
 		v4x_host_free(allocator, buffer);
 		return NULL;
 	}
+	buffer->capacity = V4X_FIRST_COMMANDS;
+	buffer->data_capacity_bytes = V4X_FIRST_COMMAND_DATA_BYTES;
 	buffer->device = device;
 	buffer->pool = pool;
 	buffer->next = pool->buffers;
@@ -147,25 +150,53 @@ VKAPI_ATTR VkResult VKAPI_CALL vkResetCommandBuffer(VkCommandBuffer commandBuffe
 	return VK_SUCCESS;
 }
 
-// The next free command, or NULL with the error saved for vkEndCommandBuffer once the list is full.
+// Doubles the commands' room, or saves the error for vkEndCommandBuffer when there's no memory for it.
+static bool grow_commands(VkCommandBuffer buffer)
+{
+	const VkAllocationCallbacks *const allocator = v4x_host_device_allocator(buffer->device, NULL);
+	Command *const grown = v4x_host_realloc(
+		allocator, buffer->commands, 2 * buffer->capacity * sizeof(Command), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (!grown) {
+		buffer->result = VK_ERROR_OUT_OF_HOST_MEMORY;
+		return false;
+	}
+	buffer->commands = grown;
+	buffer->capacity *= 2;
+	return true;
+}
+
+// The same for the data.
+static bool grow_data(VkCommandBuffer buffer)
+{
+	const VkAllocationCallbacks *const allocator = v4x_host_device_allocator(buffer->device, NULL);
+	uint8_t *const grown =
+		v4x_host_realloc(allocator, buffer->data, 2 * buffer->data_capacity_bytes, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (!grown) {
+		buffer->result = VK_ERROR_OUT_OF_HOST_MEMORY;
+		return false;
+	}
+	buffer->data = grown;
+	buffer->data_capacity_bytes *= 2;
+	return true;
+}
+
+// The next free command, or NULL with the error saved for vkEndCommandBuffer.
 static Command *record(VkCommandBuffer buffer, CommandType type)
 {
-	if (buffer->count == V4X_COMMANDS_PER_BUFFER) {
-		buffer->result = VK_ERROR_OUT_OF_HOST_MEMORY;
+	if (buffer->count == buffer->capacity && !grow_commands(buffer))
 		return NULL;
-	}
 	Command *const command = &buffer->commands[buffer->count++];
 	command->type = type;
 	return command;
 }
 
-// Copies bytes into the command buffer's data and returns where, or saves the error once it's full.
+// Copies bytes into the command buffer's data and returns where, or saves the error.
 static bool record_data(VkCommandBuffer buffer, const void *bytes, uint32_t size_bytes, uint32_t *at)
 {
 	const uint32_t aligned = (size_bytes + 3) & ~3u;
-	if (buffer->data_bytes + aligned > V4X_COMMAND_DATA_BYTES) {
-		buffer->result = VK_ERROR_OUT_OF_HOST_MEMORY;
-		return false;
+	while (buffer->data_bytes + aligned > buffer->data_capacity_bytes) {
+		if (!grow_data(buffer))
+			return false;
 	}
 	*at = buffer->data_bytes;
 	memcpy(buffer->data + buffer->data_bytes, bytes, size_bytes);

@@ -24,11 +24,13 @@ enum {
 	V4X_MAX_VERTEX_ATTRIBUTES = 16,
 	// A fetch's stride is 8 bits of dwords (xsdk:src/shader.c, FETCH_STRIDE_MASK).
 	V4X_MAX_VERTEX_STRIDE_BYTES = 255 * 4,
-	V4X_COMMANDS_PER_BUFFER = 4096,
+	// Room a command buffer starts with; it doubles when full.
+	V4X_FIRST_COMMANDS = 4096,
 	// DRAW_INDX_2 and DRAW_INDX carry the count in 16 bits (xsdk:src/gpu_draw.c:219, 309).
 	V4X_MAX_DRAW_VERTICES = 65535,
-	// Push constants, dynamic offsets and copy regions, which vary in size, go here in recording order.
-	V4X_COMMAND_DATA_BYTES = 16384,
+	// Push constants, dynamic offsets and copy regions, which vary in size, go in a command buffer's data in recording
+	// order; it starts with this much and doubles when full.
+	V4X_FIRST_COMMAND_DATA_BYTES = 16384,
 	V4X_MAX_DESCRIPTOR_SETS = 4,
 	// Binding numbers run from 0 to this less one.
 	V4X_MAX_DESCRIPTOR_BINDINGS = 32,
@@ -305,8 +307,10 @@ struct VkCommandBuffer_T {
 	VkResult result;
 	Command *commands;
 	uint32_t count;
+	uint32_t capacity;
 	uint8_t *data;
 	uint32_t data_bytes;
+	uint32_t data_capacity_bytes;
 	bool in_render_pass;
 	// The pipeline bound last while recording, to check draws against its topology.
 	const Pipeline *pipeline;

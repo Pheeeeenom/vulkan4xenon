@@ -182,11 +182,10 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 
 ## Commands
 
-- Primary command buffers only. Each holds up to 4096 commands, allocated with it. Recording past that makes
-  `vkEndCommandBuffer` return `VK_ERROR_OUT_OF_HOST_MEMORY`.
+- Primary command buffers only. Each starts with room for 4096 commands, and 16 KB of data for push constants,
+  dynamic offsets and copy regions; each doubles when it fills, and keeps its size through resets. If host memory runs
+  out, `vkEndCommandBuffer` returns `VK_ERROR_OUT_OF_HOST_MEMORY`.
 - `vkQueueSubmit` replays them on the caller's thread into xsdk's ring.
-- Push constants, dynamic offsets and copy regions go into 16 KB of data each command buffer gets when it's
-  allocated; past that, `vkEndCommandBuffer` returns `VK_ERROR_OUT_OF_HOST_MEMORY`.
 - `vkCmdCopyBufferToImage` copies whole mip levels, from tightly packed rows or rows `bufferRowLength` texels long, at
   4-byte-aligned offsets. It runs on the CPU at replay, after waiting for the GPU to finish what came before, since
   nothing yet orders the GPU's reads of the image against the CPU's writes.

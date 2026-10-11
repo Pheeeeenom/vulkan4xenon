@@ -11,6 +11,9 @@
 // Zeroed memory from the app's allocator if it gave one, else the C library's; NULL when there's none.
 void *v4x_host_alloc(const VkAllocationCallbacks *allocator, size_t size_bytes, VkSystemAllocationScope scope);
 void v4x_host_free(const VkAllocationCallbacks *allocator, void *memory);
+// Resizes memory from v4x_host_alloc, keeping what fits; NULL when there's no room, the old memory left as it was.
+void *v4x_host_realloc(
+	const VkAllocationCallbacks *allocator, void *memory, size_t size_bytes, VkSystemAllocationScope scope);
 // The allocator a device's object uses: the one passed with the call, else the device's.
 const VkAllocationCallbacks *v4x_host_device_allocator(VkDevice device, const VkAllocationCallbacks *given);
 // Logs what isn't implemented and returns VK_ERROR_FEATURE_NOT_PRESENT.

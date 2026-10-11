@@ -7,7 +7,8 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 4 are done; milestone 5 is next. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 4 are done; milestone 5 is under way. Section 7 lists what's
+still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -490,6 +491,63 @@ attachments are new.
   (aurora-vita:lib/vulkan4vita/encoding.cpp:275, 713). They wait for an app that needs them.
 - depth resolves, so depth loaded after eDRAM lost it, sampled or copied;
 - colour attachments 16 texels or less on a side, with mips, or more than one in a subpass.
+
+### Milestone 5: the benchmark
+
+**Done when** `build/vkbench.xex`, on the console, runs each scene through xsdk's GPU layer and then through
+vulkan4xenon, in two runs of the title, and this section records each scene's draw + submit and GPU time through the
+layer against xsdk's, with the gap's causes named from measurements.
+
+- **vkbench, ported** from vulkan4vita (vulkan4vita:bench/, vulkan4vita:README.md:12-48): its scenes, data and
+  per-frame metrics, with a backend for xsdk's GPU layer in raw GXM's place and none for vitaGL.
+  - Both backends are in one title and run one after the other, so code they share is laid out the same for both.
+  - Both draw with the same xost-compiled shaders: the xsdk backend loads the containers of the bundle vulkan4xenon
+    looks SPIR-V up in, and sets their constants where the bundle says.
+  - Each opens the GPU, the boot logo and the display as `vkCreateDevice` and the swapchain do, so the logo shows
+    before each half.
+- **Scenes:**
+  - `draws_250`, `draws_1000` and `draws_4000`: that many cubes, one draw each, with depth, no state changes;
+  - `states_250` and `states_1000`: the texture changes every draw, the shader every second and blending every fourth;
+  - `uniforms_1000`: `draws_1000` with each draw's matrix and tint in a dynamic uniform buffer, as encounter's Aurora
+    passes its uniforms (aurora-vita:lib/vulkan4vita/), where the other scenes push them. Milestone 2 left the cost of
+    reading uniform buffers at replay for this one to measure;
+  - `stream_1000` and `stream_8000`: that many sprites, moved on the CPU and written out every frame, one draw;
+  - `fill_4` and `fill_16`: alpha-blended full-screen layers, bound by the GPU, so both should tie.
+  - vkbench's minify scenes are left out: they compare linear and swizzled images, and images here are always tiled.
+- **Per frame, in microseconds,** as vkbench measures them: sim, draw, submit, present and frame, and also gpu: from
+  the submit's kick to its fence landing, with the CPU spinning on it. 60 warm-up and 600 measured frames a scene.
+  Medians, means and 99th percentiles go in the log and in `game:\vkbench_summary.csv`, every frame in
+  `game:\vkbench_frames.csv`.
+- **Accounting,** checked before any ratio (vulkan4vita:docs/ROADMAP.md:264-271):
+  - xsdk's draw calls write the ring as they go and the layer writes it in `vkQueueSubmit`, so draw + submit is the
+    number to compare, not either alone;
+  - both kick the ring only at their fence, or when it fills (xsdk:src/gpu.c), so the GPU starts at submit in both;
+  - both wait for the next image in present: `xsdk_present_begin` and `vkAcquireNextImageKHR` move there;
+  - both present in FIFO at every vblank, the only mode the swapchain has, so frame times step in vblanks; gpu shows
+    what the GPU took.
+- **The same picture:** each scene's last frame is sampled on a grid in both backends, and the two must match.
+- **Differences from vkbench:** 1280x720; sprite colours are four floats, as the layer takes only 32-bit float vertex
+  formats; v-sync stays on.
+
+**Decisions:**
+- **Command buffers grow.** `draws_4000` records 12,000 commands a frame, and 320 KB of push constants, past the 4096
+  commands and 16 KB of data each command buffer had. Each starts at that size now and doubles when it fills, keeping
+  its size through resets, so recording stops allocating after the first frames.
+- **xost fetches into r0 last** (xost `098f17a`). Vertex input n is fetched into rn, and every fetch reads the vertex
+  index from r0, so fetching input 0 first overwrote the index the rest read. In Xenia, which reads the index as each
+  fetch runs (xenia:src/xenia/gpu/dxbc_shader_translator_fetch.cc:80-88), sprites took their uv and colour from the
+  vertex their x position named, and the two backends' pictures differed until the fix. Milestone 2 passed on the
+  console with the old order, so the hardware may not show it. Shaders with one input are unchanged; the test titles'
+  and the blit shaders' containers are rebuilt.
+- **The GPU's time is spun on.** `xsdk_gpu_wait` sleeps a millisecond between polls, which would round gpu up to
+  whole milliseconds, so the xsdk backend spins on `xsdk_gpu_fence_done` and the Vulkan one on `vkGetFenceStatus`.
+- **No display, no swapchain.** Where the display won't open, as in Xenia, each backend draws into an image of the
+  screen's size and samples that, and logs that it did. So the bench runs and compares pictures in Xenia, whose
+  timings mean nothing.
+- **Comparing pictures:** at every 20th pixel across and down, from the 10th, 64 by 36 points, each channel within 2.
+  The first 3 points that differ are logged with both colours.
+
+**New functions:** none. Every call vkbench makes was there after milestone 4.
 
 ## 5. The Dusklight track
 

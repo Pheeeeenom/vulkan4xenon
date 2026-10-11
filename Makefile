@@ -29,15 +29,24 @@ TEST_SOURCES := tests/main.c tests/harness.c tests/harness_scene.c tests/test_bo
 	tests/test_indexed.c tests/test_depth_stencil.c tests/test_raster.c tests/test_render_to_texture.c tests/shaders.c
 TEST_OBJECTS := $(patsubst tests/%.c,$(BUILD)/tests/%.o,$(TEST_SOURCES))
 
+# vkbench, the benchmark against xsdk's GPU layer; bench/shaders.c comes from tools/build_shaders.py too.
+BENCH_SOURCES := bench/main.c bench/scenes.c bench/assets.c bench/backend_xsdk.c bench/backend_vulkan.c \
+	bench/shaders.c
+BENCH_OBJECTS := $(patsubst bench/%.c,$(BUILD)/bench/%.o,$(BENCH_SOURCES))
+
 .PHONY: all clean
 .SECONDARY:
-all: $(BUILD)/vulkan4xenon_test.xex
+all: $(BUILD)/vulkan4xenon_test.xex $(BUILD)/vkbench.xex
 
 $(BUILD)/%.xex: $(BUILD)/%.elf $(XSDK)/tools/elf2xex.py
 	$(PYTHON) $(XSDK)/tools/elf2xex.py $< $@
 
 $(BUILD)/vulkan4xenon_test.elf: $(TEST_OBJECTS) $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) $(XSDK_CRT0)
 	$(CC) $(LDFLAGS) -Wl,-Map,$(BUILD)/vulkan4xenon_test.map -o $@ $(XSDK_CRT0) $(TEST_OBJECTS) $(LIBS)
+	$(OBJDUMP) -d $@ | $(PYTHON) $(XSDK)/tools/xenia_scan.py
+
+$(BUILD)/vkbench.elf: $(BENCH_OBJECTS) $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) $(XSDK_CRT0)
+	$(CC) $(LDFLAGS) -Wl,-Map,$(BUILD)/vkbench.map -o $@ $(XSDK_CRT0) $(BENCH_OBJECTS) $(LIBS)
 	$(OBJDUMP) -d $@ | $(PYTHON) $(XSDK)/tools/xenia_scan.py
 
 $(BUILD)/libvulkan4xenon.a: $(LAYER_OBJECTS)
@@ -49,6 +58,10 @@ $(BUILD)/src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD)/tests/%.o: tests/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/bench/%.o: bench/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 

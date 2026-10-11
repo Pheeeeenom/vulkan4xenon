@@ -33,7 +33,15 @@ elsewhere). Build xsdk first, then:
 make
 ```
 
-That makes `build/libvulkan4xenon.a` and the test title, `build/vulkan4xenon_test.xex`.
+That makes `build/libvulkan4xenon.a`, the test title, `build/vulkan4xenon_test.xex`, and the benchmark,
+`build/vkbench.xex`.
+
+## Benchmark
+
+vkbench, ported from vulkan4vita, runs the same scenes through xsdk's GPU layer and then through vulkan4xenon, with
+the same shaders, and logs each frame's draw + submit and GPU time for both, and whether they drew the same picture.
+Every frame goes in `game:\vkbench_frames.csv` and the summary in `game:\vkbench_summary.csv`. docs/ROADMAP.md,
+milestone 5, has the scenes and how they're timed.
 
 ## Trademark
 
