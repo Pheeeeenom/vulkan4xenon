@@ -85,6 +85,9 @@ VkResult harness_depth_render_pass(
 	const Harness *harness, VkImageView depth, VkRenderPass *render_pass, VkFramebuffer *framebuffers);
 // A screen-sized D24S8 image and its view.
 VkResult harness_depth_image(const Harness *harness, VkImage *image, VkDeviceMemory *memory, VkImageView *view);
+// An optimal-tiled image of one level, its memory and a view of it all.
+VkResult harness_image(const Harness *harness, VkFormat format, uint32_t width, uint32_t height,
+	VkImageUsageFlags usage, VkImage *image, VkDeviceMemory *memory, VkImageView *view);
 void harness_destroy_render_pass(const Harness *harness, VkRenderPass render_pass, const VkFramebuffer *framebuffers);
 // Triangle lists over the whole screen: no culling, depth or blending.
 VkResult harness_pipeline(
@@ -141,5 +144,8 @@ extern const VkVertexInputBindingDescription harness_quad_binding;
 extern const VkVertexInputAttributeDescription harness_quad_attribute;
 // Pushes the quad's place and colour, then draws the bound unit quad.
 void harness_push_quad(VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad);
+// The same in a target of another size than the screen, with a viewport over all of it.
+void harness_push_quad_in(
+	VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad, uint32_t width, uint32_t height);
 
 #endif

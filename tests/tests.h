@@ -23,5 +23,7 @@ void test_indexed(const Harness *harness);
 void test_depth_stencil(const Harness *harness);
 // Culling, blending, a write mask, dynamic viewport and scissor, and pixel centres (milestone 3).
 void test_raster(const Harness *harness);
+// Images rendered, copied, loaded and sampled in the passes after, depth kept in eDRAM (milestone 4).
+void test_render_to_texture(const Harness *harness);
 
 #endif

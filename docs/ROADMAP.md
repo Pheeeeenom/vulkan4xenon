@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 3 are done; milestone 4 is next. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 3 are done; milestone 4 is under way. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -406,6 +406,71 @@ checks passed, milestones 1 and 2's 33 among them, and the console went back to 
 - depth resolves, so loading or sampling depth;
 - dynamic state beyond viewport and scissor;
 - instancing.
+
+### Milestone 4: render to texture
+
+**Done when** `build/vulkan4xenon_test.xex`, on the console, passes milestones 1 to 3's checks and these, each checked
+by pixel on the image the display shows:
+- `render_to_texture`: eight render passes a frame for 60 frames, in the order encounter's Aurora draws a frame
+  (aurora-vita:lib/vulkan4vita/encoding.cpp:647-756):
+  1. a scene drawn into a 200x120 `R8G8B8A8_UNORM` image with a D24S8 attachment, both cleared, depth tested;
+  2. that image drawn into a 96x64 `B8G8R8A8_UNORM` image, as encounter's Aurora copies its framebuffer;
+  3. the scene loaded again, colour and depth, with a quad that shows only where it's nearer than pass 1's depth;
+  4. the scene loaded straight after, in a pass without depth, with one more quad;
+  5. both images sampled onto the swapchain image;
+  6. a 64x32 `B8G8R8A8_UNORM` image cleared and drawn;
+  7. the swapchain image loaded after it, with that image drawn over it;
+  8. the swapchain image loaded straight after, with one more quad.
+- So the checks cover:
+  - depth tested in an image of another size than the screen, its last column intact;
+  - red and blue in place in both byte orders;
+  - colour loaded after another pass (3 and 7), where the image is drawn back in, and straight after (4 and 8),
+    where eDRAM still holds it;
+  - depth loaded after a pass without depth (3).
+
+**Decisions:**
+- **Where attachments go in eDRAM.** Colour from tile 0, and depth from the top, ending at tile 2048. xsdk put depth
+  at 0 and colour after it (libxenon:drivers/xenos/xe.c:998-1036), so a smaller colour target landed in a larger
+  one's depth. Now a pass without depth leaves an earlier pass's depth alone.
+- **What eDRAM holds.** The layer tracks eDRAM's colour and its depth apart: unknown, cleared to values at a
+  framebuffer's size, or an image's contents.
+  - A clear finds its values there, or a resolve into the attachment sets them, as milestone 1 decided.
+  - A load finds its image there, or the image is drawn back in.
+  - A pass's resolve clears what the next pass in the command buffer clears, and keeps what it loads. The last pass
+    in a command buffer clears to its own clear values, as milestones 1 to 3 did, so the next frame finds them.
+  - Copying into an image eDRAM holds makes eDRAM's copy unknown.
+- **Drawing an image back in.** eDRAM's modes draw or copy out; none loads memory in
+  (xenia:src/xenia/gpu/xenos.h:886-910). So a load draws the image over the framebuffer with the layer's own shaders,
+  point-sampled texel for texel, with no blending, depth or stencil. Those shaders are built offline like an app's,
+  into `src/blit_shaders.c`.
+- **Depth stays in eDRAM.** Depth resolves are an xsdk TODO, so depth can be loaded only while eDRAM still holds it:
+  no other depth attachment and no colour reaching its tiles since. Otherwise its contents are undefined, and the
+  layer logs that once.
+  - Depth and stencil clear together, as one register holds both (xsdk:src/gpu_resolve.c), so a pass that clears one
+    and loads the other returns `VK_ERROR_FEATURE_NOT_PRESENT`.
+- **Resolves into images.** xsdk resolves into tiled textures of the byte-order formats now, swapping red and blue for
+  `B8G8R8A8` and leaving the bytes in place (xenia:src/xenia/gpu/shaders/resolve.xesli:768-795). It resolves a
+  texture's whole pitch, a multiple of 32, so widths needn't be one.
+- **Colour attachment images:**
+  - `R8G8B8A8_UNORM` and `B8G8R8A8_UNORM`, one level, both sides over 16 texels. A smaller base level sits in the
+    packed mip tail, where a resolve can't write (xsdk:src/gpu_resolve.c:180-181).
+  - A framebuffer's colour and depth fit eDRAM's 2048 tiles together.
+- **Swapchain images load the same way.** A front buffer holds what a resolve into a tiled 1280x720 `B8G8R8A8`
+  texture writes, at the same size (xsdk:src/gpu_resolve.c:171-174), so the layer samples it as one.
+
+**New in xsdk:** `xsdk_gpu_set_target_at` and `xsdk_gpu_target_tiles`, to place targets in eDRAM;
+`xsdk_gpu_set_resolve_clears`, as a resolve cleared both colour and depth before; byte-order formats in
+`xsdk_gpu_resolve_texture`.
+
+**New functions:** none. Colour attachment images, `VK_ATTACHMENT_LOAD_OP_LOAD` and `R8G8B8A8_UNORM` colour
+attachments are new.
+
+**Not in milestone 4:**
+- render areas smaller than the framebuffer. Milestone 1 put them here, but they need a resolve of part of eDRAM or
+  clears by drawing, and encounter's Aurora always renders whole targets
+  (aurora-vita:lib/vulkan4vita/encoding.cpp:275, 713). They wait for an app that needs them.
+- depth resolves, so depth loaded after eDRAM lost it, sampled or copied;
+- colour attachments 16 texels or less on a side, with mips, or more than one in a subpass.
 
 ## 5. The Dusklight track
 

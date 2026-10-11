@@ -1,14 +1,17 @@
 #include <vulkan/vulkan.h>
 
 #include "host.h"
+#include "image.h"
 #include "objects.h"
 
 // One subpass drawing into one colour attachment, and a depth attachment if it has one. Both live in eDRAM during the
-// pass; the colour is resolved at its end.
+// pass; the colour is resolved at its end, and depth stays (docs/ROADMAP.md, milestone 4).
 
-static bool clear_or_dont_care(VkAttachmentLoadOp op)
+// One register holds the depth and stencil a resolve clears to, so they clear together (xsdk:src/gpu_resolve.c).
+static bool clear_and_load(VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil)
 {
-	return op == VK_ATTACHMENT_LOAD_OP_CLEAR || op == VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	return (depth == VK_ATTACHMENT_LOAD_OP_CLEAR && stencil == VK_ATTACHMENT_LOAD_OP_LOAD) ||
+		(depth == VK_ATTACHMENT_LOAD_OP_LOAD && stencil == VK_ATTACHMENT_LOAD_OP_CLEAR);
 }
 
 static VkResult check_subpass(const VkRenderPassCreateInfo *info)
@@ -24,15 +27,16 @@ static VkResult check_subpass(const VkRenderPassCreateInfo *info)
 		(has_depth && (depth->attachment >= info->attachmentCount || depth->attachment == color)))
 		return v4x_host_unsupported("attachments a subpass doesn't use");
 	const VkAttachmentDescription *const target = &info->pAttachments[color];
-	if (target->format != VK_FORMAT_B8G8R8A8_UNORM || target->samples != VK_SAMPLE_COUNT_1_BIT ||
-		!clear_or_dont_care(target->loadOp))
-		return v4x_host_unsupported("colour attachments other than single-sampled B8G8R8A8_UNORM, cleared or not");
+	uint32_t format = 0;
+	if (!v4x_image_format(target->format, &format) || target->samples != VK_SAMPLE_COUNT_1_BIT)
+		return v4x_host_unsupported("colour attachments other than single-sampled R8G8B8A8_UNORM and B8G8R8A8_UNORM");
 	if (!has_depth)
 		return VK_SUCCESS;
 	const VkAttachmentDescription *const stencil = &info->pAttachments[depth->attachment];
-	if (stencil->format != VK_FORMAT_D24_UNORM_S8_UINT || stencil->samples != VK_SAMPLE_COUNT_1_BIT ||
-		!clear_or_dont_care(stencil->loadOp) || !clear_or_dont_care(stencil->stencilLoadOp))
-		return v4x_host_unsupported("depth attachments other than single-sampled D24_UNORM_S8_UINT, cleared or not");
+	if (stencil->format != VK_FORMAT_D24_UNORM_S8_UINT || stencil->samples != VK_SAMPLE_COUNT_1_BIT)
+		return v4x_host_unsupported("depth attachments other than single-sampled D24_UNORM_S8_UINT");
+	if (clear_and_load(stencil->loadOp, stencil->stencilLoadOp))
+		return v4x_host_unsupported("depth and stencil attachments that clear one and load the other");
 	return VK_SUCCESS;
 }
 
@@ -61,6 +65,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateRenderPass(VkDevice device, const VkRende
 		render_pass->depth_index = depth->attachment;
 		render_pass->clears_depth =
 			stencil->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR || stencil->stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR;
+		render_pass->loads_depth =
+			stencil->loadOp == VK_ATTACHMENT_LOAD_OP_LOAD || stencil->stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD;
 	}
 	*pRenderPass = v4x_handle(render_pass);
 	return VK_SUCCESS;
@@ -79,8 +85,11 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateFramebuffer(VkDevice device, const VkFram
 	if (pCreateInfo->attachmentCount != 1u + render_pass->has_depth || pCreateInfo->layers != 1)
 		return v4x_host_unsupported("framebuffers other than the render pass's attachments and one layer");
 	const ImageView *const view = v4x_object(pCreateInfo->pAttachments[render_pass->color_index]);
-	if (view->image->is_texture || view->image->is_depth)
-		return v4x_host_unsupported("rendering into images other than the swapchain's");
+	if (!view->image->is_attachment)
+		return v4x_host_unsupported("colour attachments without VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT");
+	// Colour and depth at the display's size fill 1440 of eDRAM's tiles (xsdk:SCOPE.md 3.4).
+	if (pCreateInfo->width > V4X_DISPLAY_WIDTH || pCreateInfo->height > V4X_DISPLAY_HEIGHT)
+		return v4x_host_unsupported("framebuffers larger than 1280x720");
 	const Image *depth = NULL;
 	if (render_pass->has_depth) {
 		depth = ((const ImageView *)v4x_object(pCreateInfo->pAttachments[render_pass->depth_index]))->image;

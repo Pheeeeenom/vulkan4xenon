@@ -33,6 +33,7 @@ int main(void)
 		test_indexed(&harness);
 		test_depth_stencil(&harness);
 		test_raster(&harness);
+		test_render_to_texture(&harness);
 	}
 	harness_destroy(&harness);
 	xsdk_log_write("tests: %d passed, %d failed", passed_count, failed_count);

@@ -138,14 +138,13 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 {
 	(void)physicalDevice;
 	*pFormatProperties = (VkFormatProperties){ 0 };
-	const VkFormatFeatureFlags sampled =
-		VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+	const VkFormatFeatureFlags color = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+		VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
+		VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
 	switch (format) {
 	case VK_FORMAT_R8G8B8A8_UNORM:
-		pFormatProperties->optimalTilingFeatures = sampled;
-		break;
 	case VK_FORMAT_B8G8R8A8_UNORM:
-		pFormatProperties->optimalTilingFeatures = sampled | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+		pFormatProperties->optimalTilingFeatures = color;
 		break;
 	case VK_FORMAT_D24_UNORM_S8_UINT:
 		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -180,15 +179,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 		return VK_SUCCESS;
 	}
 	uint32_t xsdk_format;
-	const VkImageUsageFlags supported = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	if (!v4x_image_format(format, &xsdk_format) || type != VK_IMAGE_TYPE_2D || tiling != VK_IMAGE_TILING_OPTIMAL ||
-		(usage & ~supported) || flags) {
+		(usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE) || flags) {
 		*pImageFormatProperties = (VkImageFormatProperties){ 0 };
 		return VK_ERROR_FORMAT_NOT_SUPPORTED;
 	}
 	*pImageFormatProperties = (VkImageFormatProperties){
 		.maxExtent = { XSDK_TEXTURE_MAX_SIZE, XSDK_TEXTURE_MAX_SIZE, 1 },
-		.maxMipLevels = MAX_IMAGE_LEVELS,
+		.maxMipLevels = (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? 1 : MAX_IMAGE_LEVELS,
 		.maxArrayLayers = 1,
 		.sampleCounts = VK_SAMPLE_COUNT_1_BIT,
 		.maxResourceSize = HEAP_BYTES,

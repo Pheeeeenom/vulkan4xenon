@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "blit.h"
 #include "host.h"
 #include "objects.h"
 #include "physical_device.h"
@@ -63,6 +64,15 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, c
 	const NTSTATUS splash = xsdk_splash_begin();
 	if (!NT_SUCCESS(splash))
 		xsdk_log_write("vulkan4xenon: no boot logo: 0x%08X", (unsigned)splash);
+	const VkResult blit = v4x_blit_create(&device->queue.blit);
+	if (blit != VK_SUCCESS) {
+		xsdk_splash_end();
+		const NTSTATUS closed = xsdk_gpu_close();
+		if (!NT_SUCCESS(closed))
+			xsdk_log_write("vulkan4xenon: xsdk_gpu_close failed: 0x%08X", (unsigned)closed);
+		v4x_host_free(allocator, device);
+		return blit;
+	}
 	if (allocator) {
 		device->allocator = *allocator;
 		device->has_allocator = true;
@@ -81,6 +91,7 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyDevice(VkDevice device, const VkAllocationCa
 {
 	if (!device)
 		return;
+	v4x_blit_destroy(&device->queue.blit);
 	xsdk_splash_end();
 	const NTSTATUS status = xsdk_gpu_close();
 	if (!NT_SUCCESS(status))

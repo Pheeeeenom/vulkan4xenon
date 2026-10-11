@@ -11,7 +11,8 @@ GXM.
 The goal is running Dusklight, a reimplementation of Twilight Princess built on encounter's Aurora, on an RGH console.
 
 **Status:** milestones 1 (a triangle), 2 (textures, descriptors and push constants) and 3 (pipeline state) passed on
-the console on 2026-10-11. docs/ROADMAP.md is the plan, and docs/SUPPORT.md lists what exists.
+the console on 2026-10-11; milestone 4 (render to texture) awaits its hardware run. docs/ROADMAP.md is the plan, and
+docs/SUPPORT.md lists what exists.
 
 ## Shaders
 

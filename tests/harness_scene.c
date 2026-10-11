@@ -87,16 +87,23 @@ VkResult harness_depth_render_pass(
 
 VkResult harness_depth_image(const Harness *harness, VkImage *image, VkDeviceMemory *memory, VkImageView *view)
 {
+	return harness_image(harness, VK_FORMAT_D24_UNORM_S8_UINT, HARNESS_WIDTH, HARNESS_HEIGHT,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, image, memory, view);
+}
+
+VkResult harness_image(const Harness *harness, VkFormat format, uint32_t width, uint32_t height,
+	VkImageUsageFlags usage, VkImage *image, VkDeviceMemory *memory, VkImageView *view)
+{
 	const VkImageCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		.imageType = VK_IMAGE_TYPE_2D,
-		.format = VK_FORMAT_D24_UNORM_S8_UINT,
-		.extent = { HARNESS_WIDTH, HARNESS_HEIGHT, 1 },
+		.format = format,
+		.extent = { width, height, 1 },
 		.mipLevels = 1,
 		.arrayLayers = 1,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
-		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		.usage = usage,
 	};
 	VkResult result = vkCreateImage(harness->device, &info, NULL, image);
 	if (result != VK_SUCCESS)
@@ -110,12 +117,15 @@ VkResult harness_depth_image(const Harness *harness, VkImage *image, VkDeviceMem
 	result = vkAllocateMemory(harness->device, &allocate_info, NULL, memory);
 	if (result == VK_SUCCESS)
 		result = vkBindImageMemory(harness->device, *image, *memory, 0);
+	const bool depth = format == VK_FORMAT_D24_UNORM_S8_UINT;
 	const VkImageViewCreateInfo view_info = {
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.image = *image,
 		.viewType = VK_IMAGE_VIEW_TYPE_2D,
-		.format = VK_FORMAT_D24_UNORM_S8_UINT,
-		.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 },
+		.format = format,
+		.subresourceRange = { depth ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
+									: VK_IMAGE_ASPECT_COLOR_BIT,
+			0, 1, 0, 1 },
 	};
 	if (result == VK_SUCCESS)
 		result = vkCreateImageView(harness->device, &view_info, NULL, view);
@@ -358,11 +368,17 @@ VkResult harness_quad_buffer(const Harness *harness, VkBuffer *buffer, VkDeviceM
 	return harness_buffer(harness, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, quad, sizeof quad, buffer, memory);
 }
 
-// push.vert works out position = unit quad * scale + offset, so the quad's pixels become clip space here.
 void harness_push_quad(VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad)
 {
-	const float half_width = HARNESS_WIDTH / 2.0f;
-	const float half_height = HARNESS_HEIGHT / 2.0f;
+	harness_push_quad_in(commands, layout, quad, HARNESS_WIDTH, HARNESS_HEIGHT);
+}
+
+// push.vert works out position = unit quad * scale + offset, so the quad's pixels become clip space here.
+void harness_push_quad_in(
+	VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad, uint32_t width, uint32_t height)
+{
+	const float half_width = (float)width / 2.0f;
+	const float half_height = (float)height / 2.0f;
 	const float left = quad->mirrored ? quad->x + quad->width : quad->x;
 	const float place[8] = {
 		(quad->mirrored ? -quad->width : quad->width) / half_width,

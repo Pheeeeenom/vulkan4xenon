@@ -124,27 +124,36 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 
 ## Render passes
 
-- One subpass with one colour attachment, `VK_FORMAT_B8G8R8A8_UNORM`, one sample, and optionally a depth attachment,
-  `VK_FORMAT_D24_UNORM_S8_UINT`.
-- Load ops clear or don't-care; `VK_ATTACHMENT_LOAD_OP_LOAD` returns `VK_ERROR_FEATURE_NOT_PRESENT`. Store op store or
-  don't-care.
-- **Depth isn't stored:** a depth attachment lives in eDRAM, and resolving depth out is an xsdk TODO. So its store op
-  keeps nothing. Nothing can tell: loading it returns `VK_ERROR_FEATURE_NOT_PRESENT`, and depth images can't be
-  sampled or copied.
-- Framebuffers: the render pass's attachments, their full size, one layer. The render area must be the whole
+- One subpass with one colour attachment, `VK_FORMAT_R8G8B8A8_UNORM` or `VK_FORMAT_B8G8R8A8_UNORM`, one sample, and
+  optionally a depth attachment, `VK_FORMAT_D24_UNORM_S8_UINT`.
+- Every load op: clear, load or don't-care. Store op store or don't-care.
+- Depth and stencil clear together, as one register holds both (xsdk:src/gpu_resolve.c). A depth attachment that
+  clears one and loads the other returns `VK_ERROR_FEATURE_NOT_PRESENT`.
+- **Depth stays in eDRAM:** resolving depth out is an xsdk TODO, so a depth attachment is stored only in eDRAM.
+  Loading it finds what the last pass left there, as long as no other depth attachment and no colour reaching its
+  tiles came in between. **Deviation:** otherwise its contents are undefined, and the layer logs that once. Depth
+  images can't be sampled or copied.
+- Framebuffers: the render pass's attachments, their full size, up to 1280x720, one layer. Colour attachments are
+  swapchain images or images made with `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`. The render area must be the whole
   framebuffer.
-- How it maps:
-  - the pass draws into eDRAM, and its end resolves into the attachment's image;
-  - a resolve also clears eDRAM: colour to the colour it's given (xsdk:src/gpu_resolve.c:112-128), depth and stencil
-    to `xsdk_gpu_set_depth_clear`'s. So each pass's resolve clears to that pass's clear values;
-  - a pass that clears to what eDRAM already holds does nothing more. Otherwise beginning it resolves into the
-    attachment once to clear eDRAM, copying junk the pass then overwrites.
-- Framebuffers: swapchain images only. Rendering into other images is milestone 4.
+- How it maps (docs/ROADMAP.md, milestone 4):
+  - the pass draws into eDRAM, colour from tile 0 and depth ending at tile 2048, so a pass without depth leaves an
+    earlier pass's depth alone;
+  - its end resolves the colour into the attachment's image;
+  - the layer tracks what eDRAM holds: values a resolve cleared it to, at a framebuffer's size, or an image's
+    contents;
+  - a clear finds its values there, or beginning the pass resolves into the attachment to set them, copying junk the
+    pass then overwrites;
+  - a load finds its image there, or the layer draws the image back in, texel for texel, with its own shaders;
+  - a pass's resolve clears what the next pass in the command buffer clears, and keeps what it loads. The last pass in
+    a command buffer clears to its own values, so the next frame's usually finds them.
 
 ## Images
 
-- 2D, one layer, one sample, optimal tiling, used for sampling and copying in; anything else returns
-  `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1.
+- 2D, one layer, one sample, optimal tiling, used for sampling, copying in and as colour attachments; anything else
+  returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1.
+- Colour attachment images have one level, and both sides over 16 texels: a smaller base level sits in the packed mip
+  tail, where a resolve can't write (xsdk:src/gpu_resolve.c). Others return `VK_ERROR_FEATURE_NOT_PRESENT`.
 - Optimal tiling is Xenos's tiled layout, with mips as xsdk milestones 15 and 16 settled.
 - Memory requirements: the texture's size, 4 KB aligned, as a fetch constant holds its address in 4 KB units. Binding
   places the texels at the memory (`xsdk_texture_attach`).
@@ -224,8 +233,7 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 
 | Format | Features |
 |---|---|
-| `VK_FORMAT_R8G8B8A8_UNORM` | optimal tiling: sampled, linear filtering |
-| `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment |
+| `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending |
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment |
 | `VK_FORMAT_R32_SFLOAT`, `R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT` | buffer: vertex buffer |
 

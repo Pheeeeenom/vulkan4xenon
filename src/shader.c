@@ -1,3 +1,5 @@
+#include "shader.h"
+
 #include <vulkan/vulkan.h>
 
 #include "host.h"
@@ -29,23 +31,26 @@ static uint64_t spirv_hash(const uint32_t *code, uint32_t size_bytes)
 	return hash;
 }
 
+const V4xShader *v4x_shader_find(const V4xShaderBundle *bundle, const uint32_t *code, uint32_t size_bytes)
+{
+	const uint64_t hash = spirv_hash(code, size_bytes);
+	for (uint32_t i = 0; bundle && i < bundle->count; i++) {
+		const V4xShader *const shader = &bundle->shaders[i];
+		if (shader->spirv_hash == hash && shader->spirv_size_bytes == size_bytes)
+			return shader;
+	}
+	xsdk_log_write("vulkan4xenon: no compiled shader for SPIR-V %08X%08X, %u bytes", (unsigned)(hash >> 32),
+		(unsigned)hash, (unsigned)size_bytes);
+	return NULL;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateShaderModule(VkDevice device, const VkShaderModuleCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkShaderModule *pShaderModule)
 {
-	const uint32_t size_bytes = (uint32_t)pCreateInfo->codeSize;
-	const uint64_t hash = spirv_hash(pCreateInfo->pCode, size_bytes);
-	const V4xShaderBundle *const bundle = &v4x_shader_bundle;
-	const V4xShader *found = NULL;
-	for (uint32_t i = 0; bundle && i < bundle->count && !found; i++) {
-		const V4xShader *const shader = &bundle->shaders[i];
-		if (shader->spirv_hash == hash && shader->spirv_size_bytes == size_bytes)
-			found = shader;
-	}
-	if (!found) {
-		xsdk_log_write("vulkan4xenon: no compiled shader for SPIR-V %08X%08X, %u bytes", (unsigned)(hash >> 32),
-			(unsigned)hash, (unsigned)size_bytes);
+	const V4xShader *const found =
+		v4x_shader_find(&v4x_shader_bundle, pCreateInfo->pCode, (uint32_t)pCreateInfo->codeSize);
+	if (!found)
 		return VK_ERROR_FEATURE_NOT_PRESENT;
-	}
 	ShaderModule *const module = v4x_host_alloc(
 		v4x_host_device_allocator(device, pAllocator), sizeof *module, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!module)

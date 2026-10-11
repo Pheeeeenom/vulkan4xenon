@@ -50,20 +50,46 @@ struct VkInstance_T {
 	struct VkPhysicalDevice_T physical_device;
 };
 
-// What eDRAM holds between render passes: a resolve clears its colour, depth and stencil to known values.
+typedef enum {
+	EDRAM_UNKNOWN,
+	// A resolve cleared it to known values, over a framebuffer of a size.
+	EDRAM_CLEARED,
+	// It holds an image's contents.
+	EDRAM_IMAGE,
+} EdramContents;
+
+// What eDRAM's colour, or its depth and stencil, holds between render passes (docs/ROADMAP.md, milestone 4).
 typedef struct {
-	bool known;
+	EdramContents contents;
+	uint32_t width;
+	uint32_t height;
 	uint32_t argb;
 	float depth;
 	uint32_t stencil;
-} Edram;
+	const struct Image *image;
+} EdramPart;
+
+// The layer's own shaders and state for drawing an image back into eDRAM.
+typedef struct {
+	XsdkShader vertex;
+	XsdkShader pixel;
+	volatile uint32_t *vertices;
+	uint32_t vertices_address;
+	uint32_t texture_slot;
+	XsdkSamplerState sampler;
+	XsdkBlendState blend;
+	XsdkRasterState raster;
+	XsdkDepthStencilState depth_stencil;
+} Blit;
 
 struct VkQueue_T {
 	VkDevice device;
-	Edram edram;
+	EdramPart color;
+	EdramPart depth;
 	// The depth and stencil resolves clear to, as last given to xsdk_gpu_set_depth_clear.
 	float depth_clear;
 	uint32_t stencil_clear;
+	Blit blit;
 };
 
 struct VkDevice_T {
@@ -84,13 +110,16 @@ typedef struct {
 	uint32_t offset_bytes;
 } Buffer;
 
-// A swapchain image, a front buffer of xsdk_present at address, or a texture in memory bound to it.
-typedef struct {
+// A swapchain image, a front buffer of xsdk_present at address, or a texture in memory bound to it. Both have a
+// texture, to sample or to draw back into eDRAM.
+typedef struct Image {
 	uint32_t address;
 	uint32_t width;
 	uint32_t height;
 	VkFormat format;
 	bool is_texture;
+	// Render passes may resolve into it.
+	bool is_attachment;
 	// A depth attachment lives in eDRAM; its memory is never used.
 	bool is_depth;
 	XsdkTexture texture;
@@ -186,6 +215,7 @@ typedef struct {
 	bool has_depth;
 	uint32_t depth_index;
 	bool clears_depth;
+	bool loads_depth;
 } RenderPass;
 
 typedef struct {
