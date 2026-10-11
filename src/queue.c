@@ -56,6 +56,7 @@ typedef struct {
 	// What each stream and texture slot points at, so a draw points only what changed; zero where it isn't known.
 	VertexBinding pointed_streams[XSDK_VERTEX_STREAMS];
 	PointedTexture pointed_textures[TEXTURE_SLOTS];
+	ConstantRing *ring;
 } Replay;
 
 // A block's registers on their way into the constants; the queue is externally synchronized, so one copy will do.
@@ -145,6 +146,30 @@ static bool load_uniform_buffer(const Replay *replay, const V4xShaderResource *r
 	return true;
 }
 
+// Copies the block's pushes into the ring, padded to whole groups, for the GPU to load; xost gives each push block its
+// groups to itself, so the padding overwrites nothing.
+static bool load_push_constants(Replay *replay, const V4xShaderResource *resource, bool vertex)
+{
+	if (resource->first % CONSTANT_GROUP)
+		return false;
+	const uint32_t count = (resource->count + CONSTANT_GROUP - 1) / CONSTANT_GROUP * CONSTANT_GROUP;
+	uint32_t address;
+	volatile uint32_t *const words = v4x_ring_take(replay->ring, count * 16, &address);
+	if (!words)
+		return false;
+	for (uint32_t i = 0; i < count * 4; i++) {
+		uint32_t word = 0;
+		if (i < resource->count * 4)
+			memcpy(&word, &replay->push[i], sizeof word);
+		words[i] = word;
+	}
+	if (vertex)
+		xsdk_gpu_load_vertex_constants(resource->first, address, count);
+	else
+		xsdk_gpu_load_pixel_constants(resource->first, address, count);
+	return true;
+}
+
 // Points a slot at the texture and sampler unless it already is.
 static void point_texture(Replay *replay, uint32_t slot, const Descriptor *descriptor)
 {
@@ -162,7 +187,8 @@ static void apply_resources(const Pipeline *pipeline, Replay *replay)
 		const V4xShaderResource *const resource = &pipeline->resources[i].resource;
 		const bool vertex = pipeline->resources[i].vertex;
 		if (resource->kind == V4X_RESOURCE_PUSH_CONSTANTS) {
-			write_constants(vertex, resource->first, replay->push, resource->count);
+			if (!load_push_constants(replay, resource, vertex))
+				write_constants(vertex, resource->first, replay->push, resource->count);
 			continue;
 		}
 		if (!replay->sets[resource->set])
@@ -509,16 +535,19 @@ VKAPI_ATTR VkResult VKAPI_CALL vkQueueSubmit(
 	// Mapped memory is coherent, so the app may have written any of it; one invalidate covers it all, as xsdk's set-up
 	// covers memory (xsdk:src/gpu_setup.c).
 	xsdk_gpu_invalidate(0, ALL_MEMORY_BYTES);
+	v4x_ring_begin(&queue->ring);
 	for (uint32_t i = 0; i < submitCount; i++) {
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
 			const VkCommandBuffer buffer = pSubmits[i].pCommandBuffers[j];
-			Replay replay = { .pipeline_dirty = true };
+			Replay replay = { .pipeline_dirty = true, .ring = &queue->ring };
 			for (uint32_t c = 0; c < buffer->count; c++)
 				replay_command(queue, buffer, &replay, c);
 		}
 	}
 	// One queue replays in order, so semaphores need nothing; the fence submits the ring either way.
-	v4x_sync_submitted(v4x_object(fence), xsdk_gpu_fence());
+	const uint32_t number = xsdk_gpu_fence();
+	v4x_ring_end(&queue->ring, number);
+	v4x_sync_submitted(v4x_object(fence), number);
 	return VK_SUCCESS;
 }
 

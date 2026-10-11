@@ -6,6 +6,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "constant_ring.h"
 #include "vulkan4xenon.h"
 #include "xsdk/gpu.h"
 #include "xsdk/shader.h"
@@ -92,6 +93,7 @@ struct VkQueue_T {
 	float depth_clear;
 	uint32_t stencil_clear;
 	Blit blit;
+	ConstantRing ring;
 };
 
 struct VkDevice_T {

@@ -126,6 +126,8 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
    uncached read a word.
 7. **Uniform blocks the GPU loads,** agreed on 2026-10-11 after milestone 6. Done when the GPU loads each uniform block
    straight from its buffer, and reading uniform buffers costs a draw next to nothing.
+8. **Push constants the GPU loads,** agreed on 2026-10-11 after milestone 7. Done when each draw's push constants go
+   through a ring the GPU loads them from, and push draws cost less for it.
 
 ### Milestone 1: a triangle through Vulkan (done)
 
@@ -687,6 +689,29 @@ overwrite whatever shared a block's groups.
   literals; only a uniform block, which the GPU loads, needs groups to itself.
 - **Buffers are 64-byte aligned,** as the console loaded constants from; with uniform offsets in 256s, every uniform
   block in a buffer bound at a 64-byte offset can be loaded.
+
+### Milestone 8: push constants the GPU loads
+
+**Why.** After milestone 7 a draw taking its matrix and tint from uniform buffers cost 0.72 us through the layer, and
+one pushing them 1.22 us: the CPU writes push blocks into constants itself, through xsdk's setters and their copy, 65
+dwords a cube against a uniform draw's 17.
+
+**In two parts,** run on the console together:
+1. **xost gives push blocks whole groups of 4 to themselves,** as uniform blocks have, so loading one can't overwrite
+   anything else.
+2. **A ring the GPU loads push constants from.** A 4 MB ring of write-combined memory: each draw copies its push blocks
+   in, padded to groups of 4, and has the GPU load them. A submit's bytes are reused once the GPU passes its fence, and
+   the invalidate each submit starts with keeps the GPU's caches from holding an earlier lap. A submit that would lap
+   the ring by itself, or a block that doesn't start a group, goes through the CPU as now.
+
+The bytes the CPU stores barely change, about 48 into the ring against 56 written into constants; what goes is the
+setters' bookkeeping.
+
+**Done when,** on the console:
+- vkbench's `draws_1000` through the layer draws and submits faster than its 1,215 us, measurably; otherwise the
+  change is reverted (xsdk:CODE_GUIDELINES.md, "Measure, don't guess");
+- vulkan4xenon_test passes in full, and vkbench's backends still draw the same pictures;
+- xost's tests pass.
 
 ## 5. The Dusklight track
 
