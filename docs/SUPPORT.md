@@ -119,8 +119,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   - y points down, so the viewport is set from its bottom edge with a negative height, against xsdk's y-up
     (xsdk:src/gpu_draw.c:298);
   - pixel centres sit on halves. Xenos puts them on whole coordinates under xsdk's `PIX_CENTER_D3D`
-    (xenia:src/xenia/gpu/xenos.h:861-866), so the viewport moves half a pixel up and left. Milestone 3's `raster`
-    test checks edges a quarter pixel off the grid, which only centres on halves cover as Vulkan says.
+    (xenia:src/xenia/gpu/xenos.h:861-866), so the viewport moves half a pixel up and left. On the console, edges a
+    quarter pixel off the grid covered exactly what Vulkan's centres say (milestone 3).
 
 ## Render passes
 

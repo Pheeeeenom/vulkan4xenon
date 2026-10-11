@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 and 2 are done; milestone 3 is under way. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 3 are done; milestone 4 is next. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -320,7 +320,7 @@ formats.
 - dynamic indexing into uniform arrays;
 - other copies and blits.
 
-### Milestone 3: pipeline state (in progress)
+### Milestone 3: pipeline state (done)
 
 **Done when** `build/vulkan4xenon_test.xex`, on the console, passes milestones 1 and 2's checks and these, each checked
 by pixel on the image the display shows:
@@ -341,7 +341,31 @@ by pixel on the image the display shows:
   - dynamic viewport and scissor;
   - edges a quarter pixel off the pixel grid, which tell Vulkan's pixel centres from Direct3D 9's.
 
-**Passed on hardware:** not yet.
+**Passed on hardware** on 2026-10-11, at `376e2da` with xsdk at `604bdfb` (`results/2026-10-11-milestone-3/`). All 45
+checks passed, milestones 1 and 2's 33 among them, and the console went back to the Aurora dashboard.
+- **Three things this settled that were assumptions before:**
+  - **Pixel centres.** Edges a quarter pixel off the grid covered exactly the pixels Vulkan's centres on halves say,
+    600 to 699 and 500 to 599. So the half-pixel viewport shift is right, and Xenos centres pixels on whole
+    coordinates under `PIX_CENTER_D3D`, as Xenia says.
+  - **Front faces.** Every culling case matched with `frontFace` mapped straight to `front_clockwise`, under the
+    flipped viewport. Xenos decides facing from where vertices land on screen.
+  - **Triangle fans,** first drawn on the console.
+- **Indexed:**
+  - triangle lists, strips and fans, line lists and strips, and points, from 16- and 32-bit indices;
+  - a first index and vertex offsets;
+  - a list of 65541 indices split in two, its quad at indices past 65535.
+- **Depth and stencil:**
+  - depth cleared to 0.5 with the render pass;
+  - nearer won in both draw orders, and a draw that wrote no depth was covered by a farther one;
+  - nothing showed behind the clear;
+  - stencil drew only over a mask written without colour;
+  - a constant bias of -0.01, given in 2^-24 units, pulled an equal-depth quad in front.
+- **Raster:**
+  - culling under both front faces;
+  - alpha, additive, subtract, reverse subtract, min and max blends within 2 per channel;
+  - a red-and-blue write mask;
+  - a dynamic viewport filled and a scissor clipped, the scissor's right and bottom edges exclusive.
+- **Captures:** `indexed.png`, `depth_stencil.png` and `raster.png` in the results folder.
 
 **Decisions:**
 - **State maps onto what xsdk milestones 12 to 14 proved**, worked out when a pipeline is created
