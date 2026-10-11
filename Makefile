@@ -1,0 +1,57 @@
+# Builds the layer and its test title against xsdk. Run inside WSL Debian, after building xsdk.
+
+# xsdk's repository, built with its own make.
+XSDK ?= ../Xbox-360-SDK
+TOOLCHAIN ?= $(HOME)/xsdk-gcc/bin/powerpc-xsdk-elf-
+CC := $(TOOLCHAIN)gcc
+AR := $(TOOLCHAIN)ar
+OBJDUMP := $(TOOLCHAIN)objdump
+PYTHON ?= python3
+
+BUILD := build
+
+WARNINGS := -Wall -Wextra -Werror
+INCLUDES := -Iinclude -Ithird_party/vulkan-headers/include -I$(XSDK)/include
+CFLAGS := -mcpu=cell -fno-pic -std=gnu17 -O2 -g $(WARNINGS) $(INCLUDES) -MMD -MP
+LDFLAGS := -static -nostdlib -T $(XSDK)/src/xsdk.ld
+XSDK_LIBRARY := $(XSDK)/build/libxsdk.a
+XSDK_CRT0 := $(XSDK)/build/sdk/crt0.o
+LIBS := -Wl,--start-group $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) -lstdc++ -lc -lm -lgcc -Wl,--end-group
+
+LAYER_SOURCES := src/host.c src/proc_addr.c src/instance.c src/physical_device.c src/display.c src/device.c \
+	src/memory.c src/shader.c src/pipeline.c src/render_pass.c src/command_buffer.c src/queue.c src/sync.c \
+	src/swapchain.c
+LAYER_OBJECTS := $(patsubst src/%.c,$(BUILD)/src/%.o,$(LAYER_SOURCES))
+
+# tests/shaders.c comes from tools/build_shaders.py, run by hand where glslang and xost are.
+TEST_SOURCES := tests/main.c tests/harness.c tests/test_boot_logo.c tests/test_objects.c tests/test_triangle.c \
+	tests/shaders.c
+TEST_OBJECTS := $(patsubst tests/%.c,$(BUILD)/tests/%.o,$(TEST_SOURCES))
+
+.PHONY: all clean
+.SECONDARY:
+all: $(BUILD)/vulkan4xenon_test.xex
+
+$(BUILD)/%.xex: $(BUILD)/%.elf $(XSDK)/tools/elf2xex.py
+	$(PYTHON) $(XSDK)/tools/elf2xex.py $< $@
+
+$(BUILD)/vulkan4xenon_test.elf: $(TEST_OBJECTS) $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) $(XSDK_CRT0)
+	$(CC) $(LDFLAGS) -Wl,-Map,$(BUILD)/vulkan4xenon_test.map -o $@ $(XSDK_CRT0) $(TEST_OBJECTS) $(LIBS)
+	$(OBJDUMP) -d $@ | $(PYTHON) $(XSDK)/tools/xenia_scan.py
+
+$(BUILD)/libvulkan4xenon.a: $(LAYER_OBJECTS)
+	rm -f $@
+	$(AR) rcs $@ $^
+
+$(BUILD)/src/%.o: src/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/tests/%.o: tests/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(BUILD)
+
+-include $(shell find $(BUILD) -name '*.d' 2>/dev/null)

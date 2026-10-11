@@ -1,0 +1,146 @@
+#include <string.h>
+
+#include <vulkan/vulkan.h>
+
+#include "host.h"
+#include "objects.h"
+
+enum {
+	// A budget for the layer, half the console's 512 MB that the CPU and GPU share; not a measurement.
+	HEAP_BYTES = 256u << 20,
+	// xsdk_gpu_alloc hands out 64 KB pages, so a mapping starts on one.
+	MAP_ALIGNMENT = 64 << 10,
+	// The CPU's cache line.
+	CACHE_LINE_BYTES = 128,
+	VIEWPORT_MAX = 4096,
+};
+
+static const VkExtensionProperties device_extensions[] = {
+	{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SWAPCHAIN_SPEC_VERSION },
+};
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
+	VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties *pProperties)
+{
+	(void)physicalDevice;
+	*pProperties = (VkPhysicalDeviceProperties){
+		.apiVersion = VK_MAKE_API_VERSION(0, 1, 0, VK_HEADER_VERSION),
+		.driverVersion = 1,
+		.deviceType = VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
+		.deviceName = "Xenos (vulkan4xenon)",
+		.limits = {
+			.maxMemoryAllocationCount = HEAP_BYTES / MAP_ALIGNMENT,
+			.bufferImageGranularity = 1,
+			.maxVertexInputAttributes = V4X_MAX_VERTEX_ATTRIBUTES,
+			.maxVertexInputBindings = V4X_MAX_VERTEX_BINDINGS,
+			.maxVertexInputAttributeOffset = V4X_MAX_VERTEX_STRIDE_BYTES - 4,
+			.maxVertexInputBindingStride = V4X_MAX_VERTEX_STRIDE_BYTES,
+			// 16 interpolators of four floats (xost:docs/xsc.md, "Interface conventions").
+			.maxVertexOutputComponents = 64,
+			.maxFragmentInputComponents = 64,
+			.maxFragmentOutputAttachments = 1,
+			.maxViewports = 1,
+			.maxViewportDimensions = { VIEWPORT_MAX, VIEWPORT_MAX },
+			.viewportBoundsRange = { -2.0f * VIEWPORT_MAX, 2.0f * VIEWPORT_MAX - 1.0f },
+			// Vertices land on 1/16 pixel under xsdk's PA_SU_VTX_CNTL (xenia:src/xenia/gpu/xenos.h:877-884).
+			.subPixelPrecisionBits = 4,
+			.minMemoryMapAlignment = MAP_ALIGNMENT,
+			.minTexelBufferOffsetAlignment = 256,
+			.minUniformBufferOffsetAlignment = 256,
+			.minStorageBufferOffsetAlignment = 256,
+			.maxFramebufferWidth = V4X_DISPLAY_WIDTH,
+			.maxFramebufferHeight = V4X_DISPLAY_HEIGHT,
+			.maxFramebufferLayers = 1,
+			.framebufferColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
+			.maxColorAttachments = 1,
+			.discreteQueuePriorities = 2,
+			.pointSizeRange = { 1.0f, 1.0f },
+			.lineWidthRange = { 1.0f, 1.0f },
+			.standardSampleLocations = VK_TRUE,
+			.optimalBufferCopyOffsetAlignment = 1,
+			.optimalBufferCopyRowPitchAlignment = 1,
+			.nonCoherentAtomSize = CACHE_LINE_BYTES,
+		},
+	};
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures(
+	VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures *pFeatures)
+{
+	(void)physicalDevice;
+	*pFeatures = (VkPhysicalDeviceFeatures){ 0 };
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice,
+	uint32_t *pQueueFamilyPropertyCount, VkQueueFamilyProperties *pQueueFamilyProperties)
+{
+	(void)physicalDevice;
+	const VkQueueFamilyProperties family = {
+		.queueFlags = VK_QUEUE_GRAPHICS_BIT,
+		.queueCount = 1,
+		.minImageTransferGranularity = { 1, 1, 1 },
+	};
+	(void)v4x_host_enumerate(pQueueFamilyPropertyCount, pQueueFamilyProperties, &family, 1, sizeof family);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceMemoryProperties(
+	VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties *pMemoryProperties)
+{
+	(void)physicalDevice;
+	*pMemoryProperties = (VkPhysicalDeviceMemoryProperties){
+		.memoryTypeCount = 1,
+		.memoryTypes = { { VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+				VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			0 } },
+		.memoryHeapCount = 1,
+		.memoryHeaps = { { HEAP_BYTES, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT } },
+	};
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
+	VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties *pFormatProperties)
+{
+	(void)physicalDevice;
+	*pFormatProperties = (VkFormatProperties){ 0 };
+	switch (format) {
+	case VK_FORMAT_B8G8R8A8_UNORM:
+		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+		break;
+	case VK_FORMAT_R32_SFLOAT:
+	case VK_FORMAT_R32G32_SFLOAT:
+	case VK_FORMAT_R32G32B32_SFLOAT:
+	case VK_FORMAT_R32G32B32A32_SFLOAT:
+		pFormatProperties->bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+		break;
+	default:
+		break;
+	}
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice,
+	const char *pLayerName, uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
+{
+	(void)physicalDevice;
+	if (pLayerName)
+		return VK_ERROR_LAYER_NOT_PRESENT;
+	return v4x_host_enumerate(pPropertyCount, pProperties, device_extensions,
+		sizeof device_extensions / sizeof device_extensions[0], sizeof device_extensions[0]);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceLayerProperties(
+	VkPhysicalDevice physicalDevice, uint32_t *pPropertyCount, VkLayerProperties *pProperties)
+{
+	(void)physicalDevice;
+	(void)pProperties;
+	*pPropertyCount = 0;
+	return VK_SUCCESS;
+}
+
+bool v4x_physical_device_has_extension(const char *name)
+{
+	for (uint32_t i = 0; i < sizeof device_extensions / sizeof device_extensions[0]; i++) {
+		if (!strcmp(name, device_extensions[i].extensionName))
+			return true;
+	}
+	return false;
+}

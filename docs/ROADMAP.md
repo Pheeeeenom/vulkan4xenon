@@ -122,6 +122,116 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
 5. **The benchmark.** Done when the same scenes run through the raw GPU layer and through Vulkan, with the gap
    measured on the console and its causes named.
 
+### Milestone 1: a triangle through Vulkan (in progress)
+
+**Done when** `build/vulkan4xenon_test.xex`, on the console:
+- shows the boot logo from `vkCreateDevice` until its first present;
+- draws a triangle with only Vulkan calls, presented through the swapchain for 120 frames;
+- checks the image the display shows: each corner's colour, and the clear colour outside the triangle;
+- passes every check, and returns to the Aurora dashboard.
+
+**Passed on hardware:** not yet.
+
+**Decisions:**
+- **The library and its handles.**
+  - Apps link `libvulkan4xenon.a` and call `vk*` directly; `vkGetInstanceProcAddr` and `vkGetDeviceProcAddr` look
+    names up in one table.
+  - Dispatchable handles point at the layer's structs. Non-dispatchable ones are those pointers as 64-bit integers.
+    This is vulkan4vita's scheme (vulkan4vita:src/objects.h:384-393).
+- **Replay.**
+  - `vkQueueSubmit` replays on the caller's thread into xsdk's ring, as vulkan4vita's first milestone did.
+  - Each command buffer gets a fixed list of commands when it's allocated. Recording past its end makes
+    `vkEndCommandBuffer` return `VK_ERROR_OUT_OF_HOST_MEMORY`.
+- **Memory.**
+  - One heap with one type: device-local, host-visible and coherent. Each allocation is `xsdk_gpu_alloc`'s
+    write-combined memory, in 64 KB pages.
+  - `memcpy` into it is safe: the toolchain's `memcpy` stores bytes or aligned words. Its disassembly has no 64-bit
+    stores.
+  - A plain 8-byte store needs an 8-byte-aligned address (xsdk:CLAUDE.md).
+- **Shaders.**
+  - An app's GLSL becomes Vulkan SPIR-V (`glslang -V`) and then a container through xost, in `tools/build_shaders.py`.
+  - The app links the generated bundle: each container keyed by a 64-bit FNV-1a hash of its SPIR-V and the SPIR-V's
+    size, with the literal constants xost pools (xost:docs/xsc.md, "Literal constant pool").
+  - `vkCreateShaderModule` finds the entry, and a pipeline writes its literals when it's bound.
+  - xost's instruction templates come from Xenia's definitions, not from XDK-compiled blobs (see the xost changes
+    below).
+- **Vertex input.**
+  - Location n feeds the usage xost gives it: 0 position, 1 colour, then texture coordinates from 2
+    (xost:xsc/resolve.py:158-162).
+  - Each binding is one xsdk stream. `firstVertex` moves the stream's address forward by that many strides, since
+    xsdk draws from index 0.
+- **Clip space.**
+  - Vulkan's y points down, and xsdk's viewport follows Direct3D's y-up (xsdk:src/gpu_draw.c:298). So the layer sets
+    a viewport of negative height from the bottom edge.
+  - Xenos centres pixels on whole coordinates under xsdk's `PIX_CENTER_D3D` (xenia:src/xenia/gpu/xenos.h:861-866,
+    xsdk:src/gpu_setup.c:263), and Vulkan centres them on halves, so the viewport also moves up and left by half a
+    pixel. Checked at the pixel level from milestone 3, which tests edges.
+- **Render passes.**
+  - Beginning a pass sets the eDRAM target, and ending it resolves into the attachment.
+  - A resolve also clears eDRAM, to the colour it's given (xsdk:src/gpu_resolve.c:112-128). Each pass's resolve
+    clears to that pass's clear colour, so a frame that clears to the same colour as the last needs nothing more.
+  - When eDRAM holds anything else, such as at the start, beginning the pass resolves into the attachment once to
+    clear it. That copies junk the pass then overwrites.
+- **The swapchain** is `xsdk_present`'s front buffers: 2 or 3 images at 1280x720 in `VK_FORMAT_B8G8R8A8_UNORM`,
+  presented in FIFO mode.
+  - `vkAcquireNextImageKHR` waits on the CPU for the next buffer to leave the screen.
+  - One image can be acquired at a time; SUPPORT.md lists that deviation.
+- **The boot logo** is xsdk's splash.
+  - `vkCreateDevice` fades it in over half a second and leaves it up.
+  - The swapchain takes over the display without showing anything of its own, so the logo stays until the first
+    present flips.
+  - Its buffers are freed only after that flip and one more vblank: vulkan4vita's hang came from freeing the logo's
+    frame too early (vulkan4vita:docs/ROADMAP.md:729-733).
+
+**How it maps onto Xenos:** as section 3, less descriptors, uniform buffers, images other than the swapchain's, and
+copies.
+
+**New in xsdk:**
+- `xsdk_splash_begin` and `xsdk_splash_end`, with `xsdk_present_open` taking over a splash's display;
+- `xsdk_present_buffer_address`;
+- `xsdk_display_shown_address`, so a test can read the image actually on screen, as vulkan4vita's tests read the
+  Vita's (vulkan4vita:tests/harness.c:1066-1080).
+
+**New in xost:**
+- instruction templates built from Xenia's definitions, checked against the corpus as test vectors;
+- a regression test lowering Vulkan SPIR-V.
+
+**Functions:**
+
+| Group | Functions |
+|---|---|
+| Instance | `vkCreateInstance`, `vkDestroyInstance`, `vkEnumerateInstanceExtensionProperties`, `vkEnumerateInstanceLayerProperties`, `vkGetInstanceProcAddr`, `vkEnumeratePhysicalDevices` |
+| Physical device | `vkGetPhysicalDeviceProperties`, `vkGetPhysicalDeviceFeatures`, `vkGetPhysicalDeviceQueueFamilyProperties`, `vkGetPhysicalDeviceMemoryProperties`, `vkGetPhysicalDeviceFormatProperties`, `vkEnumerateDeviceExtensionProperties`, `vkEnumerateDeviceLayerProperties` |
+| Device | `vkCreateDevice`, `vkDestroyDevice`, `vkGetDeviceProcAddr`, `vkGetDeviceQueue`, `vkDeviceWaitIdle` |
+| Memory and buffers | `vkAllocateMemory`, `vkFreeMemory`, `vkMapMemory`, `vkUnmapMemory`, `vkFlushMappedMemoryRanges`, `vkInvalidateMappedMemoryRanges`, `vkCreateBuffer`, `vkDestroyBuffer`, `vkGetBufferMemoryRequirements`, `vkBindBufferMemory` |
+| Pipelines | `vkCreateShaderModule`, `vkDestroyShaderModule`, `vkCreatePipelineLayout`, `vkDestroyPipelineLayout`, `vkCreateGraphicsPipelines`, `vkDestroyPipeline` |
+| Render passes | `vkCreateImageView`, `vkDestroyImageView`, `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdDraw` |
+| Sync and submit | `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore` |
+| Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
+| Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
+
+Within them:
+- 32-bit float vertex formats;
+- triangle lists without culling;
+- one viewport and scissor, set in the pipeline;
+- no depth, stencil or blending;
+- one subpass with one colour attachment, cleared or left on load and stored or dropped at the end;
+- one instance a draw.
+
+**New tests,** in one title (`tests/`):
+- `boot_logo`: the logo is on screen after `vkCreateDevice`, and after the first present the screen shows the app's
+  image;
+- `objects`: the proc-address table, memory types and buffer requirements;
+- `triangle`: 120 frames, each corner's colour and the clear colour checked on the image the display shows.
+
+**Not in milestone 1:**
+- images and samplers other than the swapchain's, descriptor sets, uniform buffers and push constants (milestone 2);
+- depth, stencil, blending, culling, dynamic state, index buffers and other topologies (milestone 3);
+- vertex formats other than 32-bit floats, which need xsdk to set a stream's byte swap;
+- loading an attachment's old contents, and render areas smaller than the framebuffer (milestone 4);
+- copies, queries, compute, secondary command buffers and multisampling.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

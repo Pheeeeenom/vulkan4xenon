@@ -10,12 +10,29 @@ GXM.
 
 The goal is running Dusklight, a reimplementation of Twilight Princess built on encounter's Aurora, on an RGH console.
 
-**Status:** being scoped. docs/ROADMAP.md is the plan, and docs/SUPPORT.md will list what exists as it's built.
+**Status:** milestone 1, a triangle through Vulkan, is built and waits for its run on the console. docs/ROADMAP.md is
+the plan, and docs/SUPPORT.md lists what exists.
 
 ## Shaders
 
-Apps pass standard SPIR-V to `vkCreateShaderModule`. Shaders are compiled offline by xost into Xenos containers,
-bundled with the app and looked up by their SPIR-V.
+Apps pass standard SPIR-V to `vkCreateShaderModule`. Shaders are compiled offline into Xenos containers, bundled with
+the app and looked up by their SPIR-V. `tools/build_shaders.py` does it: GLSL → `glslang -V` → xost → a C source with
+each shader's SPIR-V and the bundle.
+
+```
+python3 tools/build_shaders.py --xost ../Xbox-360-SDK/xenos-toolchain --output tests/shaders tests/shaders/*.vert tests/shaders/*.frag
+```
+
+## Building
+
+The layer builds with xsdk's toolchain in WSL Debian, against an xsdk checkout next to this one (`XSDK=` points
+elsewhere). Build xsdk first, then:
+
+```
+make
+```
+
+That makes `build/libvulkan4xenon.a` and the test title, `build/vulkan4xenon_test.xex`.
 
 ## Trademark
 
