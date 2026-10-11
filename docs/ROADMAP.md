@@ -670,5 +670,6 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
     Aurora passes its uniforms this way;
   - the replay pointing streams and textures again every draw though they didn't change, so a cube costs 2.4 times
     xsdk's;
-  - apps writing mapped memory with `memcpy`, which runs at 185 MB/s there, 20 times slower than 32-bit stores
-    (xsdk:docs/HARDWARE.md).
+  - apps writing mapped memory with `memcpy` ran at 185 MB/s there. Since xsdk milestone 20, `memcpy` is xsdk's own
+    and copies 5.6 GB/s from the cache and 1.5 GB/s from memory into write-combined memory (xsdk:docs/HARDWARE.md),
+    so this one is done.
