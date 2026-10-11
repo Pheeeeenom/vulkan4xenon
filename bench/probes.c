@@ -20,8 +20,8 @@ enum {
 	WRITE_ROUNDS = 8,
 	// The CPU's cache line (libxenon:drivers/ppc/cache.S:1).
 	CACHE_LINE_BYTES = 128,
-	// How far ahead a copy asks for the source; a first guess, not measured.
-	PREFETCH_LINES = 8,
+	// A copy from the cache, small enough that its source stays there between rounds.
+	WARM_BYTES = 256 * 1024,
 	PAGE_BYTES = 0x10000,
 	NANOSECONDS_PER_MICROSECOND = 1000,
 };
@@ -140,38 +140,18 @@ static void flush_from_cache(const void *memory)
 	__asm__ volatile("sync" ::: "memory");
 }
 
-// Asks for the source's line PREFETCH_LINES ahead, so it's in the cache when the copy gets there.
-static void prefetch(const uint8_t *source, uint32_t offset)
+// Asks for the source's line some lines ahead, so it's in the cache when the copy gets there.
+static void prefetch(const uint8_t *source, uint32_t offset, uint32_t bytes, uint32_t lines)
 {
-	if (offset + PREFETCH_LINES * CACHE_LINE_BYTES < WRITE_BYTES)
-		__asm__ volatile("dcbt 0, %0" : : "r"(source + offset + PREFETCH_LINES * CACHE_LINE_BYTES));
+	if (offset + lines * CACHE_LINE_BYTES < bytes)
+		__asm__ volatile("dcbt 0, %0" : : "r"(source + offset + lines * CACHE_LINE_BYTES));
 }
 
-static void copy_memcpy(void *destination, const void *source)
+// The SDK's own since milestone 20 (xsdk:src/copy.c), as every memcpy in the title is.
+static void copy_memcpy(void *destination, const void *source, uint32_t bytes, uint32_t prefetch_lines)
 {
-	memcpy(destination, source, WRITE_BYTES);
-}
-
-static void copy_32_bits(void *destination, const void *source)
-{
-	volatile uint32_t *const out = destination;
-	const uint32_t *const in = source;
-	for (uint32_t offset = 0; offset < WRITE_BYTES; offset += CACHE_LINE_BYTES) {
-		prefetch(source, offset);
-		for (uint32_t i = offset / 4; i < (offset + CACHE_LINE_BYTES) / 4; i++)
-			out[i] = in[i];
-	}
-}
-
-static void copy_64_bits(void *destination, const void *source)
-{
-	volatile uint64_t *const out = destination;
-	const uint64_t *const in = source;
-	for (uint32_t offset = 0; offset < WRITE_BYTES; offset += CACHE_LINE_BYTES) {
-		prefetch(source, offset);
-		for (uint32_t i = offset / 8; i < (offset + CACHE_LINE_BYTES) / 8; i++)
-			out[i] = in[i];
-	}
+	(void)prefetch_lines;
+	memcpy(destination, source, bytes);
 }
 
 // A line through eight VMX registers, stored in order: the barriers keep GCC from reordering the stores.
@@ -198,27 +178,20 @@ static void copy_line_vmx(vector unsigned char *out, const vector unsigned char 
 	__asm__ volatile("" ::: "memory");
 }
 
-static void copy_vmx(void *destination, const void *source)
+static void copy_vmx_dcbt(void *destination, const void *source, uint32_t bytes, uint32_t prefetch_lines)
 {
-	for (uint32_t offset = 0; offset < WRITE_BYTES; offset += CACHE_LINE_BYTES)
-		copy_line_vmx((vector unsigned char *)((uint8_t *)destination + offset),
-			(const vector unsigned char *)((const uint8_t *)source + offset));
-}
-
-static void copy_vmx_dcbt(void *destination, const void *source)
-{
-	for (uint32_t offset = 0; offset < WRITE_BYTES; offset += CACHE_LINE_BYTES) {
-		prefetch(source, offset);
+	for (uint32_t offset = 0; offset < bytes; offset += CACHE_LINE_BYTES) {
+		prefetch(source, offset, bytes, prefetch_lines);
 		copy_line_vmx((vector unsigned char *)((uint8_t *)destination + offset),
 			(const vector unsigned char *)((const uint8_t *)source + offset));
 	}
 }
 
 // dcbz zeroes the destination's line in the cache, so it isn't read from memory first; cached memory only.
-static void copy_vmx_dcbt_dcbz(void *destination, const void *source)
+static void copy_vmx_dcbt_dcbz(void *destination, const void *source, uint32_t bytes, uint32_t prefetch_lines)
 {
-	for (uint32_t offset = 0; offset < WRITE_BYTES; offset += CACHE_LINE_BYTES) {
-		prefetch(source, offset);
+	for (uint32_t offset = 0; offset < bytes; offset += CACHE_LINE_BYTES) {
+		prefetch(source, offset, bytes, prefetch_lines);
 		__asm__ volatile("dcbz 0, %0" : : "r"((uint8_t *)destination + offset) : "memory");
 		copy_line_vmx((vector unsigned char *)((uint8_t *)destination + offset),
 			(const vector unsigned char *)((const uint8_t *)source + offset));
@@ -227,24 +200,28 @@ static void copy_vmx_dcbt_dcbz(void *destination, const void *source)
 
 typedef struct {
 	const char *name;
-	void (*copy)(void *destination, const void *source);
+	void (*copy)(void *destination, const void *source, uint32_t bytes, uint32_t prefetch_lines);
+	uint32_t prefetch_lines;
+	uint32_t bytes;
+	// Into cached memory, else write-combined.
 	bool cached;
+	// From a source already in the cache, else from memory.
+	bool warm;
 } CopyProbe;
 
 static const CopyProbe copy_probes[] = {
-	{ "newlib's memcpy", copy_memcpy, false },
-	{ "32-bit stores and dcbt", copy_32_bits, false },
-	{ "64-bit stores and dcbt", copy_64_bits, false },
-	{ "VMX stores", copy_vmx, false },
-	{ "VMX stores and dcbt", copy_vmx_dcbt, false },
-	{ "newlib's memcpy", copy_memcpy, true },
-	{ "VMX stores and dcbt", copy_vmx_dcbt, true },
-	{ "VMX stores, dcbt and dcbz", copy_vmx_dcbt_dcbz, true },
+	{ "memcpy", copy_memcpy, 0, WRITE_BYTES, false, false },
+	{ "memcpy", copy_memcpy, 0, WARM_BYTES, false, true },
+	{ "VMX stores and dcbt 8 lines ahead", copy_vmx_dcbt, 8, WRITE_BYTES, false, false },
+	{ "VMX stores and dcbt 16 lines ahead", copy_vmx_dcbt, 16, WRITE_BYTES, false, false },
+	{ "VMX stores and dcbt 32 lines ahead", copy_vmx_dcbt, 32, WRITE_BYTES, false, false },
+	{ "memcpy", copy_memcpy, 0, WRITE_BYTES, true, false },
+	{ "VMX stores, dcbt and dcbz", copy_vmx_dcbt_dcbz, 8, WRITE_BYTES, true, false },
 };
 
-static bool copied(volatile const uint32_t *destination, const uint32_t *source)
+static bool copied(volatile const uint32_t *destination, const uint32_t *source, uint32_t bytes)
 {
-	for (uint32_t i = 0; i < WRITE_WORDS; i++) {
+	for (uint32_t i = 0; i < bytes / 4; i++) {
 		if (destination[i] != source[i])
 			return false;
 	}
@@ -257,21 +234,26 @@ static void time_copy(const CopyProbe *probe, uint32_t *source, volatile uint32_
 	volatile uint32_t *const destination = probe->cached ? cached : combined;
 	uint32_t fastest_us = UINT32_MAX;
 	for (int round = 0; round < WRITE_ROUNDS; round++) {
-		flush_from_cache(source);
+		if (probe->warm)
+			probe->copy((void *)destination, source, probe->bytes, probe->prefetch_lines);
+		else
+			flush_from_cache(source);
 		if (probe->cached)
 			flush_from_cache((const void *)destination);
 		const uint64_t start = now_ns();
-		probe->copy((void *)destination, source);
+		probe->copy((void *)destination, source, probe->bytes, probe->prefetch_lines);
 		const uint32_t took_us = microseconds_since(start);
 		fastest_us = took_us < fastest_us ? took_us : fastest_us;
 	}
-	xsdk_log_write("vkbench: copying 1 MB from memory into %s memory, fastest of %d, %s: %u us (%u MB/s)%s",
+	xsdk_log_write("vkbench: copying %u KB from %s into %s memory, fastest of %d, %s: %u us (%u MB/s)%s",
+		(unsigned)(probe->bytes / 1024), probe->warm ? "the cache" : "memory",
 		probe->cached ? "cached" : "write-combined", WRITE_ROUNDS, probe->name, (unsigned)fastest_us,
-		(unsigned)megabytes_per_second(fastest_us), copied(destination, source) ? "" : "; the copy came out wrong");
+		(unsigned)(fastest_us ? probe->bytes / fastest_us : 0),
+		copied(destination, source, probe->bytes) ? "" : "; the copy came out wrong");
 	memset((void *)destination, 0, WRITE_BYTES);
 }
 
-// Which copy xsdk's memcpy should be (xsdk:SCOPE.md, milestone 20, step 1).
+// How fast the SDK's memcpy copies, and how far ahead it should prefetch (xsdk:SCOPE.md, milestone 20).
 static void probe_copies(void)
 {
 	uint32_t *const source =
