@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <string.h>
 
 #include <vulkan/vulkan.h>
@@ -13,12 +14,19 @@ enum {
 	IDLE_TIMEOUT_MS = 10000,
 	// All of physical memory, as libxenon invalidates it (libxenon:drivers/xenos/xe.c:992).
 	ALL_MEMORY_BYTES = 0x20000000,
+	// Fetch constant slots a texture can take (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_texture).
+	TEXTURE_SLOTS = 32,
 };
 
 typedef struct {
 	uint32_t address;
 	uint32_t size_bytes;
 } VertexBinding;
+
+typedef struct {
+	const Image *image;
+	const Sampler *sampler;
+} PointedTexture;
 
 // What one replay has bound so far.
 typedef struct {
@@ -40,6 +48,9 @@ typedef struct {
 	const DescriptorSet *sets[V4X_MAX_DESCRIPTOR_SETS];
 	const uint32_t *dynamic_offsets[V4X_MAX_DESCRIPTOR_SETS];
 	float push[V4X_MAX_PUSH_CONSTANT_BYTES / 4];
+	// What each stream and texture slot points at, so a draw points only what changed; zero where it isn't known.
+	VertexBinding pointed_streams[XSDK_VERTEX_STREAMS];
+	PointedTexture pointed_textures[TEXTURE_SLOTS];
 } Replay;
 
 // A block's registers on their way into the constants; the queue is externally synchronized, so one copy will do.
@@ -102,7 +113,18 @@ static void read_uniform_buffer(const Replay *replay, const V4xShaderResource *r
 }
 
 // Each draw writes every block its shaders read into constants, and points their samplers' fetch constants.
-static void apply_resources(const Pipeline *pipeline, const Replay *replay)
+// Points a slot at the texture and sampler unless it already is.
+static void point_texture(Replay *replay, uint32_t slot, const Descriptor *descriptor)
+{
+	assert(slot < TEXTURE_SLOTS);
+	PointedTexture *const pointed = &replay->pointed_textures[slot];
+	if (pointed->image == descriptor->image && pointed->sampler == descriptor->sampler)
+		return;
+	xsdk_gpu_set_texture(slot, &descriptor->image->texture, &descriptor->sampler->state);
+	*pointed = (PointedTexture){ .image = descriptor->image, .sampler = descriptor->sampler };
+}
+
+static void apply_resources(const Pipeline *pipeline, Replay *replay)
 {
 	for (uint32_t i = 0; i < pipeline->resource_count; i++) {
 		const V4xShaderResource *const resource = &pipeline->resources[i].resource;
@@ -118,8 +140,7 @@ static void apply_resources(const Pipeline *pipeline, const Replay *replay)
 			write_constants(vertex, resource->first, block, resource->count);
 			continue;
 		}
-		const Descriptor *const descriptor = &replay->sets[resource->set]->descriptors[resource->binding];
-		xsdk_gpu_set_texture(resource->first, &descriptor->image->texture, &descriptor->sampler->state);
+		point_texture(replay, resource->first, &replay->sets[resource->set]->descriptors[resource->binding]);
 	}
 }
 
@@ -255,6 +276,9 @@ static void begin_render_pass(VkQueue queue, Replay *replay)
 			queue->depth = cleared_depth(framebuffer, replay->clear_depth, replay->clear_stencil);
 	}
 	replay->pipeline_dirty = true;
+	// Drawing an image back and resolves point streams and slots of their own.
+	memset(replay->pointed_streams, 0, sizeof replay->pointed_streams);
+	memset(replay->pointed_textures, 0, sizeof replay->pointed_textures);
 }
 
 // The resolve clears colour as the next pass in the command buffer clears it, at this size, and keeps it otherwise;
@@ -334,13 +358,19 @@ static void prepare_draw(Replay *replay)
 }
 
 // xsdk draws from vertex 0, so each stream starts at the draw's first vertex, which may come before the binding's.
-static void point_streams(const Replay *replay, int32_t first_vertex)
+static void point_streams(Replay *replay, int32_t first_vertex)
 {
 	const Pipeline *const pipeline = replay->pipeline;
 	for (uint32_t s = 0; s < pipeline->stream_count; s++) {
 		const VertexBinding *const binding = &replay->bindings[pipeline->streams[s].binding];
 		const int32_t skipped = first_vertex * (int32_t)pipeline->streams[s].stride_bytes;
-		xsdk_gpu_set_vertices(s, binding->address + (uint32_t)skipped, binding->size_bytes - (uint32_t)skipped);
+		const VertexBinding stream = { .address = binding->address + (uint32_t)skipped,
+			.size_bytes = binding->size_bytes - (uint32_t)skipped };
+		if (replay->pointed_streams[s].address == stream.address &&
+			replay->pointed_streams[s].size_bytes == stream.size_bytes)
+			continue;
+		xsdk_gpu_set_vertices(s, stream.address, stream.size_bytes);
+		replay->pointed_streams[s] = stream;
 	}
 }
 
