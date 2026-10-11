@@ -1,3 +1,4 @@
+#include <altivec.h>
 #include <assert.h>
 #include <string.h>
 
@@ -54,7 +55,7 @@ typedef struct {
 } Replay;
 
 // A block's registers on their way into the constants; the queue is externally synchronized, so one copy will do.
-static float block[V4X_FLOAT_CONSTANTS * 4];
+static float block[V4X_FLOAT_CONSTANTS * 4] __attribute__((aligned(16)));
 
 static void write_literals(const V4xShader *shader, bool vertex)
 {
@@ -106,7 +107,13 @@ static void read_uniform_buffer(const Replay *replay, const V4xShaderResource *r
 		words += replay->dynamic_offsets[resource->set][binding->dynamic_index] / 4;
 	const uint32_t wanted = resource->count * 4;
 	const uint32_t present = descriptor->range_bytes / 4 < wanted ? descriptor->range_bytes / 4 : wanted;
-	for (uint32_t i = 0; i < wanted; i++) {
+	uint32_t i = 0;
+	// Mapped memory is write-combined, so each read goes to memory: a quad at a time is a quarter of the reads.
+	if (((uintptr_t)words & 15) == 0) {
+		for (; i + 4 <= present; i += 4)
+			vec_st(vec_ld(0, (const vector unsigned int *)(uintptr_t)(words + i)), 0, (vector unsigned int *)&block[i]);
+	}
+	for (; i < wanted; i++) {
 		const uint32_t word = i < present ? words[i] : 0;
 		memcpy(&block[i], &word, sizeof word);
 	}
