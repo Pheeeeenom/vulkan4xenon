@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 5 are done. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 6 are done. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -598,7 +598,7 @@ GPU time tied: within 1% in the sprite and fill scenes in both runs, and in the 
 
 **New functions:** none. Every call vkbench makes was there after milestone 4.
 
-### Milestone 6: the replay's cost
+### Milestone 6: the replay's cost (done)
 
 **Why.** After xsdk milestones 19 and 20, a cube drawn through the layer cost 1.50 us to xsdk's 0.63, and one taking
 its matrix and tint from uniform buffers 3.8 us more (xsdk:docs/HARDWARE.md, "Fewer dwords a draw"):
@@ -621,6 +621,27 @@ its matrix and tint from uniform buffers 3.8 us more (xsdk:docs/HARDWARE.md, "Fe
 - vkbench's `draws_1000` through the layer draws and submits faster than its 1,503 us, in fewer dwords a draw;
 - `uniforms_1000` costs at most a third of its 3.8 us a draw more than `draws_1000`;
 - vulkan4xenon_test passes in full, and vkbench's backends still draw the same pictures.
+
+**Passed on hardware** on 2026-10-11, at `ef044d8` with xsdk at `051bffd` (`results/2026-10-11-milestone-6/`: vkbench's
+log and CSVs, and the test title's tail).
+- **vkbench passed all 14 checks,** both backends drawing the same picture in every scene, with no waits. Through the
+  layer, drawing and submitting took:
+  - `draws_1000` 1,221 us, from 1,503, in 65.3 dwords a cube, from 87.1; `draws_4000` 5,062 us, from 6,218;
+    `states_1000` 2,006 us, from 2,111;
+  - `uniforms_1000` 2,091 us, from 5,309, so its uniform buffers cost 0.87 us a draw more than `draws_1000`'s push
+    constants, from 3.8: five 16-byte reads of write-combined memory, about 175 ns each.
+  - A cube costs 1.97 times xsdk's, from 2.40.
+- **The test title passed all 58 checks,** its render to texture among them: eight passes a frame, with resolves and
+  images drawn back between them, where the replay forgets what it pointed.
+- **VMX loads from write-combined memory work,** the first on the console.
+
+**Decisions:**
+- **`LOAD_ALU_CONSTANT` waits.** The console loads float constants from memory only in whole groups of 4 from a
+  multiple of 4, and hung loading a group of 3 (xsdk:docs/HARDWARE.md). Blocks aren't placed on those groups, so a load
+  would overwrite their neighbours. xost placing each block on its own groups would let the GPU load it with no CPU
+  reads at all.
+- **Pointing is forgotten at each render pass's start,** not tracked through the resolves and the image drawn back:
+  draws happen only inside passes, and the first draw of each points what it needs.
 
 ## 5. The Dusklight track
 
@@ -693,10 +714,11 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
 - **Where Dusklight's own changes live:** probably a fork, for the byte order and the platform. Decide before the
   Dusklight track starts. Aurora's side is a fork of aurora-vita (section 2).
 - **What milestone 5 found slow,** for when it's taken on:
-  - reading uniform buffers at submit, 4.0 us a draw for two blocks, as mapped memory is write-combined. Encounter's
-    Aurora passes its uniforms this way;
-  - the replay pointing streams and textures again every draw though they didn't change. Since xsdk milestone 19
-    those carry no cache invalidate, and a cube costs 1.50 us through the layer against xsdk's 0.63, still 2.4 times;
+  - reading uniform buffers at submit, 4.0 us a draw for two blocks, as mapped memory is write-combined. Milestone 6
+    brought it to 0.87 us with 16-byte reads; the GPU loading blocks itself, once xost places them on groups of 4,
+    would take it to none. Encounter's Aurora passes its uniforms this way;
+  - the replay pointing streams and textures again every draw though they didn't change. Milestone 6 points only what
+    changed, and a cube costs 1.22 us through the layer against xsdk's 0.62, 1.97 times;
   - apps writing mapped memory with `memcpy` ran at 185 MB/s there. Since xsdk milestone 20, `memcpy` is xsdk's own
     and copies 5.6 GB/s from the cache and 1.5 GB/s from memory into write-combined memory (xsdk:docs/HARDWARE.md),
     so this one is done.
