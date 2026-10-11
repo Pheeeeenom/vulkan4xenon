@@ -668,8 +668,8 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
 - **What milestone 5 found slow,** for when it's taken on:
   - reading uniform buffers at submit, 4.0 us a draw for two blocks, as mapped memory is write-combined. Encounter's
     Aurora passes its uniforms this way;
-  - the replay pointing streams and textures again every draw though they didn't change, so a cube costs 2.4 times
-    xsdk's;
+  - the replay pointing streams and textures again every draw though they didn't change. Since xsdk milestone 19
+    those carry no cache invalidate, and a cube costs 1.50 us through the layer against xsdk's 0.63, still 2.4 times;
   - apps writing mapped memory with `memcpy` ran at 185 MB/s there. Since xsdk milestone 20, `memcpy` is xsdk's own
     and copies 5.6 GB/s from the cache and 1.5 GB/s from memory into write-combined memory (xsdk:docs/HARDWARE.md),
     so this one is done.
