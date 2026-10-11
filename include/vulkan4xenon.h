@@ -17,6 +17,24 @@ typedef struct {
 	float values[4];
 } V4xShaderLiteral;
 
+enum {
+	V4X_RESOURCE_PUSH_CONSTANTS,
+	V4X_RESOURCE_UNIFORM_BUFFER,
+	V4X_RESOURCE_SAMPLER,
+};
+
+// Where xost put a block or sampler the shader reads (xost:docs/xsc.md, "Interface conventions").
+typedef struct {
+	uint8_t kind;
+	// The descriptor set and binding; 0 for push constants.
+	uint8_t set;
+	uint8_t binding;
+	// The first float constant register, holding the block's first 16 bytes, or the fetch constant.
+	uint16_t first;
+	// Registers the block fills; 1 for a sampler.
+	uint16_t count;
+} V4xShaderResource;
+
 typedef struct {
 	// FNV-1a over the SPIR-V's words, each taken as its four bytes low first, and the SPIR-V's size.
 	uint64_t spirv_hash;
@@ -25,6 +43,8 @@ typedef struct {
 	uint32_t container_size_bytes;
 	const V4xShaderLiteral *literals;
 	uint32_t literal_count;
+	const V4xShaderResource *resources;
+	uint32_t resource_count;
 } V4xShader;
 
 typedef struct {

@@ -11,5 +11,11 @@ void test_boot_logo(Harness *harness, uint32_t shown_before_device);
 void test_objects(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.
 void test_triangle(const Harness *harness);
+// Images copied in from a buffer and sampled through descriptor sets (milestone 2).
+void test_texture(const Harness *harness);
+// Quads placed and coloured by push constants (milestone 2).
+void test_push_constants(const Harness *harness);
+// Quads placed by a matrix and coloured from uniform buffers, one dynamic, in two sets (milestone 2).
+void test_uniform_buffers(const Harness *harness);
 
 #endif

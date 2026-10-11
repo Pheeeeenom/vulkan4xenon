@@ -8,6 +8,7 @@
 
 #include "vulkan4xenon.h"
 #include "xsdk/shader.h"
+#include "xsdk/texture.h"
 
 // Every object the layer hands out, and the limits they're built to.
 
@@ -23,6 +24,17 @@ enum {
 	// A fetch's stride is 8 bits of dwords (xsdk:src/shader.c, FETCH_STRIDE_MASK).
 	V4X_MAX_VERTEX_STRIDE_BYTES = 255 * 4,
 	V4X_COMMANDS_PER_BUFFER = 4096,
+	// Push constants, dynamic offsets and copy regions, which vary in size, go here in recording order.
+	V4X_COMMAND_DATA_BYTES = 16384,
+	V4X_MAX_DESCRIPTOR_SETS = 4,
+	// Binding numbers run from 0 to this less one.
+	V4X_MAX_DESCRIPTOR_BINDINGS = 32,
+	V4X_MAX_PUSH_CONSTANT_BYTES = 128,
+	// Float constant registers a stage has, each four floats (xsdk:include/xsdk/gpu.h).
+	V4X_FLOAT_CONSTANTS = 256,
+	// Fetch constants a shader may sample from: below the ones the 16 vertex streams take (xsdk:src/gpu_draw.c).
+	V4X_MAX_SAMPLERS = 16,
+	V4X_MAX_SHADER_RESOURCES = 2 * (1 + V4X_MAX_DESCRIPTOR_SETS * V4X_MAX_DESCRIPTOR_BINDINGS),
 };
 
 struct VkPhysicalDevice_T {
@@ -64,12 +76,14 @@ typedef struct {
 	uint32_t offset_bytes;
 } Buffer;
 
-// Only swapchain images so far: a front buffer of xsdk_present, tiled k_8_8_8_8.
+// A swapchain image, a front buffer of xsdk_present at address, or a texture in memory bound to it.
 typedef struct {
 	uint32_t address;
 	uint32_t width;
 	uint32_t height;
 	VkFormat format;
+	bool is_texture;
+	XsdkTexture texture;
 } Image;
 
 typedef struct {
@@ -81,8 +95,52 @@ typedef struct {
 } ShaderModule;
 
 typedef struct {
-	uint32_t unused;
+	XsdkSamplerState state;
+} Sampler;
+
+typedef struct {
+	VkDescriptorType type;
+	VkShaderStageFlags stages;
+	// Where this binding's offset sits among the set's dynamic offsets.
+	uint32_t dynamic_index;
+	bool used;
+} LayoutBinding;
+
+typedef struct {
+	LayoutBinding bindings[V4X_MAX_DESCRIPTOR_BINDINGS];
+	uint32_t dynamic_count;
+} DescriptorSetLayout;
+
+typedef struct {
+	VkDescriptorType type;
+	// A uniform buffer's bytes, mapped, and how many of them the descriptor covers.
+	volatile const uint32_t *buffer;
+	uint32_t range_bytes;
+	const Image *image;
+	const Sampler *sampler;
+} Descriptor;
+
+typedef struct DescriptorSet {
+	const DescriptorSetLayout *layout;
+	struct DescriptorSet *next;
+	Descriptor descriptors[V4X_MAX_DESCRIPTOR_BINDINGS];
+} DescriptorSet;
+
+typedef struct {
+	DescriptorSet *sets;
+} DescriptorPool;
+
+typedef struct {
+	const DescriptorSetLayout *sets[V4X_MAX_DESCRIPTOR_SETS];
+	uint32_t set_count;
+	VkShaderStageFlags push_stages;
 } PipelineLayout;
+
+// A shader resource with the stage it's for.
+typedef struct {
+	V4xShaderResource resource;
+	bool vertex;
+} StageResource;
 
 typedef struct {
 	uint32_t binding;
@@ -98,6 +156,8 @@ typedef struct {
 	uint32_t stream_count;
 	VkViewport viewport;
 	VkRect2D scissor;
+	StageResource resources[V4X_MAX_SHADER_RESOURCES];
+	uint32_t resource_count;
 } Pipeline;
 
 typedef struct {
@@ -118,6 +178,9 @@ typedef enum {
 	COMMAND_BIND_PIPELINE,
 	COMMAND_BIND_VERTEX_BUFFER,
 	COMMAND_DRAW,
+	COMMAND_BIND_DESCRIPTOR_SET,
+	COMMAND_PUSH_CONSTANTS,
+	COMMAND_COPY_BUFFER_TO_IMAGE,
 } CommandType;
 
 typedef struct {
@@ -138,6 +201,23 @@ typedef struct {
 			uint32_t vertex_count;
 			uint32_t first_vertex;
 		} draw;
+		struct {
+			uint32_t index;
+			const DescriptorSet *set;
+			// The set's dynamic offsets, in the command buffer's data.
+			uint32_t offsets_at;
+		} descriptor_set;
+		struct {
+			uint32_t offset_bytes;
+			uint32_t size_bytes;
+			uint32_t data_at;
+		} push_constants;
+		struct {
+			volatile const uint32_t *source;
+			Image *image;
+			uint32_t level;
+			uint32_t row_bytes;
+		} copy;
 	};
 } Command;
 
@@ -155,6 +235,8 @@ struct VkCommandBuffer_T {
 	VkResult result;
 	Command *commands;
 	uint32_t count;
+	uint8_t *data;
+	uint32_t data_bytes;
 	bool in_render_pass;
 };
 

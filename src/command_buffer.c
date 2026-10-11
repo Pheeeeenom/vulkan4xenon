@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 
 #include <vulkan/vulkan.h>
 
@@ -23,6 +24,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateCommandPool(VkDevice device, const VkComm
 static void free_buffer(struct VkCommandBuffer_T *buffer)
 {
 	const VkAllocationCallbacks *const allocator = v4x_host_device_allocator(buffer->device, NULL);
+	v4x_host_free(allocator, buffer->data);
 	v4x_host_free(allocator, buffer->commands);
 	v4x_host_free(allocator, buffer);
 }
@@ -46,6 +48,7 @@ static void reset_buffer(struct VkCommandBuffer_T *buffer)
 	buffer->state = COMMAND_BUFFER_INITIAL;
 	buffer->result = VK_SUCCESS;
 	buffer->count = 0;
+	buffer->data_bytes = 0;
 	buffer->in_render_pass = false;
 }
 
@@ -69,7 +72,9 @@ static struct VkCommandBuffer_T *allocate_buffer(VkDevice device, CommandPool *p
 		return NULL;
 	buffer->commands =
 		v4x_host_alloc(allocator, V4X_COMMANDS_PER_BUFFER * sizeof(Command), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	if (!buffer->commands) {
+	buffer->data = v4x_host_alloc(allocator, V4X_COMMAND_DATA_BYTES, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (!buffer->commands || !buffer->data) {
+		v4x_host_free(allocator, buffer->commands);
 		v4x_host_free(allocator, buffer);
 		return NULL;
 	}
@@ -153,6 +158,20 @@ static Command *record(VkCommandBuffer buffer, CommandType type)
 	return command;
 }
 
+// Copies bytes into the command buffer's data and returns where, or saves the error once it's full.
+static bool record_data(VkCommandBuffer buffer, const void *bytes, uint32_t size_bytes, uint32_t *at)
+{
+	const uint32_t aligned = (size_bytes + 3) & ~3u;
+	if (buffer->data_bytes + aligned > V4X_COMMAND_DATA_BYTES) {
+		buffer->result = VK_ERROR_OUT_OF_HOST_MEMORY;
+		return false;
+	}
+	*at = buffer->data_bytes;
+	memcpy(buffer->data + buffer->data_bytes, bytes, size_bytes);
+	buffer->data_bytes += aligned;
+	return true;
+}
+
 static uint32_t unorm8(float value)
 {
 	const float clamped = value < 0.0f ? 0.0f : value > 1.0f ? 1.0f : value;
@@ -227,4 +246,99 @@ VKAPI_ATTR void VKAPI_CALL vkCmdDraw(VkCommandBuffer commandBuffer, uint32_t ver
 		return;
 	command->draw.vertex_count = vertexCount;
 	command->draw.first_vertex = firstVertex;
+}
+
+// Each set's dynamic offsets follow its layout's dynamic bindings, in binding order.
+VKAPI_ATTR void VKAPI_CALL vkCmdBindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
+	VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet *pDescriptorSets,
+	uint32_t dynamicOffsetCount, const uint32_t *pDynamicOffsets)
+{
+	(void)pipelineBindPoint;
+	(void)layout;
+	(void)dynamicOffsetCount;
+	uint32_t used = 0;
+	for (uint32_t i = 0; i < descriptorSetCount; i++) {
+		const DescriptorSet *const set = v4x_object(pDescriptorSets[i]);
+		const uint32_t count = set->layout->dynamic_count;
+		uint32_t at = 0;
+		if (count && !record_data(commandBuffer, pDynamicOffsets + used, count * 4, &at))
+			return;
+		used += count;
+		Command *const command = record(commandBuffer, COMMAND_BIND_DESCRIPTOR_SET);
+		if (!command)
+			return;
+		command->descriptor_set.index = firstSet + i;
+		command->descriptor_set.set = set;
+		command->descriptor_set.offsets_at = at;
+	}
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdPushConstants(VkCommandBuffer commandBuffer, VkPipelineLayout layout,
+	VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void *pValues)
+{
+	(void)layout;
+	(void)stageFlags;
+	uint32_t at = 0;
+	if (!record_data(commandBuffer, pValues, size, &at))
+		return;
+	Command *const command = record(commandBuffer, COMMAND_PUSH_CONSTANTS);
+	if (!command)
+		return;
+	command->push_constants.offset_bytes = offset;
+	command->push_constants.size_bytes = size;
+	command->push_constants.data_at = at;
+}
+
+static uint32_t level_size(uint32_t size, uint32_t level)
+{
+	return size >> level ? size >> level : 1;
+}
+
+// Whole mip levels of a texture image, from tightly packed rows or rows bufferRowLength texels long.
+VKAPI_ATTR void VKAPI_CALL vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage,
+	VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy *pRegions)
+{
+	(void)dstImageLayout;
+	const Buffer *const buffer = v4x_object(srcBuffer);
+	Image *const image = v4x_object(dstImage);
+	for (uint32_t i = 0; i < regionCount; i++) {
+		const VkBufferImageCopy *const region = &pRegions[i];
+		const uint32_t level = region->imageSubresource.mipLevel;
+		const uint32_t width = level_size(image->width, level);
+		if (!image->is_texture || region->imageOffset.x || region->imageOffset.y || region->imageOffset.z ||
+			region->imageExtent.width != width || region->imageExtent.height != level_size(image->height, level) ||
+			region->imageSubresource.baseArrayLayer || region->imageSubresource.layerCount != 1 ||
+			(region->bufferOffset + buffer->offset_bytes) % 4) {
+			commandBuffer->result =
+				v4x_host_unsupported("copies of less than a whole level, or from unaligned offsets");
+			return;
+		}
+		Command *const command = record(commandBuffer, COMMAND_COPY_BUFFER_TO_IMAGE);
+		if (!command)
+			return;
+		const uint32_t row_texels = region->bufferRowLength ? region->bufferRowLength : width;
+		command->copy.source = buffer->memory->pointer + (buffer->offset_bytes + (uint32_t)region->bufferOffset) / 4;
+		command->copy.image = image;
+		command->copy.level = level;
+		command->copy.row_bytes = row_texels * 4;
+	}
+}
+
+// Replay is in order and copies wait for the GPU, so barriers need nothing.
+VKAPI_ATTR void VKAPI_CALL vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask,
+	VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount,
+	const VkMemoryBarrier *pMemoryBarriers, uint32_t bufferMemoryBarrierCount,
+	const VkBufferMemoryBarrier *pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount,
+	const VkImageMemoryBarrier *pImageMemoryBarriers)
+{
+	(void)commandBuffer;
+	(void)srcStageMask;
+	(void)dstStageMask;
+	(void)dependencyFlags;
+	(void)memoryBarrierCount;
+	(void)pMemoryBarriers;
+	(void)bufferMemoryBarrierCount;
+	(void)pBufferMemoryBarriers;
+	(void)imageMemoryBarrierCount;
+	(void)pImageMemoryBarriers;
 }

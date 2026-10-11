@@ -150,13 +150,13 @@ void harness_destroy(Harness *harness)
 	*harness = (Harness){ .instance = VK_NULL_HANDLE };
 }
 
-VkResult harness_buffer(
-	const Harness *harness, const void *data, uint32_t size_bytes, VkBuffer *buffer, VkDeviceMemory *memory)
+VkResult harness_buffer(const Harness *harness, VkBufferUsageFlags usage, const void *data, uint32_t size_bytes,
+	VkBuffer *buffer, VkDeviceMemory *memory)
 {
 	const VkBufferCreateInfo buffer_info = {
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		.size = size_bytes,
-		.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		.usage = usage,
 	};
 	VkResult result = vkCreateBuffer(harness->device, &buffer_info, NULL, buffer);
 	if (!harness_ok("vkCreateBuffer", result))

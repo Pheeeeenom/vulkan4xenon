@@ -1,9 +1,12 @@
+#include <string.h>
+
 #include <vulkan/vulkan.h>
 
 #include "objects.h"
 #include "sync.h"
 #include "xsdk/gpu.h"
 #include "xsdk/log.h"
+#include "xsdk/texture.h"
 
 enum {
 	// DRAW_INDX_2 carries the vertex count in 16 bits (xsdk:src/gpu_draw.c:219), and this is whole triangles.
@@ -27,7 +30,13 @@ typedef struct {
 	const Framebuffer *framebuffer;
 	uint32_t clear_argb;
 	VertexBinding bindings[V4X_MAX_VERTEX_BINDINGS];
+	const DescriptorSet *sets[V4X_MAX_DESCRIPTOR_SETS];
+	const uint32_t *dynamic_offsets[V4X_MAX_DESCRIPTOR_SETS];
+	float push[V4X_MAX_PUSH_CONSTANT_BYTES / 4];
 } Replay;
+
+// A block's registers on their way into the constants; the queue is externally synchronized, so one copy will do.
+static float block[V4X_FLOAT_CONSTANTS * 4];
 
 static void write_literals(const V4xShader *shader, bool vertex)
 {
@@ -50,6 +59,63 @@ static void apply_pipeline(const Pipeline *pipeline)
 	xsdk_gpu_set_scissor((uint32_t)s->offset.x, (uint32_t)s->offset.y, s->extent.width, s->extent.height);
 	write_literals(pipeline->vertex_source, true);
 	write_literals(pipeline->pixel_source, false);
+}
+
+static void write_constants(bool vertex, uint32_t first, const float *values, uint32_t count)
+{
+	if (vertex)
+		xsdk_gpu_set_vertex_constants(first, values, count);
+	else
+		xsdk_gpu_set_pixel_constants(first, values, count);
+}
+
+// A uniform buffer's bytes as the block's registers, zero past the descriptor's range.
+static void read_uniform_buffer(const Replay *replay, const V4xShaderResource *resource)
+{
+	const DescriptorSet *const set = replay->sets[resource->set];
+	const Descriptor *const descriptor = &set->descriptors[resource->binding];
+	const LayoutBinding *const binding = &set->layout->bindings[resource->binding];
+	volatile const uint32_t *words = descriptor->buffer;
+	if (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+		words += replay->dynamic_offsets[resource->set][binding->dynamic_index] / 4;
+	const uint32_t wanted = resource->count * 4;
+	const uint32_t present = descriptor->range_bytes / 4 < wanted ? descriptor->range_bytes / 4 : wanted;
+	for (uint32_t i = 0; i < wanted; i++) {
+		const uint32_t word = i < present ? words[i] : 0;
+		memcpy(&block[i], &word, sizeof word);
+	}
+}
+
+// Each draw writes every block its shaders read into constants, and points their samplers' fetch constants.
+static void apply_resources(const Pipeline *pipeline, const Replay *replay)
+{
+	for (uint32_t i = 0; i < pipeline->resource_count; i++) {
+		const V4xShaderResource *const resource = &pipeline->resources[i].resource;
+		const bool vertex = pipeline->resources[i].vertex;
+		if (resource->kind == V4X_RESOURCE_PUSH_CONSTANTS) {
+			write_constants(vertex, resource->first, replay->push, resource->count);
+			continue;
+		}
+		if (!replay->sets[resource->set])
+			continue;
+		if (resource->kind == V4X_RESOURCE_UNIFORM_BUFFER) {
+			read_uniform_buffer(replay, resource);
+			write_constants(vertex, resource->first, block, resource->count);
+			continue;
+		}
+		const Descriptor *const descriptor = &replay->sets[resource->set]->descriptors[resource->binding];
+		xsdk_gpu_set_texture(resource->first, &descriptor->image->texture, &descriptor->sampler->state);
+	}
+}
+
+// The CPU writes the image, so the GPU must be done with whatever came before (docs/ROADMAP.md, milestone 2).
+static void copy_buffer_to_image(const Command *command)
+{
+	const NTSTATUS status = xsdk_gpu_wait(xsdk_gpu_fence(), IDLE_TIMEOUT_MS);
+	if (!NT_SUCCESS(status))
+		xsdk_log_write("vulkan4xenon: the GPU didn't go idle for a copy: 0x%08X", (unsigned)status);
+	xsdk_texture_upload(&command->copy.image->texture, command->copy.level,
+		(const void *)(uintptr_t)command->copy.source, command->copy.row_bytes);
 }
 
 // A clear load op needs eDRAM at the clear colour; a resolve into the attachment, overwritten at the pass's end, does
@@ -88,6 +154,7 @@ static void draw(Replay *replay, uint32_t vertex_count, uint32_t first_vertex)
 		apply_pipeline(pipeline);
 		replay->pipeline_dirty = false;
 	}
+	apply_resources(pipeline, replay);
 	// xsdk draws from vertex 0, so each stream starts at the draw's first vertex.
 	for (uint32_t done = 0; done < vertex_count; done += MAX_DRAW_VERTICES) {
 		const uint32_t first = first_vertex + done;
@@ -127,6 +194,18 @@ static void replay_commands(VkQueue queue, VkCommandBuffer buffer)
 			break;
 		case COMMAND_DRAW:
 			draw(&replay, command->draw.vertex_count, command->draw.first_vertex);
+			break;
+		case COMMAND_BIND_DESCRIPTOR_SET:
+			replay.sets[command->descriptor_set.index] = command->descriptor_set.set;
+			replay.dynamic_offsets[command->descriptor_set.index] =
+				(const uint32_t *)(buffer->data + command->descriptor_set.offsets_at);
+			break;
+		case COMMAND_PUSH_CONSTANTS:
+			memcpy((uint8_t *)replay.push + command->push_constants.offset_bytes,
+				buffer->data + command->push_constants.data_at, command->push_constants.size_bytes);
+			break;
+		case COMMAND_COPY_BUFFER_TO_IMAGE:
+			copy_buffer_to_image(command);
 			break;
 		}
 	}

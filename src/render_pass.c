@@ -45,41 +45,14 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyRenderPass(
 	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(renderPass));
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
-	const VkAllocationCallbacks *pAllocator, VkImageView *pView)
-{
-	const Image *const image = v4x_object(pCreateInfo->image);
-	const VkImageSubresourceRange *const range = &pCreateInfo->subresourceRange;
-	if (pCreateInfo->viewType != VK_IMAGE_VIEW_TYPE_2D || pCreateInfo->format != image->format || range->baseMipLevel ||
-		range->levelCount != 1 || range->baseArrayLayer || range->layerCount != 1)
-		return v4x_host_unsupported("image views other than the whole of a 2D image in its format");
-	const VkComponentMapping *const mapping = &pCreateInfo->components;
-	if ((mapping->r != VK_COMPONENT_SWIZZLE_IDENTITY && mapping->r != VK_COMPONENT_SWIZZLE_R) ||
-		(mapping->g != VK_COMPONENT_SWIZZLE_IDENTITY && mapping->g != VK_COMPONENT_SWIZZLE_G) ||
-		(mapping->b != VK_COMPONENT_SWIZZLE_IDENTITY && mapping->b != VK_COMPONENT_SWIZZLE_B) ||
-		(mapping->a != VK_COMPONENT_SWIZZLE_IDENTITY && mapping->a != VK_COMPONENT_SWIZZLE_A))
-		return v4x_host_unsupported("image view swizzles");
-	ImageView *const view =
-		v4x_host_alloc(v4x_host_device_allocator(device, pAllocator), sizeof *view, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	if (!view)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
-	view->image = image;
-	*pView = v4x_handle(view);
-	return VK_SUCCESS;
-}
-
-VKAPI_ATTR void VKAPI_CALL vkDestroyImageView(
-	VkDevice device, VkImageView imageView, const VkAllocationCallbacks *pAllocator)
-{
-	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(imageView));
-}
-
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateFramebuffer(VkDevice device, const VkFramebufferCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkFramebuffer *pFramebuffer)
 {
 	if (pCreateInfo->attachmentCount != 1 || pCreateInfo->layers != 1)
 		return v4x_host_unsupported("framebuffers other than one attachment and one layer");
 	const ImageView *const view = v4x_object(pCreateInfo->pAttachments[0]);
+	if (view->image->is_texture)
+		return v4x_host_unsupported("rendering into images other than the swapchain's");
 	if (pCreateInfo->width != view->image->width || pCreateInfo->height != view->image->height)
 		return v4x_host_unsupported("framebuffers smaller than their attachment");
 	Framebuffer *const framebuffer = v4x_host_alloc(

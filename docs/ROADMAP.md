@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestone 1 is done; milestone 2 is next. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestone 1 is done; milestone 2 is under way. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -243,6 +243,69 @@ Within them:
 - vertex formats other than 32-bit floats, which need xsdk to set a stream's byte swap;
 - loading an attachment's old contents, and render areas smaller than the framebuffer (milestone 4);
 - copies, queries, compute, secondary command buffers and multisampling.
+
+### Milestone 2: textures, descriptors and push constants (in progress)
+
+**Done when** `build/vulkan4xenon_test.xex`, on the console, passes milestone 1's checks and these, each checked by
+pixel on the image the display shows:
+- `texture`: images copied in from buffers with `vkCmdCopyBufferToImage`, in `R8G8B8A8_UNORM` and `B8G8R8A8_UNORM`,
+  sampled through combined image sampler descriptors;
+- `push_constants`: quads placed and coloured by push constants, a vertex range and a fragment range;
+- `uniform_buffers`: quads placed by a matrix and coloured by vectors from uniform buffers, one of them dynamic and read
+  at a different offset each draw, in two descriptor sets.
+
+**Passed on hardware:** not yet.
+
+**Decisions:**
+- **Where shader resources land is xost's choice, recorded in the bundle.**
+  - Each shader gets its own registers. Push constants take the first ones, then each uniform block in
+    (set, binding) order, each from its first byte. Combined image samplers take fetch constants from 0 in (set,
+    binding) order. xost works this out from the SPIR-V alone, as `resolve_interface`.
+  - `tools/build_shaders.py` writes the result into the bundle as each shader's resources: a kind, set, binding,
+    first register or fetch constant, and register count.
+  - `vkCreateGraphicsPipelines` matches them against the pipeline layout and refuses what the layout lacks.
+- **Uniform blocks and push constants are copied in as raw bytes.**
+  - A member at byte offset o of a block sits in register first + o / 16, from component (o % 16) / 4.
+  - A matrix stays column-major, one column a register, as std140 lays it out. So xost lowers `M * v` as a
+    multiply-add over columns and `v * M` as dot products, the reverse of what it does for OpenGL's row-uploaded
+    uniforms.
+  - At replay, each draw copies every block its shaders read into float constants
+    (`xsdk_gpu_set_vertex_constants`, `xsdk_gpu_set_pixel_constants`), from the buffer at its offset plus any
+    dynamic offset, as section 2 decided. Mapped memory is uncached, so each read is slow; milestone 5 measures it.
+- **Images.**
+  - 2D, optimal tiling only, which is Xenos's tiled layout with mips as xsdk milestones 15 and 16 settled.
+  - Formats: `R8G8B8A8_UNORM` and `B8G8R8A8_UNORM`. Vulkan lays their bytes out in component order, so the texture
+    fetch reads them unswapped. xsdk gains these two byte-order formats beside its 0xAARRGGBB one.
+  - xsdk splits working out a texture from placing it, so an image's texels live in the `VkDeviceMemory` it's bound
+    to.
+- **Copies run on the CPU at replay,** as vulkan4vita settled (vulkan4vita:docs/ROADMAP.md:585-634). Replay first
+  waits for the GPU to finish what came before, since nothing yet orders the GPU's reads of the image against the
+  CPU's writes. `vkCmdCopyBufferToImage` copies whole mip levels.
+- **Samplers** become xsdk's sampler state: point or linear filtering, nearest or linear mips, repeat, mirrored repeat
+  or clamp to edge, and a LOD bias. Border colours, anisotropy, comparison and LOD clamps return
+  `VK_ERROR_FEATURE_NOT_PRESENT`; they're xsdk TODO items.
+- **Descriptor sets** hold uniform buffers, dynamic uniform buffers and combined image samplers, one descriptor a
+  binding. Fragment shaders sample; vertex shaders don't yet, since both stages share the fetch constants.
+- **`vkCmdPipelineBarrier`** records nothing: replay is in order, and copies wait for the GPU.
+
+**New in xost:** uniform blocks by set and binding, push constant blocks, members at any std140 offset, column-major
+matrices, and samplers by set and binding, each with a regression test.
+
+**New in xsdk:** `xsdk_texture_init` and `xsdk_texture_attach`, splitting `xsdk_texture_create`; the two byte-order
+formats.
+
+**New functions:** `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkBindImageMemory`,
+`vkCreateSampler`, `vkDestroySampler`, `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`,
+`vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`,
+`vkFreeDescriptorSets`, `vkUpdateDescriptorSets`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`,
+`vkCmdCopyBufferToImage`, `vkCmdPipelineBarrier`.
+
+**Not in milestone 2:**
+- linear images, other formats, partial copies, image arrays and views of part of an image;
+- separate images and samplers, descriptor arrays, storage buffers and texel buffers;
+- sampling in vertex shaders;
+- dynamic indexing into uniform arrays;
+- other copies and blits.
 
 ## 5. The Dusklight track
 

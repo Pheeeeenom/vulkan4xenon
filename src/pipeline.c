@@ -13,12 +13,22 @@ static const VkColorComponentFlags all_channels =
 VKAPI_ATTR VkResult VKAPI_CALL vkCreatePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkPipelineLayout *pPipelineLayout)
 {
-	if (pCreateInfo->setLayoutCount || pCreateInfo->pushConstantRangeCount)
-		return v4x_host_unsupported("descriptor sets and push constants");
+	if (pCreateInfo->setLayoutCount > V4X_MAX_DESCRIPTOR_SETS)
+		return v4x_host_unsupported("more than 4 descriptor sets");
+	for (uint32_t i = 0; i < pCreateInfo->pushConstantRangeCount; i++) {
+		const VkPushConstantRange *const range = &pCreateInfo->pPushConstantRanges[i];
+		if (range->offset + range->size > V4X_MAX_PUSH_CONSTANT_BYTES)
+			return v4x_host_unsupported("push constants past 128 bytes");
+	}
 	PipelineLayout *const layout = v4x_host_alloc(
 		v4x_host_device_allocator(device, pAllocator), sizeof *layout, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!layout)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
+	layout->set_count = pCreateInfo->setLayoutCount;
+	for (uint32_t i = 0; i < pCreateInfo->setLayoutCount; i++)
+		layout->sets[i] = v4x_object(pCreateInfo->pSetLayouts[i]);
+	for (uint32_t i = 0; i < pCreateInfo->pushConstantRangeCount; i++)
+		layout->push_stages |= pCreateInfo->pPushConstantRanges[i].stageFlags;
 	*pPipelineLayout = v4x_handle(layout);
 	return VK_SUCCESS;
 }
@@ -156,6 +166,43 @@ static VkResult load_shaders(Pipeline *pipeline)
 	return VK_SUCCESS;
 }
 
+// Whether the layout has what a shader resource reads, for the shader's stage.
+static bool layout_has(const PipelineLayout *layout, const V4xShaderResource *resource, VkShaderStageFlags stage)
+{
+	if (resource->kind == V4X_RESOURCE_PUSH_CONSTANTS)
+		return layout->push_stages & stage;
+	if (resource->set >= layout->set_count || resource->binding >= V4X_MAX_DESCRIPTOR_BINDINGS)
+		return false;
+	const LayoutBinding *const binding = &layout->sets[resource->set]->bindings[resource->binding];
+	if (!binding->used || !(binding->stages & stage))
+		return false;
+	if (resource->kind == V4X_RESOURCE_SAMPLER)
+		return binding->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	return binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+		binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+}
+
+// Each stage's resources, checked against the layout and the GPU's constants.
+static VkResult gather_resources(const PipelineLayout *layout, const V4xShader *shader, bool vertex, Pipeline *pipeline)
+{
+	const VkShaderStageFlags stage = vertex ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
+	for (uint32_t i = 0; i < shader->resource_count; i++) {
+		const V4xShaderResource *const resource = &shader->resources[i];
+		if (!layout_has(layout, resource, stage)) {
+			xsdk_log_write("vulkan4xenon: the pipeline layout lacks set %u binding %u, kind %u, for the %s shader",
+				(unsigned)resource->set, (unsigned)resource->binding, (unsigned)resource->kind,
+				vertex ? "vertex" : "fragment");
+			return VK_ERROR_INITIALIZATION_FAILED;
+		}
+		if (resource->kind == V4X_RESOURCE_SAMPLER && (vertex || resource->first >= V4X_MAX_SAMPLERS))
+			return v4x_host_unsupported("sampling in vertex shaders, and more than 16 samplers");
+		if (resource->kind != V4X_RESOURCE_SAMPLER && resource->first + resource->count > V4X_FLOAT_CONSTANTS)
+			return v4x_host_unsupported("blocks past the 256 float constants");
+		pipeline->resources[pipeline->resource_count++] = (StageResource){ .resource = *resource, .vertex = vertex };
+	}
+	return VK_SUCCESS;
+}
+
 static void free_pipeline(const VkAllocationCallbacks *allocator, Pipeline *pipeline)
 {
 	if (pipeline->vertex.microcode)
@@ -175,6 +222,11 @@ static VkResult create_pipeline(
 	if (!pipeline)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 	result = find_stages(info, pipeline);
+	const PipelineLayout *const layout = v4x_object(info->layout);
+	if (result == VK_SUCCESS)
+		result = gather_resources(layout, pipeline->vertex_source, true, pipeline);
+	if (result == VK_SUCCESS)
+		result = gather_resources(layout, pipeline->pixel_source, false, pipeline);
 	if (result == VK_SUCCESS)
 		result = load_shaders(pipeline);
 	if (result == VK_SUCCESS)

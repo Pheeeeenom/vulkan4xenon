@@ -3,7 +3,9 @@
 #include <vulkan/vulkan.h>
 
 #include "host.h"
+#include "image.h"
 #include "objects.h"
+#include "xsdk/texture.h"
 
 enum {
 	// A budget for the layer, half the console's 512 MB that the CPU and GPU share; not a measurement.
@@ -13,6 +15,17 @@ enum {
 	// The CPU's cache line.
 	CACHE_LINE_BYTES = 128,
 	VIEWPORT_MAX = 4096,
+	// Every register of a stage's constants (xsdk:include/xsdk/gpu.h).
+	MAX_UNIFORM_BUFFER_BYTES = V4X_FLOAT_CONSTANTS * 16,
+	// Vulkan 1.0's minimums, which descriptor sets in host memory meet.
+	MIN_UNIFORM_BUFFERS_PER_STAGE = 12,
+	MIN_UNIFORM_BUFFERS_PER_SET = 72,
+	MIN_DYNAMIC_UNIFORM_BUFFERS_PER_SET = 8,
+	MIN_SAMPLERS_PER_SET = 96,
+	MIN_SAMPLER_ALLOCATIONS = 4000,
+	// A level for each halving down to 1x1 (xsdk:src/texture.c, level_count).
+	MAX_IMAGE_LEVELS = 14,
+	MAX_LOD_BIAS = 15,
 };
 
 static const VkExtensionProperties device_extensions[] = {
@@ -29,8 +42,22 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 		.deviceType = VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
 		.deviceName = "Xenos (vulkan4xenon)",
 		.limits = {
+			.maxImageDimension2D = XSDK_TEXTURE_MAX_SIZE,
+			.maxImageArrayLayers = 1,
+			.maxUniformBufferRange = MAX_UNIFORM_BUFFER_BYTES,
+			.maxPushConstantsSize = V4X_MAX_PUSH_CONSTANT_BYTES,
 			.maxMemoryAllocationCount = HEAP_BYTES / MAP_ALIGNMENT,
+			.maxSamplerAllocationCount = MIN_SAMPLER_ALLOCATIONS,
 			.bufferImageGranularity = 1,
+			.maxBoundDescriptorSets = V4X_MAX_DESCRIPTOR_SETS,
+			.maxPerStageDescriptorSamplers = V4X_MAX_SAMPLERS,
+			.maxPerStageDescriptorUniformBuffers = MIN_UNIFORM_BUFFERS_PER_STAGE,
+			.maxPerStageDescriptorSampledImages = V4X_MAX_SAMPLERS,
+			.maxPerStageResources = MIN_UNIFORM_BUFFERS_PER_STAGE + V4X_MAX_SAMPLERS,
+			.maxDescriptorSetSamplers = MIN_SAMPLERS_PER_SET,
+			.maxDescriptorSetUniformBuffers = MIN_UNIFORM_BUFFERS_PER_SET,
+			.maxDescriptorSetUniformBuffersDynamic = MIN_DYNAMIC_UNIFORM_BUFFERS_PER_SET,
+			.maxDescriptorSetSampledImages = MIN_SAMPLERS_PER_SET,
 			.maxVertexInputAttributes = V4X_MAX_VERTEX_ATTRIBUTES,
 			.maxVertexInputBindings = V4X_MAX_VERTEX_BINDINGS,
 			.maxVertexInputAttributeOffset = V4X_MAX_VERTEX_STRIDE_BYTES - 4,
@@ -44,6 +71,8 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.viewportBoundsRange = { -2.0f * VIEWPORT_MAX, 2.0f * VIEWPORT_MAX - 1.0f },
 			// Vertices land on 1/16 pixel under xsdk's PA_SU_VTX_CNTL (xenia:src/xenia/gpu/xenos.h:877-884).
 			.subPixelPrecisionBits = 4,
+			.maxSamplerLodBias = MAX_LOD_BIAS,
+			.maxSamplerAnisotropy = 1.0f,
 			.minMemoryMapAlignment = MAP_ALIGNMENT,
 			.minTexelBufferOffsetAlignment = 256,
 			.minUniformBufferOffsetAlignment = 256,
@@ -53,6 +82,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.maxFramebufferLayers = 1,
 			.framebufferColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.maxColorAttachments = 1,
+			.sampledImageColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.discreteQueuePriorities = 2,
 			.pointSizeRange = { 1.0f, 1.0f },
 			.lineWidthRange = { 1.0f, 1.0f },
@@ -102,9 +132,14 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 {
 	(void)physicalDevice;
 	*pFormatProperties = (VkFormatProperties){ 0 };
+	const VkFormatFeatureFlags sampled =
+		VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 	switch (format) {
+	case VK_FORMAT_R8G8B8A8_UNORM:
+		pFormatProperties->optimalTilingFeatures = sampled;
+		break;
 	case VK_FORMAT_B8G8R8A8_UNORM:
-		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+		pFormatProperties->optimalTilingFeatures = sampled | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
 		break;
 	case VK_FORMAT_R32_SFLOAT:
 	case VK_FORMAT_R32G32_SFLOAT:
@@ -115,6 +150,28 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 	default:
 		break;
 	}
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice,
+	VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage, VkImageCreateFlags flags,
+	VkImageFormatProperties *pImageFormatProperties)
+{
+	(void)physicalDevice;
+	uint32_t xsdk_format;
+	const VkImageUsageFlags supported = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	if (!v4x_image_format(format, &xsdk_format) || type != VK_IMAGE_TYPE_2D || tiling != VK_IMAGE_TILING_OPTIMAL ||
+		(usage & ~supported) || flags) {
+		*pImageFormatProperties = (VkImageFormatProperties){ 0 };
+		return VK_ERROR_FORMAT_NOT_SUPPORTED;
+	}
+	*pImageFormatProperties = (VkImageFormatProperties){
+		.maxExtent = { XSDK_TEXTURE_MAX_SIZE, XSDK_TEXTURE_MAX_SIZE, 1 },
+		.maxMipLevels = MAX_IMAGE_LEVELS,
+		.maxArrayLayers = 1,
+		.sampleCounts = VK_SAMPLE_COUNT_1_BIT,
+		.maxResourceSize = HEAP_BYTES,
+	};
+	return VK_SUCCESS;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice,

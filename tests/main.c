@@ -27,6 +27,9 @@ int main(void)
 		test_boot_logo(&harness, shown_before_device);
 		test_objects(&harness);
 		test_triangle(&harness);
+		test_texture(&harness);
+		test_push_constants(&harness);
+		test_uniform_buffers(&harness);
 	}
 	harness_destroy(&harness);
 	xsdk_log_write("tests: %d passed, %d failed", passed_count, failed_count);
