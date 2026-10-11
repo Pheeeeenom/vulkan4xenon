@@ -121,6 +121,9 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
    checked by pixel. Encounter's Aurora copies its framebuffer this way (aurora-vita:lib/vulkan4vita/encoding.cpp).
 5. **The benchmark.** Done when the same scenes run through the raw GPU layer and through Vulkan, with the gap
    measured on the console and its causes named.
+6. **The replay's cost,** agreed on 2026-10-11 after milestone 5 and xsdk milestones 19 and 20 measured it. Done when
+   the replay points streams and textures only when they change, and uniform buffers no longer cost the CPU an
+   uncached read a word.
 
 ### Milestone 1: a triangle through Vulkan (done)
 
@@ -594,6 +597,30 @@ GPU time tied: within 1% in the sprite and fill scenes in both runs, and in the 
   that is then flushed. Run 2 carries them; they are xsdk milestone 19's first step (xsdk:SCOPE.md).
 
 **New functions:** none. Every call vkbench makes was there after milestone 4.
+
+### Milestone 6: the replay's cost
+
+**Why.** After xsdk milestones 19 and 20, a cube drawn through the layer cost 1.50 us to xsdk's 0.63, and one taking
+its matrix and tint from uniform buffers 3.8 us more (xsdk:docs/HARDWARE.md, "Fewer dwords a draw"):
+- the replay points the vertex stream and the texture again for every draw, 22 dwords and the calls behind them,
+  though neither changed (`src/queue.c`);
+- it reads each uniform block from mapped memory a word at a time, and mapped memory is write-combined, so each read
+  goes to memory: 20 words, about 190 ns each.
+
+**In two steps,** each run on the console:
+1. **Point what changed.** The replay remembers each stream's address and size and each slot's texture and sampler,
+   and points them only when they differ, forgetting them where something else points them: a resolve, drawing an
+   image back in, and the start of each submit.
+2. **Uniform buffers the GPU loads.** `PM4_LOAD_ALU_CONSTANT` has the command processor copy constants from memory
+   (xenia:src/xenia/gpu/command_processor.cc:1477-1515), so the CPU wouldn't read the buffer at all. A probe on the
+   console first, at the sizes blocks take, as a lone float constant written as a register hung the GPU
+   (xsdk:docs/HARDWARE.md). If it takes them, each block loads straight from its buffer; if not, the layer reads blocks
+   16 bytes at a time with VMX, a quarter of the reads.
+
+**Done when,** on the console:
+- vkbench's `draws_1000` through the layer draws and submits faster than its 1,503 us, in fewer dwords a draw;
+- `uniforms_1000` costs at most a third of its 3.8 us a draw more than `draws_1000`;
+- vulkan4xenon_test passes in full, and vkbench's backends still draw the same pictures.
 
 ## 5. The Dusklight track
 
