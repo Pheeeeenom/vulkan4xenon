@@ -414,10 +414,14 @@ static void xsdk_submit_frame(void)
 	state.fence = xsdk_gpu_fence();
 }
 
-static void xsdk_wait_frame(void)
+static bool xsdk_wait_frame(void)
 {
-	while (!xsdk_gpu_fence_done(state.fence))
-		;
+	const uint64_t start = bench_now_ns();
+	while (!xsdk_gpu_fence_done(state.fence)) {
+		if (bench_now_ns() - start > (uint64_t)FRAME_TIMEOUT_MS * 1000000)
+			return false;
+	}
+	return true;
 }
 
 static void xsdk_present_frame(void)

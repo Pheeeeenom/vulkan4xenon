@@ -78,6 +78,7 @@ static XsdkGpuStats ring_use;
 static FILE *frames_csv;
 static FILE *summary_csv;
 static int passed_count;
+static bool gpu_stopped;
 static int failed_count;
 
 static void check(const char *name, bool passed)
@@ -89,7 +90,7 @@ static void check(const char *name, bool passed)
 		failed_count++;
 }
 
-static uint64_t now_ns(void)
+uint64_t bench_now_ns(void)
 {
 	struct timespec now;
 	(void)clock_gettime(CLOCK_MONOTONIC, &now);
@@ -121,26 +122,30 @@ static Stat compute(const uint32_t *values)
 }
 
 // Each frame: the scene's own work, the backend's draw calls, the submit, the GPU, then the present and the wait for
-// the next image.
-static void measure(const BenchBackend *backend, const SceneDef *scene)
+// the next image. False if the GPU stopped.
+static bool measure(const BenchBackend *backend, const SceneDef *scene)
 {
-	uint64_t previous = now_ns();
+	uint64_t previous = bench_now_ns();
 	XsdkGpuStats ring_start = { 0 };
 	for (int f = 0; f < WARMUP_FRAMES + MEASURE_FRAMES; f++) {
 		if (f == WARMUP_FRAMES)
 			xsdk_gpu_stats(&ring_start);
-		const uint64_t t0 = now_ns();
+		const uint64_t t0 = bench_now_ns();
 		scene_update(scene, f);
-		const uint64_t t1 = now_ns();
+		const uint64_t t1 = bench_now_ns();
 		backend->begin_frame();
 		scene_render(scene, backend);
-		const uint64_t t2 = now_ns();
+		const uint64_t t2 = bench_now_ns();
 		backend->submit_frame();
-		const uint64_t t3 = now_ns();
-		backend->wait_frame();
-		const uint64_t t4 = now_ns();
+		const uint64_t t3 = bench_now_ns();
+		if (!backend->wait_frame()) {
+			xsdk_log_write("vkbench: %s %s: frame %d didn't finish within %d ms, so the GPU has stopped", backend->name,
+				scene->name, f, FRAME_TIMEOUT_MS);
+			return false;
+		}
+		const uint64_t t4 = bench_now_ns();
 		backend->present_frame();
-		const uint64_t t5 = now_ns();
+		const uint64_t t5 = bench_now_ns();
 		if (f >= WARMUP_FRAMES) {
 			const int i = f - WARMUP_FRAMES;
 			samples[METRIC_FRAME][i] = microseconds(t0 - previous);
@@ -158,6 +163,7 @@ static void measure(const BenchBackend *backend, const SceneDef *scene)
 	ring_use.kicks -= ring_start.kicks;
 	ring_use.waits -= ring_start.waits;
 	ring_use.waited_us -= ring_start.waited_us;
+	return true;
 }
 
 static void write_frames(const BenchBackend *backend, const SceneDef *scene)
@@ -226,7 +232,10 @@ static bool run_scene(uint32_t b, uint32_t s)
 	const SceneDef *const scene = &scenes[s];
 	scene_setup(scene);
 	(void)backend->finish();
-	measure(backend, scene);
+	if (!measure(backend, scene)) {
+		gpu_stopped = true;
+		return false;
+	}
 	const uint32_t errors = backend->finish();
 	if (errors)
 		xsdk_log_write("vkbench: %s %s: %u calls failed", backend->name, scene->name, (unsigned)errors);
@@ -248,7 +257,7 @@ static void run_backend(uint32_t b)
 	(void)snprintf(name, sizeof name, "vkbench: %s: opened", backend->name);
 	check(name, opened);
 	bool clean = opened;
-	for (uint32_t s = 0; s < SCENES && opened; s++)
+	for (uint32_t s = 0; s < SCENES && opened && !gpu_stopped; s++)
 		clean = run_scene(b, s) && clean;
 	backend->shutdown();
 	(void)snprintf(name, sizeof name, "vkbench: %s: every scene ran its %d frames with no call failing", backend->name,
@@ -325,8 +334,10 @@ int main(void)
 		(unsigned)SCENES, WARMUP_FRAMES, MEASURE_FRAMES);
 	open_results();
 	probes_run();
-	for (uint32_t b = 0; b < BACKENDS; b++)
+	for (uint32_t b = 0; b < BACKENDS && !gpu_stopped; b++)
 		run_backend(b);
+	if (gpu_stopped)
+		xsdk_log_write("vkbench: the GPU stopped, so the rest didn't run");
 	xsdk_log_write("vkbench: vulkan4xenon against xsdk, medians");
 	for (uint32_t s = 0; s < SCENES; s++)
 		compare(s);

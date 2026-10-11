@@ -827,14 +827,18 @@ static void vulkan_submit_frame(void)
 	(void)ok("vkQueueSubmit", vkQueueSubmit(state.queue, 1, &submit, state.fence));
 }
 
-static void vulkan_wait_frame(void)
+static bool vulkan_wait_frame(void)
 {
+	const uint64_t start = bench_now_ns();
 	VkResult status;
 	do
 		status = vkGetFenceStatus(state.device, state.fence);
-	while (status == VK_NOT_READY);
+	while (status == VK_NOT_READY && bench_now_ns() - start <= (uint64_t)FRAME_TIMEOUT_MS * 1000000);
+	if (status == VK_NOT_READY)
+		return false;
 	(void)ok("vkGetFenceStatus", status);
 	(void)ok("vkResetFences", vkResetFences(state.device, 1, &state.fence));
+	return true;
 }
 
 static void vulkan_present_frame(void)

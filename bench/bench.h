@@ -10,6 +10,8 @@
 enum {
 	SCREEN_WIDTH = 1280,
 	SCREEN_HEIGHT = 720,
+	// A frame the GPU hasn't finished by then never will: it has stopped.
+	FRAME_TIMEOUT_MS = 1000,
 	MAX_DRAW_ITEMS = 4096,
 	// 4 vertices each; 6 indices each stay within a draw's 65535.
 	MAX_SPRITES = 8192,
@@ -56,8 +58,8 @@ typedef struct {
 	void (*draw_fullscreen)(int layers);
 	// Hands the frame to the GPU and kicks it.
 	void (*submit_frame)(void);
-	// Spins until the GPU finishes the frame.
-	void (*wait_frame)(void);
+	// Spins until the GPU finishes the frame; false if it hasn't within FRAME_TIMEOUT_MS.
+	bool (*wait_frame)(void);
 	// Queues the frame to show and waits for the next image.
 	void (*present_frame)(void);
 	// The CPU's view of the image the last frame was drawn into: tiled, 1280 pixels across, bytes B, G, R, A.
@@ -68,6 +70,9 @@ typedef struct {
 } BenchBackend;
 
 extern const BenchBackend bench_xsdk_backend;
+
+// The monotonic clock, in nanoseconds.
+uint64_t bench_now_ns(void);
 extern const BenchBackend bench_vulkan_backend;
 
 #endif
