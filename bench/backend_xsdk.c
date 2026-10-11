@@ -186,8 +186,11 @@ static bool load_shaders(void)
 static volatile uint32_t *gpu_copy(const void *data, uint32_t size_bytes)
 {
 	volatile uint32_t *const memory = xsdk_gpu_alloc(size_bytes);
-	if (memory)
-		memcpy((void *)memory, data, size_bytes);
+	if (!memory)
+		return NULL;
+	memcpy((void *)memory, data, size_bytes);
+	__asm__ volatile("sync" ::: "memory");
+	xsdk_gpu_invalidate(xsdk_gpu_address(memory), size_bytes);
 	return memory;
 }
 
@@ -220,6 +223,7 @@ static bool make_textures(void)
 		}
 		assets_build_texture(pixels, i);
 		xsdk_texture_upload(&state.textures[i], 0, pixels, TEXTURE_SIZE * 4);
+		xsdk_gpu_invalidate(state.textures[i].address, state.textures[i].size_bytes);
 	}
 	return true;
 }
@@ -386,6 +390,7 @@ static void xsdk_draw_sprites(const SpriteVertex *vertices, int sprite_count)
 {
 	// The GPU is done with the stream: each frame waits for its fence.
 	memcpy((void *)state.stream, vertices, (size_t)sprite_count * 4 * sizeof(SpriteVertex));
+	xsdk_gpu_invalidate(xsdk_gpu_address(state.stream), (uint32_t)sprite_count * 4 * SPRITE_STRIDE_BYTES);
 	use_program(PROGRAM_SPRITE);
 	use_texture(0);
 	use_blend(true);

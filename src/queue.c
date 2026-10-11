@@ -11,6 +11,8 @@
 
 enum {
 	IDLE_TIMEOUT_MS = 10000,
+	// All of physical memory, as libxenon invalidates it (libxenon:drivers/xenos/xe.c:992).
+	ALL_MEMORY_BYTES = 0x20000000,
 };
 
 typedef struct {
@@ -129,6 +131,7 @@ static void copy_buffer_to_image(VkQueue queue, const Command *command)
 		xsdk_log_write("vulkan4xenon: the GPU didn't go idle for a copy: 0x%08X", (unsigned)status);
 	xsdk_texture_upload(&command->copy.image->texture, command->copy.level,
 		(const void *)(uintptr_t)command->copy.source, command->copy.row_bytes);
+	xsdk_gpu_invalidate(command->copy.image->texture.address, command->copy.image->texture.size_bytes);
 	if (queue->color.image == command->copy.image)
 		queue->color = (EdramPart){ .contents = EDRAM_UNKNOWN };
 }
@@ -439,6 +442,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkQueueSubmit(
 {
 	// Drain the CPU's write-combining, so the GPU reads what the app wrote to mapped memory.
 	__asm__ volatile("sync" ::: "memory");
+	// Mapped memory is coherent, so the app may have written any of it; one invalidate covers it all, as xsdk's set-up
+	// covers memory (xsdk:src/gpu_setup.c).
+	xsdk_gpu_invalidate(0, ALL_MEMORY_BYTES);
 	for (uint32_t i = 0; i < submitCount; i++) {
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
 			const VkCommandBuffer buffer = pSubmits[i].pCommandBuffers[j];
