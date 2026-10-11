@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestone 1 is done; milestone 2 is under way. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 and 2 are done; milestone 3 is next. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -244,7 +244,7 @@ Within them:
 - loading an attachment's old contents, and render areas smaller than the framebuffer (milestone 4);
 - copies, queries, compute, secondary command buffers and multisampling.
 
-### Milestone 2: textures, descriptors and push constants (in progress)
+### Milestone 2: textures, descriptors and push constants (done)
 
 **Done when** `build/vulkan4xenon_test.xex`, on the console, passes milestone 1's checks and these, each checked by
 pixel on the image the display shows:
@@ -254,7 +254,20 @@ pixel on the image the display shows:
 - `uniform_buffers`: quads placed by a matrix and coloured by vectors from uniform buffers, one of them dynamic and read
   at a different offset each draw, in two descriptor sets.
 
-**Passed on hardware:** not yet.
+**Passed on hardware** on 2026-10-11, at `e24c820` with xsdk at `7ff6c4c` and xost at `b09a2d8`
+(`results/2026-10-11-milestone-2/`). All 33 checks passed, milestone 1's 20 among them, and the console went back to
+the Aurora dashboard.
+- **Textures:** every texel of both 4x4 images showed in every frame, read through combined image sampler
+  descriptors. Red and blue held their places in both byte orders, the second image copied from padded rows.
+- **Push constants:** each quad took its place from the vertex range and its colour from the fragment range, both
+  pushed before each draw.
+- **Uniform buffers:**
+  - each quad landed where its column-major matrix put it, read at three dynamic offsets;
+  - its colour came through the same block;
+  - set 1's tint halved green, from a second descriptor set and the fragment shader's own registers.
+- **New paths in it that ran for the first time:** blocks copied into constants at replay; the two byte-order
+  formats; xost's column-major products; a constant written straight to a varying.
+- **Captures:** `texture.png`, `push_constants.png` and `uniform_buffers.png` in the results folder.
 
 **Decisions:**
 - **Where shader resources land is xost's choice, recorded in the bundle.**
