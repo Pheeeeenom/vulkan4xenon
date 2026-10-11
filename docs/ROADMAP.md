@@ -7,8 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 4 are done; milestone 5 is under way. Section 7 lists what's
-still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 5 are done. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -492,7 +491,7 @@ attachments are new.
 - depth resolves, so depth loaded after eDRAM lost it, sampled or copied;
 - colour attachments 16 texels or less on a side, with mips, or more than one in a subpass.
 
-### Milestone 5: the benchmark
+### Milestone 5: the benchmark (done)
 
 **Done when** `build/vkbench.xex`, on the console, runs each scene through xsdk's GPU layer and then through
 vulkan4xenon, in two runs of the title, and this section records each scene's draw + submit and GPU time through the
@@ -528,6 +527,49 @@ layer against xsdk's, with the gap's causes named from measurements.
 - **The same picture:** each scene's last frame is sampled on a grid in both backends, and the two must match.
 - **Differences from vkbench:** 1280x720; sprite colours are four floats, as the layer takes only 32-bit float vertex
   formats; v-sync stays on.
+
+**Passed on hardware** on 2026-10-11, in two whole runs. Each passed all 14 checks, both backends drew the same
+picture in every scene, and the console went back to the Aurora dashboard.
+- **Run 1**, at `ff0f2c7` with xsdk at `a441b04` (`results/2026-10-11-milestone-5/`: `vkbench_run1.log` and its
+  CSVs), on xsdk's 32 KB ring.
+- **Run 2**, at `077d2c4` with xsdk at `b5933a0` (xsdk:results/2026-10-11-milestone-19-stream-3/), after xsdk
+  milestone 19 put commands into a stream the ring runs every 1024 dwords as they're written, and with the ring's
+  counts. So the GPU starts during xsdk's draw calls and the layer's submit, and gpu counts only what's left after it.
+- **The test title** passed all 58 checks after each (`results/2026-10-11-milestone-5/vulkan4xenon_test.log`,
+  xsdk:results/2026-10-11-milestone-19-regression/).
+
+Draw and submit, median, in microseconds:
+
+| Scene | xsdk, run 1 | vulkan4xenon, run 1 | xsdk, run 2 | vulkan4xenon, run 2 |
+|---|---|---|---|---|
+| `draws_250` | 8,049 | 11,684 | 307 | 724 |
+| `draws_1000` | 37,590 | 47,515 | 1,213 | 2,867 |
+| `draws_4000` | 151,190 | 195,871 | 4,836 | 11,703 |
+| `states_250` | 13,987 | 15,686 | 545 | 907 |
+| `states_1000` | 55,496 | 65,512 | 2,167 | 3,607 |
+| `uniforms_1000` | 37,590 | 48,514 | 1,214 | 6,852 |
+| `stream_1000` | 700 | 704 | 698 | 702 |
+| `stream_8000` | 5,553 | 5,565 | 5,554 | 5,564 |
+| `fill_4` | 12 | 20 | 10 | 16 |
+| `fill_16` | 22 | 49 | 17 | 39 |
+
+GPU time tied: within 1% in the sprite and fill scenes in both runs, and in the cube scenes both finished 0.3 to
+0.5 ms after the submit, about the frame's resolve.
+
+**The gap's causes,** from the counts:
+- **Run 1: both waited for xsdk's ring.** A cube wrote 156.4 dwords through xsdk and 200.3 through the layer (run 2's
+  counts; what a draw writes didn't change between the runs). The 32 KB ring filled every 52 cubes through xsdk, and
+  each fill slept about 2 ms, a 1 ms sleep having measured 1,993 us. So the layer's 1.28 times the dwords cost it
+  1.26 and 1.30 times the time in `draws_1000` and `draws_4000`.
+- **Run 2: nothing waited, so the CPU's work shows.** A cube cost xsdk 1.21 us and the layer 2.93: 0.23 recording and
+  2.69 at submit, replaying it into xsdk's calls (`src/queue.c`). The layer's 44 extra dwords point the vertex stream
+  and the texture again every draw, each behind a coherency request, though neither changed.
+- **Uniform buffers:** `uniforms_1000` cost the layer 4.0 us a draw more than `draws_1000`, for reading two blocks, 20
+  words in all, from mapped memory at submit. That memory is write-combined, and reads from it are slow. Run 1 showed
+  1.0 us.
+- **Sprites tie:** both write vertices with `memcpy` into write-combined memory, which runs at 185 MB/s on the console
+  (xsdk:docs/HARDWARE.md), so `stream_8000`'s 1 MB takes 5.5 ms either way.
+- **Fill ties on the GPU:** each blended full-screen layer took 462 us, about 2.0 Gpixels a second, in both.
 
 **Decisions:**
 - **Command buffers grow.** `draws_4000` records 12,000 commands a frame, and 320 KB of push constants, past the 4096
@@ -623,3 +665,10 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
 
 - **Where Dusklight's own changes live:** probably a fork, for the byte order and the platform. Decide before the
   Dusklight track starts. Aurora's side is a fork of aurora-vita (section 2).
+- **What milestone 5 found slow,** for when it's taken on:
+  - reading uniform buffers at submit, 4.0 us a draw for two blocks, as mapped memory is write-combined. Encounter's
+    Aurora passes its uniforms this way;
+  - the replay pointing streams and textures again every draw though they didn't change, so a cube costs 2.4 times
+    xsdk's;
+  - apps writing mapped memory with `memcpy`, which runs at 185 MB/s there, 20 times slower than 32-bit stores
+    (xsdk:docs/HARDWARE.md).
