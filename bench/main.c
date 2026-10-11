@@ -157,7 +157,6 @@ static void measure(const BenchBackend *backend, const SceneDef *scene)
 	ring_use.dwords -= ring_start.dwords;
 	ring_use.kicks -= ring_start.kicks;
 	ring_use.waits -= ring_start.waits;
-	ring_use.sleeps -= ring_start.sleeps;
 	ring_use.waited_us -= ring_start.waited_us;
 }
 
@@ -188,8 +187,8 @@ static void report(uint32_t b, uint32_t s)
 	fprintf(summary_csv, "%s,%s,%d,%d", backends[b]->name, scenes[s].name, scenes[s].count, MEASURE_FRAMES);
 	for (int m = 0; m < METRICS; m++)
 		fprintf(summary_csv, ",%u,%u,%u", (unsigned)r[m].mean, (unsigned)r[m].median, (unsigned)r[m].p99);
-	fprintf(summary_csv, ",%llu,%u,%u,%u,%llu\n", (unsigned long long)ring_use.dwords, (unsigned)ring_use.kicks,
-		(unsigned)ring_use.waits, (unsigned)ring_use.sleeps, (unsigned long long)ring_use.waited_us);
+	fprintf(summary_csv, ",%llu,%u,%u,%llu\n", (unsigned long long)ring_use.dwords, (unsigned)ring_use.kicks,
+		(unsigned)ring_use.waits, (unsigned long long)ring_use.waited_us);
 }
 
 // Tenths of a frame's share of a count over the measured frames, so the log needs no floats.
@@ -204,15 +203,10 @@ static void report_ring(uint32_t b, uint32_t s)
 	const uint32_t dwords_tenths = (uint32_t)((ring_use.dwords * 10 / MEASURE_FRAMES + count / 2) / count);
 	const uint32_t kicks = tenths_a_frame(ring_use.kicks);
 	const uint32_t waits = tenths_a_frame(ring_use.waits);
-	const uint32_t sleeps = tenths_a_frame(ring_use.sleeps);
-	xsdk_log_write(
-		"vkbench: %s %s: ring a frame: %u dwords, %u.%u for each of %u; %u.%u kicks; %u.%u waits for room, %u.%u "
-		"sleeps, %u us waiting, %u us a sleep",
+	xsdk_log_write("vkbench: %s %s: a frame: %u dwords, %u.%u for each of %u; %u.%u kicks; %u.%u waits, %u us waiting",
 		backends[b]->name, scenes[s].name, (unsigned)(ring_use.dwords / MEASURE_FRAMES), (unsigned)(dwords_tenths / 10),
 		(unsigned)(dwords_tenths % 10), (unsigned)count, (unsigned)(kicks / 10), (unsigned)(kicks % 10),
-		(unsigned)(waits / 10), (unsigned)(waits % 10), (unsigned)(sleeps / 10), (unsigned)(sleeps % 10),
-		(unsigned)(ring_use.waited_us / MEASURE_FRAMES),
-		(unsigned)(ring_use.sleeps ? ring_use.waited_us / ring_use.sleeps : 0));
+		(unsigned)(waits / 10), (unsigned)(waits % 10), (unsigned)(ring_use.waited_us / MEASURE_FRAMES));
 }
 
 // The last frame's picture, at the grid's points, as front buffer words: bytes B, G, R, A.
@@ -322,7 +316,7 @@ static void open_results(void)
 	for (int m = 0; m < METRICS; m++)
 		fprintf(summary_csv, ",%s_mean_us,%s_median_us,%s_p99_us", metric_names[m], metric_names[m], metric_names[m]);
 	// The ring's counts over all the measured frames.
-	fprintf(summary_csv, ",ring_dwords,ring_kicks,ring_waits,ring_sleeps,ring_waited_us\n");
+	fprintf(summary_csv, ",ring_dwords,ring_kicks,ring_waits,ring_waited_us\n");
 }
 
 int main(void)
