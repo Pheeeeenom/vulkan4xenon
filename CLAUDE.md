@@ -1,0 +1,26 @@
+# vulkan4xenon
+
+A Vulkan 1.0 subset for the Xbox 360, a static library on the xsdk homebrew SDK's GPU layer (Z:\Xbox-360-SDK). Its goal
+is running Dusklight on the console. See README.md and docs/ROADMAP.md.
+
+## Working rules
+
+- Follow CODE_GUIDELINES.md, and xsdk's guidelines it builds on. If a request conflicts with them, say so before
+  writing code.
+- Agree on scope before starting a feature. Build only what was agreed, and don't build ahead. The agreed scope is
+  docs/ROADMAP.md.
+- Back up any claim about Xenos, the kernel or xsdk with evidence: Xenia, libxenon, xost, xsdk's docs/HARDWARE.md, or
+  a hardware result. Say which. No Microsoft tooling, no leaked SDK material, no OpenXeChain.
+- vulkan4vita (Z:\vulkan4vita) is the template for layout and process, not for Vita specifics.
+- "Aurora" here means encounter's Aurora, the GameCube and Wii layer Dusklight is built on. The console's dashboard is
+  "the Aurora dashboard".
+- Hardware runs are on the user's RGH console, as for xsdk: the user copies the `.xex` over FTP, launches it from the
+  Aurora dashboard, and sends back the log and a capture. Ask for a hardware run only when a milestone needs one.
+- Xenia Canary is for crash and smoke checks only, as xsdk's CLAUDE.md describes, never for performance numbers.
+- Every title starts with the vulkan4xenon splash (`xsdk_splash_show`), or, inside the layer, the boot logo.
+- Keep hardware results under `results/<date>-<description>/`.
+
+## Build
+
+The layer builds with xsdk's toolchain in WSL Debian (`~/xsdk-gcc`); see xsdk's CLAUDE.md for calling WSL. The build
+files come with milestone 1.
