@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 
 #include "vulkan4xenon.h"
+#include "xsdk/gpu.h"
 #include "xsdk/shader.h"
 #include "xsdk/texture.h"
 
@@ -24,6 +25,8 @@ enum {
 	// A fetch's stride is 8 bits of dwords (xsdk:src/shader.c, FETCH_STRIDE_MASK).
 	V4X_MAX_VERTEX_STRIDE_BYTES = 255 * 4,
 	V4X_COMMANDS_PER_BUFFER = 4096,
+	// DRAW_INDX_2 and DRAW_INDX carry the count in 16 bits (xsdk:src/gpu_draw.c:219, 309).
+	V4X_MAX_DRAW_VERTICES = 65535,
 	// Push constants, dynamic offsets and copy regions, which vary in size, go here in recording order.
 	V4X_COMMAND_DATA_BYTES = 16384,
 	V4X_MAX_DESCRIPTOR_SETS = 4,
@@ -47,15 +50,20 @@ struct VkInstance_T {
 	struct VkPhysicalDevice_T physical_device;
 };
 
-// What eDRAM's colour holds between render passes: a resolve clears it to a known colour.
+// What eDRAM holds between render passes: a resolve clears its colour, depth and stencil to known values.
 typedef struct {
 	bool known;
 	uint32_t argb;
+	float depth;
+	uint32_t stencil;
 } Edram;
 
 struct VkQueue_T {
 	VkDevice device;
 	Edram edram;
+	// The depth and stencil resolves clear to, as last given to xsdk_gpu_set_depth_clear.
+	float depth_clear;
+	uint32_t stencil_clear;
 };
 
 struct VkDevice_T {
@@ -83,6 +91,8 @@ typedef struct {
 	uint32_t height;
 	VkFormat format;
 	bool is_texture;
+	// A depth attachment lives in eDRAM; its memory is never used.
+	bool is_depth;
 	XsdkTexture texture;
 } Image;
 
@@ -156,6 +166,14 @@ typedef struct {
 	uint32_t stream_count;
 	VkViewport viewport;
 	VkRect2D scissor;
+	bool dynamic_viewport;
+	bool dynamic_scissor;
+	uint32_t primitive;
+	// Vertices a primitive takes in a list, so long lists split on whole primitives; 0 for strips and fans.
+	uint32_t list_vertices;
+	XsdkBlendState blend;
+	XsdkRasterState raster;
+	XsdkDepthStencilState depth_stencil;
 	StageResource resources[V4X_MAX_SHADER_RESOURCES];
 	uint32_t resource_count;
 } Pipeline;
@@ -164,10 +182,15 @@ typedef struct {
 	VkFormat format;
 	VkAttachmentLoadOp load_op;
 	VkAttachmentStoreOp store_op;
+	uint32_t color_index;
+	bool has_depth;
+	uint32_t depth_index;
+	bool clears_depth;
 } RenderPass;
 
 typedef struct {
 	const Image *attachment;
+	const Image *depth;
 	uint32_t width;
 	uint32_t height;
 } Framebuffer;
@@ -181,6 +204,10 @@ typedef enum {
 	COMMAND_BIND_DESCRIPTOR_SET,
 	COMMAND_PUSH_CONSTANTS,
 	COMMAND_COPY_BUFFER_TO_IMAGE,
+	COMMAND_SET_VIEWPORT,
+	COMMAND_SET_SCISSOR,
+	COMMAND_BIND_INDEX_BUFFER,
+	COMMAND_DRAW_INDEXED,
 } CommandType;
 
 typedef struct {
@@ -190,6 +217,8 @@ typedef struct {
 			const RenderPass *render_pass;
 			const Framebuffer *framebuffer;
 			uint32_t clear_argb;
+			float clear_depth;
+			uint32_t clear_stencil;
 		} begin;
 		const Pipeline *pipeline;
 		struct {
@@ -218,6 +247,17 @@ typedef struct {
 			uint32_t level;
 			uint32_t row_bytes;
 		} copy;
+		// A VkViewport or VkRect2D in the command buffer's data.
+		uint32_t state_at;
+		struct {
+			uint32_t address;
+			bool is_32_bit;
+		} index_buffer;
+		struct {
+			uint32_t index_count;
+			uint32_t first_index;
+			int32_t vertex_offset;
+		} draw_indexed;
 	};
 } Command;
 
@@ -238,6 +278,8 @@ struct VkCommandBuffer_T {
 	uint8_t *data;
 	uint32_t data_bytes;
 	bool in_render_pass;
+	// The pipeline bound last while recording, to check draws against its topology.
+	const Pipeline *pipeline;
 };
 
 typedef struct CommandPool {

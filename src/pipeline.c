@@ -4,11 +4,9 @@
 
 #include "host.h"
 #include "objects.h"
+#include "pipeline_state.h"
 #include "xsdk/log.h"
 #include "xsdk/shader.h"
-
-static const VkColorComponentFlags all_channels =
-	VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreatePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkPipelineLayout *pPipelineLayout)
@@ -69,31 +67,6 @@ static void location_usage(uint32_t location, XsdkVertexElement *element)
 	else
 		element->usage = XSDK_USAGE_TEXCOORD;
 	element->usage_index = location >= 3 ? location - 2 : 0;
-}
-
-static VkResult check_fixed_state(const VkGraphicsPipelineCreateInfo *info)
-{
-	const VkPipelineInputAssemblyStateCreateInfo *const assembly = info->pInputAssemblyState;
-	if (assembly->topology != VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST || assembly->primitiveRestartEnable)
-		return v4x_host_unsupported("topologies other than triangle lists");
-	const VkPipelineViewportStateCreateInfo *const viewport = info->pViewportState;
-	if (viewport->viewportCount != 1 || viewport->scissorCount != 1 || !viewport->pViewports || !viewport->pScissors)
-		return v4x_host_unsupported("pipelines without one static viewport and scissor");
-	if (info->pDynamicState && info->pDynamicState->dynamicStateCount)
-		return v4x_host_unsupported("dynamic state");
-	const VkPipelineRasterizationStateCreateInfo *const raster = info->pRasterizationState;
-	if (raster->depthClampEnable || raster->rasterizerDiscardEnable || raster->polygonMode != VK_POLYGON_MODE_FILL ||
-		raster->cullMode != VK_CULL_MODE_NONE || raster->depthBiasEnable || raster->lineWidth != 1.0f)
-		return v4x_host_unsupported("rasterization other than filled triangles without culling or depth bias");
-	const VkPipelineMultisampleStateCreateInfo *const multisample = info->pMultisampleState;
-	if (multisample->rasterizationSamples != VK_SAMPLE_COUNT_1_BIT || multisample->sampleShadingEnable ||
-		multisample->alphaToCoverageEnable || multisample->alphaToOneEnable)
-		return v4x_host_unsupported("multisampling");
-	const VkPipelineColorBlendStateCreateInfo *const blend = info->pColorBlendState;
-	if (blend->logicOpEnable || blend->attachmentCount != 1 || blend->pAttachments[0].blendEnable ||
-		blend->pAttachments[0].colorWriteMask != all_channels)
-		return v4x_host_unsupported("blending and colour write masks");
-	return VK_SUCCESS;
 }
 
 static VkResult find_stages(const VkGraphicsPipelineCreateInfo *info, Pipeline *pipeline)
@@ -215,13 +188,12 @@ static void free_pipeline(const VkAllocationCallbacks *allocator, Pipeline *pipe
 static VkResult create_pipeline(
 	const VkGraphicsPipelineCreateInfo *info, const VkAllocationCallbacks *allocator, VkPipeline *out)
 {
-	VkResult result = check_fixed_state(info);
-	if (result != VK_SUCCESS)
-		return result;
 	Pipeline *const pipeline = v4x_host_alloc(allocator, sizeof *pipeline, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!pipeline)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
-	result = find_stages(info, pipeline);
+	VkResult result = v4x_pipeline_state(info, v4x_object(info->renderPass), pipeline);
+	if (result == VK_SUCCESS)
+		result = find_stages(info, pipeline);
 	const PipelineLayout *const layout = v4x_object(info->layout);
 	if (result == VK_SUCCESS)
 		result = gather_resources(layout, pipeline->vertex_source, true, pipeline);
@@ -235,8 +207,6 @@ static VkResult create_pipeline(
 		free_pipeline(allocator, pipeline);
 		return result;
 	}
-	pipeline->viewport = info->pViewportState->pViewports[0];
-	pipeline->scissor = info->pViewportState->pScissors[0];
 	*out = v4x_handle(pipeline);
 	return VK_SUCCESS;
 }

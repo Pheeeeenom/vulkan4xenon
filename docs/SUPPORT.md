@@ -27,7 +27,7 @@ required minimums.
 | Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
 | Descriptor sets | `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`, `vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`, `vkFreeDescriptorSets`, `vkUpdateDescriptorSets` |
 | Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer` |
-| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdDraw`, `vkCmdCopyBufferToImage`, `vkCmdPipelineBarrier` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdCopyBufferToImage`, `vkCmdPipelineBarrier` |
 | Sync and submit | `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore` |
 | Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
 | Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
@@ -89,29 +89,54 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   - a vertex and a fragment stage, entry point `main`, no specialization constants;
   - per-vertex bindings with strides a multiple of 4, up to 1020 bytes;
   - `VK_FORMAT_R32_SFLOAT` to `R32G32B32A32_SFLOAT` attributes at offsets a multiple of 4;
-  - triangle lists, no primitive restart;
-  - one static viewport and scissor, and no dynamic state;
-  - filled polygons, no culling, depth clamp or depth bias, line width 1;
+  - point lists, line lists and strips, and triangle lists, strips and fans, without primitive restart (an xsdk
+    TODO);
+  - one viewport and scissor, set in the pipeline or dynamic; no other dynamic state;
+  - filled polygons, line width 1, no depth clamp;
   - one sample;
-  - one colour attachment, no blending, every channel written.
+  - one colour attachment.
+- **Rasterization:**
+  - culling front or back faces, or none; culling both returns `VK_ERROR_FEATURE_NOT_PRESENT`;
+  - `frontFace` maps straight to xsdk's `front_clockwise`. Both mean clockwise as the triangle looks in the y-down
+    framebuffer (xsdk:tests/test_raster.c:207), and the viewport flip keeps every vertex where Vulkan puts it;
+  - depth bias: the constant factor is in units of 2^-24, D24's resolution, so the layer divides it by 2^24 into the
+    hardware's depth units (xenia:src/xenia/gpu/draw_util.h:165-172). The slope factor passes through as xsdk's
+    per-pixel slope, unverified as in xsdk. A bias clamp returns `VK_ERROR_FEATURE_NOT_PRESENT`.
+- **Depth and stencil,** with a depth attachment:
+  - depth test, write and compare op;
+  - stencil test, ops, compare op, masks and reference, the same for both faces. Faces that differ return
+    `VK_ERROR_FEATURE_NOT_PRESENT` (two-sided stencil is an xsdk TODO).
+  - Vulkan's compare and stencil ops are xsdk's, value for value. No depth bounds test.
+- **Blending:**
+  - every factor but the constant colours and dual-source ones, which return `VK_ERROR_FEATURE_NOT_PRESENT`;
+  - every op, with min and max ignoring their factors as Vulkan says. Xenia ignores them too
+    (xenia:src/xenia/gpu/spirv_shader_translator_rb.cc:3324), and the layer sets them to one, so the result holds either
+    way;
+  - the colour write mask. No logic ops.
+- **Deviation:** points are 1 pixel, xsdk's `PA_SU_POINT_SIZE`; the shader's `gl_PointSize` is ignored.
 - The pipeline cache passed in is ignored; `vkCreatePipelineCache` isn't implemented.
 - Clip space is Vulkan's:
   - y points down, so the viewport is set from its bottom edge with a negative height, against xsdk's y-up
     (xsdk:src/gpu_draw.c:298);
   - pixel centres sit on halves. Xenos puts them on whole coordinates under xsdk's `PIX_CENTER_D3D`
-    (xenia:src/xenia/gpu/xenos.h:861-866), so the viewport moves half a pixel up and left. Unverified at edges until
-    milestone 3.
+    (xenia:src/xenia/gpu/xenos.h:861-866), so the viewport moves half a pixel up and left. Milestone 3's `raster`
+    test checks edges a quarter pixel off the grid, which only centres on halves cover as Vulkan says.
 
 ## Render passes
 
-- One subpass with one colour attachment, `VK_FORMAT_B8G8R8A8_UNORM`, one sample.
-- Load op clear or don't-care; `VK_ATTACHMENT_LOAD_OP_LOAD` returns `VK_ERROR_FEATURE_NOT_PRESENT`. Store op store or
+- One subpass with one colour attachment, `VK_FORMAT_B8G8R8A8_UNORM`, one sample, and optionally a depth attachment,
+  `VK_FORMAT_D24_UNORM_S8_UINT`.
+- Load ops clear or don't-care; `VK_ATTACHMENT_LOAD_OP_LOAD` returns `VK_ERROR_FEATURE_NOT_PRESENT`. Store op store or
   don't-care.
-- Framebuffers: one attachment, its full size, one layer. The render area must be the whole framebuffer.
+- **Depth isn't stored:** a depth attachment lives in eDRAM, and resolving depth out is an xsdk TODO. So its store op
+  keeps nothing. Nothing can tell: loading it returns `VK_ERROR_FEATURE_NOT_PRESENT`, and depth images can't be
+  sampled or copied.
+- Framebuffers: the render pass's attachments, their full size, one layer. The render area must be the whole
+  framebuffer.
 - How it maps:
   - the pass draws into eDRAM, and its end resolves into the attachment's image;
-  - a resolve also clears eDRAM, to the colour it's given (xsdk:src/gpu_resolve.c:112-128), so each pass's resolve
-    clears to that pass's clear colour;
+  - a resolve also clears eDRAM: colour to the colour it's given (xsdk:src/gpu_resolve.c:112-128), depth and stencil
+    to `xsdk_gpu_set_depth_clear`'s. So each pass's resolve clears to that pass's clear values;
   - a pass that clears to what eDRAM already holds does nothing more. Otherwise beginning it resolves into the
     attachment once to clear eDRAM, copying junk the pass then overwrites.
 - Framebuffers: swapchain images only. Rendering into other images is milestone 4.
@@ -123,6 +148,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - Optimal tiling is Xenos's tiled layout, with mips as xsdk milestones 15 and 16 settled.
 - Memory requirements: the texture's size, 4 KB aligned, as a fetch constant holds its address in 4 KB units. Binding
   places the texels at the memory (`xsdk_texture_attach`).
+- Depth images: `VK_FORMAT_D24_UNORM_S8_UINT`, one level, used as a depth attachment only. Their memory requirement is
+  one page, which nothing uses.
 - Image views: the whole of a 2D image in its format, no swizzle.
 
 ## Samplers
@@ -155,9 +182,11 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   4-byte-aligned offsets. It runs on the CPU at replay, after waiting for the GPU to finish what came before, since
   nothing yet orders the GPU's reads of the image against the CPU's writes.
 - `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for the GPU.
-- `vkCmdDraw`: one instance, `firstInstance` 0. `firstVertex` moves each stream's address forward, since xsdk draws
-  from vertex 0. Draws of more than 65535 vertices are split, as the draw packet counts vertices in 16 bits
-  (xsdk:src/gpu_draw.c:219).
+- `vkCmdDraw` and `vkCmdDrawIndexed`: one instance, `firstInstance` 0.
+  - `firstVertex` and `vertexOffset` move each stream's address, since xsdk draws from vertex 0.
+  - `firstIndex` moves the index buffer's address. Indices are 16 or 32 bits, with values up to 2^24 - 1.
+  - Lists of more than 65535 vertices or indices are split on whole primitives, as the draw packets count in 16 bits
+    (xsdk:src/gpu_draw.c:219, 309). Strips and fans that long return `VK_ERROR_FEATURE_NOT_PRESENT`.
 
 ## Sync
 
@@ -197,6 +226,7 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 |---|---|
 | `VK_FORMAT_R8G8B8A8_UNORM` | optimal tiling: sampled, linear filtering |
 | `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment |
+| `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment |
 | `VK_FORMAT_R32_SFLOAT`, `R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT` | buffer: vertex buffer |
 
 Vulkan 1.0 requires many more formats and features; each missing one is a deviation.
@@ -204,7 +234,7 @@ Vulkan 1.0 requires many more formats and features; each missing one is a deviat
 ## Physical device
 
 Only these limits are set. Every other limit is 0: what it measures isn't implemented yet, such as 1D, 3D and cube
-images, storage and texel buffers, input attachments, index buffers, indirect draws, clip and cull distances, and
+images, storage and texel buffers, input attachments, indirect draws, clip and cull distances, and
 compute. Where Vulkan 1.0 has a minimum for one of those, the 0 is below it. `mipmapPrecisionBits` and
 `subTexelPrecisionBits` are 0 too, under the minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
 
@@ -217,6 +247,7 @@ compute. Where Vulkan 1.0 has a minimum for one of those, the 0 is below it. `mi
 | `maxMemoryAllocationCount` | 4096 |
 | `maxSamplerAllocationCount` | 4000 |
 | `bufferImageGranularity` | 1 |
+| `maxDrawIndexedIndexValue` | 2^24 - 1 |
 | `maxBoundDescriptorSets` | 4 |
 | `maxPerStageDescriptorSamplers`, `maxPerStageDescriptorSampledImages` | 16 |
 | `maxPerStageDescriptorUniformBuffers` | 12 |
@@ -239,7 +270,7 @@ compute. Where Vulkan 1.0 has a minimum for one of those, the 0 is below it. `mi
 | `minTexelBufferOffsetAlignment`, `minUniformBufferOffsetAlignment`, `minStorageBufferOffsetAlignment` | 256 |
 | `maxFramebufferWidth`, `maxFramebufferHeight` | 1280, 720 |
 | `maxFramebufferLayers` | 1 |
-| `framebufferColorSampleCounts`, `sampledImageColorSampleCounts` | 1 |
+| `framebufferColorSampleCounts`, `framebufferDepthSampleCounts`, `framebufferStencilSampleCounts`, `sampledImageColorSampleCounts` | 1 |
 | `discreteQueuePriorities` | 2 |
 | `pointSizeRange`, `lineWidthRange` | 1, 1 |
 | `standardSampleLocations` | true |

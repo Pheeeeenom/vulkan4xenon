@@ -68,6 +68,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, c
 		device->has_allocator = true;
 	}
 	device->queue.device = device;
+	// Resolves clear depth to far and stencil to 0 until a render pass says otherwise.
+	xsdk_gpu_set_depth_clear(1.0f, 0);
+	device->queue.depth_clear = 1.0f;
+	device->queue.stencil_clear = 0;
 	device_exists = true;
 	*pDevice = device;
 	return VK_SUCCESS;

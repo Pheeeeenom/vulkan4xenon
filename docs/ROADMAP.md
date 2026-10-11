@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 and 2 are done; milestone 3 is next. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 and 2 are done; milestone 3 is under way. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -319,6 +319,69 @@ formats.
 - sampling in vertex shaders;
 - dynamic indexing into uniform arrays;
 - other copies and blits.
+
+### Milestone 3: pipeline state (in progress)
+
+**Done when** `build/vulkan4xenon_test.xex`, on the console, passes milestones 1 and 2's checks and these, each checked
+by pixel on the image the display shows:
+- `indexed`:
+  - triangle lists, strips and fans, line lists and strips, and points, from 16- and 32-bit index buffers;
+  - a first index and a vertex offset;
+  - a list of more than 65535 indices whose values pass 65535.
+- `depth_stencil`:
+  - a D24S8 attachment cleared with the render pass;
+  - depth tested and written in both draw orders, and tested but not written;
+  - the clear depth hiding what's behind it;
+  - a stencil mask with no colour written, and a draw tested against it;
+  - a constant depth bias.
+- `raster`:
+  - culling of clockwise and counter-clockwise quads under both front faces;
+  - blending: alpha, additive, subtract, reverse subtract, min and max;
+  - a colour write mask;
+  - dynamic viewport and scissor;
+  - edges a quarter pixel off the pixel grid, which tell Vulkan's pixel centres from Direct3D 9's.
+
+**Passed on hardware:** not yet.
+
+**Decisions:**
+- **State maps onto what xsdk milestones 12 to 14 proved**, worked out when a pipeline is created
+  (`xsdk_gpu_depth_stencil_state`, `xsdk_gpu_blend_state`, `xsdk_gpu_raster_state`) and set when it's bound.
+  - Vulkan's compare and stencil ops are xsdk's, value for value.
+  - Blend factors and ops map one to one, except constant colours, which return `VK_ERROR_FEATURE_NOT_PRESENT` (an
+    xsdk TODO). Min and max ignore their factors in Xenia (xenia:src/xenia/gpu/spirv_shader_translator_rb.cc:3324), as
+    Vulkan says; the layer sets them to one anyway, so the result holds either way.
+- **Front faces.** Vulkan's clockwise is clockwise as the triangle looks in its y-down framebuffer. xsdk's culling test
+  measured it the same way, as it looks on screen (xsdk:tests/test_raster.c:207). The viewport flip keeps every
+  vertex where Vulkan puts it, so `frontFace` maps straight to xsdk's `front_clockwise`.
+- **Depth bias.**
+  - The constant factor is in units of the depth format's resolution, 2^-24 for D24. The hardware's offset is in depth
+    units: Xenia scales it by 2^24 - 1 (xenia:src/xenia/gpu/draw_util.h:165-172). So the layer divides by 2^24.
+  - The slope factor passes through as xsdk's per-pixel slope. Unverified, as in xsdk (xsdk:docs/HARDWARE.md,
+    milestone 14).
+- **Depth attachments** are `VK_FORMAT_D24_UNORM_S8_UINT`, living in eDRAM beside the colour.
+  - A clear load op is the resolve's depth and stencil clear (`xsdk_gpu_set_depth_clear`). eDRAM's known contents now
+    cover depth and stencil, and a pass that clears to what it holds does nothing more.
+  - Depth isn't resolved out (an xsdk TODO), so a store op keeps nothing. That can't be seen: nothing that could read
+    the image afterwards exists, as loading it returns `VK_ERROR_FEATURE_NOT_PRESENT` and depth images can't be
+    sampled or copied.
+  - Depth images take a page of memory they never use.
+- **Topologies:** point lists, line lists and strips, triangle lists, strips and fans. Fans are new to xsdk:
+  `XSDK_PRIMITIVE_TRIANGLE_FAN` is Xenos's `kTriangleFan` (xenia:src/xenia/gpu/xenos.h:50), first proven here.
+  Primitive restart returns `VK_ERROR_FEATURE_NOT_PRESENT` (an xsdk TODO).
+- **Index buffers** go to `xsdk_gpu_draw_indexed`. A first index moves the address, and a vertex offset moves each
+  stream as a first vertex does. Lists of more than 65535 indices are split; strips and fans that long return
+  `VK_ERROR_FEATURE_NOT_PRESENT`. Index values reach 2^24 - 1, xsdk's `VGT_MAX_VTX_INDX`.
+- **Dynamic state:** viewport and scissor, one of each. Other dynamic state returns `VK_ERROR_FEATURE_NOT_PRESENT`.
+
+**New in xsdk:** `XSDK_PRIMITIVE_TRIANGLE_FAN`.
+
+**New functions:** `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdBindIndexBuffer`, `vkCmdDrawIndexed`.
+
+**Not in milestone 3:**
+- two-sided stencil, constant blend colours, primitive restart, fill modes, wide lines and points, and depth bounds;
+- depth resolves, so loading or sampling depth;
+- dynamic state beyond viewport and scissor;
+- instancing.
 
 ## 5. The Dusklight track
 

@@ -50,6 +50,7 @@ static void reset_buffer(struct VkCommandBuffer_T *buffer)
 	buffer->count = 0;
 	buffer->data_bytes = 0;
 	buffer->in_render_pass = false;
+	buffer->pipeline = NULL;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkResetCommandPool(
@@ -194,12 +195,20 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBeginRenderPass(
 		return;
 	uint32_t argb = 0;
 	if (render_pass->load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {
-		const float *const rgba = pRenderPassBegin->pClearValues[0].color.float32;
+		const float *const rgba = pRenderPassBegin->pClearValues[render_pass->color_index].color.float32;
 		argb = unorm8(rgba[3]) << 24 | unorm8(rgba[0]) << 16 | unorm8(rgba[1]) << 8 | unorm8(rgba[2]);
 	}
 	command->begin.render_pass = render_pass;
 	command->begin.framebuffer = framebuffer;
 	command->begin.clear_argb = argb;
+	command->begin.clear_depth = 1.0f;
+	command->begin.clear_stencil = 0;
+	if (render_pass->clears_depth) {
+		const VkClearDepthStencilValue *const value =
+			&pRenderPassBegin->pClearValues[render_pass->depth_index].depthStencil;
+		command->begin.clear_depth = value->depth;
+		command->begin.clear_stencil = value->stencil;
+	}
 	commandBuffer->in_render_pass = true;
 }
 
@@ -214,8 +223,19 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBindPipeline(
 {
 	(void)pipelineBindPoint;
 	Command *const command = record(commandBuffer, COMMAND_BIND_PIPELINE);
-	if (command)
-		command->pipeline = v4x_object(pipeline);
+	if (!command)
+		return;
+	command->pipeline = v4x_object(pipeline);
+	commandBuffer->pipeline = command->pipeline;
+}
+
+// Strips and fans can't be split where a draw passes the 65535 vertices xsdk's draw packets carry.
+static bool splittable(VkCommandBuffer buffer, uint32_t count)
+{
+	if (count <= V4X_MAX_DRAW_VERTICES || !buffer->pipeline || buffer->pipeline->list_vertices)
+		return true;
+	buffer->result = v4x_host_unsupported("strips and fans of more than 65535 vertices");
+	return false;
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32_t firstBinding,
@@ -239,7 +259,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdDraw(VkCommandBuffer commandBuffer, uint32_t ver
 		commandBuffer->result = v4x_host_unsupported("instanced draws");
 		return;
 	}
-	if (!vertexCount)
+	if (!vertexCount || !splittable(commandBuffer, vertexCount))
 		return;
 	Command *const command = record(commandBuffer, COMMAND_DRAW);
 	if (!command)
@@ -341,4 +361,62 @@ VKAPI_ATTR void VKAPI_CALL vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, V
 	(void)pBufferMemoryBarriers;
 	(void)imageMemoryBarrierCount;
 	(void)pImageMemoryBarriers;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetViewport(
+	VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport *pViewports)
+{
+	uint32_t at = 0;
+	if (firstViewport || viewportCount != 1) {
+		commandBuffer->result = v4x_host_unsupported("viewports other than the first");
+		return;
+	}
+	if (!record_data(commandBuffer, pViewports, sizeof *pViewports, &at))
+		return;
+	Command *const command = record(commandBuffer, COMMAND_SET_VIEWPORT);
+	if (command)
+		command->state_at = at;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetScissor(
+	VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D *pScissors)
+{
+	uint32_t at = 0;
+	if (firstScissor || scissorCount != 1) {
+		commandBuffer->result = v4x_host_unsupported("scissors other than the first");
+		return;
+	}
+	if (!record_data(commandBuffer, pScissors, sizeof *pScissors, &at))
+		return;
+	Command *const command = record(commandBuffer, COMMAND_SET_SCISSOR);
+	if (command)
+		command->state_at = at;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdBindIndexBuffer(
+	VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
+{
+	Command *const command = record(commandBuffer, COMMAND_BIND_INDEX_BUFFER);
+	if (!command)
+		return;
+	const Buffer *const object = v4x_object(buffer);
+	command->index_buffer.address = object->memory->address + object->offset_bytes + (uint32_t)offset;
+	command->index_buffer.is_32_bit = indexType == VK_INDEX_TYPE_UINT32;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdDrawIndexed(VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount,
+	uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+{
+	if (instanceCount != 1 || firstInstance) {
+		commandBuffer->result = v4x_host_unsupported("instanced draws");
+		return;
+	}
+	if (!indexCount || !splittable(commandBuffer, indexCount))
+		return;
+	Command *const command = record(commandBuffer, COMMAND_DRAW_INDEXED);
+	if (!command)
+		return;
+	command->draw_indexed.index_count = indexCount;
+	command->draw_indexed.first_index = firstIndex;
+	command->draw_indexed.vertex_offset = vertexOffset;
 }

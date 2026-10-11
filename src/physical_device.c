@@ -26,6 +26,9 @@ enum {
 	// A level for each halving down to 1x1 (xsdk:src/texture.c, level_count).
 	MAX_IMAGE_LEVELS = 14,
 	MAX_LOD_BIAS = 15,
+	// xsdk sets VGT_MAX_VTX_INDX to 24 bits (xsdk:src/gpu_draw.c).
+	MAX_INDEX_VALUE = 0x00FFFFFF,
+	DEPTH_IMAGE_BYTES = 4096,
 };
 
 static const VkExtensionProperties device_extensions[] = {
@@ -71,6 +74,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.viewportBoundsRange = { -2.0f * VIEWPORT_MAX, 2.0f * VIEWPORT_MAX - 1.0f },
 			// Vertices land on 1/16 pixel under xsdk's PA_SU_VTX_CNTL (xenia:src/xenia/gpu/xenos.h:877-884).
 			.subPixelPrecisionBits = 4,
+			.maxDrawIndexedIndexValue = MAX_INDEX_VALUE,
 			.maxSamplerLodBias = MAX_LOD_BIAS,
 			.maxSamplerAnisotropy = 1.0f,
 			.minMemoryMapAlignment = MAP_ALIGNMENT,
@@ -81,6 +85,8 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.maxFramebufferHeight = V4X_DISPLAY_HEIGHT,
 			.maxFramebufferLayers = 1,
 			.framebufferColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
+			.framebufferDepthSampleCounts = VK_SAMPLE_COUNT_1_BIT,
+			.framebufferStencilSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.maxColorAttachments = 1,
 			.sampledImageColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.discreteQueuePriorities = 2,
@@ -141,6 +147,9 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 	case VK_FORMAT_B8G8R8A8_UNORM:
 		pFormatProperties->optimalTilingFeatures = sampled | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
 		break;
+	case VK_FORMAT_D24_UNORM_S8_UINT:
+		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		break;
 	case VK_FORMAT_R32_SFLOAT:
 	case VK_FORMAT_R32G32_SFLOAT:
 	case VK_FORMAT_R32G32B32_SFLOAT:
@@ -157,6 +166,19 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 	VkImageFormatProperties *pImageFormatProperties)
 {
 	(void)physicalDevice;
+	const VkImageUsageFlags depth_usage =
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+	if (format == VK_FORMAT_D24_UNORM_S8_UINT && type == VK_IMAGE_TYPE_2D && tiling == VK_IMAGE_TILING_OPTIMAL &&
+		!(usage & ~depth_usage) && !flags) {
+		*pImageFormatProperties = (VkImageFormatProperties){
+			.maxExtent = { V4X_DISPLAY_WIDTH, V4X_DISPLAY_HEIGHT, 1 },
+			.maxMipLevels = 1,
+			.maxArrayLayers = 1,
+			.sampleCounts = VK_SAMPLE_COUNT_1_BIT,
+			.maxResourceSize = DEPTH_IMAGE_BYTES,
+		};
+		return VK_SUCCESS;
+	}
 	uint32_t xsdk_format;
 	const VkImageUsageFlags supported = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	if (!v4x_image_format(format, &xsdk_format) || type != VK_IMAGE_TYPE_2D || tiling != VK_IMAGE_TILING_OPTIMAL ||

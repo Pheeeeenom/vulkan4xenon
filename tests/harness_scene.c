@@ -21,44 +21,104 @@ bool harness_near(Rgb pixel, Rgb want, uint32_t tolerance)
 		pixel.blue + tolerance >= want.blue && pixel.blue <= want.blue + tolerance;
 }
 
-VkResult harness_render_pass(const Harness *harness, VkRenderPass *render_pass, VkFramebuffer *framebuffers)
+static VkResult create_render_pass(
+	const Harness *harness, VkImageView depth, VkRenderPass *render_pass, VkFramebuffer *framebuffers)
 {
-	const VkAttachmentDescription attachment = {
-		.format = VK_FORMAT_B8G8R8A8_UNORM,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
-		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+	const VkAttachmentDescription attachments[2] = {
+		{ .format = VK_FORMAT_B8G8R8A8_UNORM,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR },
+		{ .format = VK_FORMAT_D24_UNORM_S8_UINT,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL },
 	};
 	const VkAttachmentReference reference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+	const VkAttachmentReference depth_reference = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 	const VkSubpassDescription subpass = {
 		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 		.colorAttachmentCount = 1,
 		.pColorAttachments = &reference,
+		.pDepthStencilAttachment = depth ? &depth_reference : NULL,
 	};
 	const VkRenderPassCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-		.attachmentCount = 1,
-		.pAttachments = &attachment,
+		.attachmentCount = depth ? 2 : 1,
+		.pAttachments = attachments,
 		.subpassCount = 1,
 		.pSubpasses = &subpass,
 	};
 	VkResult result = vkCreateRenderPass(harness->device, &info, NULL, render_pass);
 	for (uint32_t i = 0; i < harness->image_count && result == VK_SUCCESS && framebuffers; i++) {
+		const VkImageView views[2] = { harness->views[i], depth };
 		const VkFramebufferCreateInfo framebuffer_info = {
 			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 			.renderPass = *render_pass,
-			.attachmentCount = 1,
-			.pAttachments = &harness->views[i],
+			.attachmentCount = depth ? 2 : 1,
+			.pAttachments = views,
 			.width = HARNESS_WIDTH,
 			.height = HARNESS_HEIGHT,
 			.layers = 1,
 		};
 		result = vkCreateFramebuffer(harness->device, &framebuffer_info, NULL, &framebuffers[i]);
 	}
+	return result;
+}
+
+VkResult harness_render_pass(const Harness *harness, VkRenderPass *render_pass, VkFramebuffer *framebuffers)
+{
+	return create_render_pass(harness, VK_NULL_HANDLE, render_pass, framebuffers);
+}
+
+VkResult harness_depth_render_pass(
+	const Harness *harness, VkImageView depth, VkRenderPass *render_pass, VkFramebuffer *framebuffers)
+{
+	return create_render_pass(harness, depth, render_pass, framebuffers);
+}
+
+VkResult harness_depth_image(const Harness *harness, VkImage *image, VkDeviceMemory *memory, VkImageView *view)
+{
+	const VkImageCreateInfo info = {
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = VK_FORMAT_D24_UNORM_S8_UINT,
+		.extent = { HARNESS_WIDTH, HARNESS_HEIGHT, 1 },
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+	};
+	VkResult result = vkCreateImage(harness->device, &info, NULL, image);
+	if (result != VK_SUCCESS)
+		return result;
+	VkMemoryRequirements requirements;
+	vkGetImageMemoryRequirements(harness->device, *image, &requirements);
+	const VkMemoryAllocateInfo allocate_info = {
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = requirements.size,
+	};
+	result = vkAllocateMemory(harness->device, &allocate_info, NULL, memory);
+	if (result == VK_SUCCESS)
+		result = vkBindImageMemory(harness->device, *image, *memory, 0);
+	const VkImageViewCreateInfo view_info = {
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = *image,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = VK_FORMAT_D24_UNORM_S8_UINT,
+		.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 },
+	};
+	if (result == VK_SUCCESS)
+		result = vkCreateImageView(harness->device, &view_info, NULL, view);
 	return result;
 }
 
@@ -79,7 +139,7 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.vertexAttributeDescriptionCount = spec->attribute_count,
 		.pVertexAttributeDescriptions = spec->attributes,
 	};
-	const VkPipelineInputAssemblyStateCreateInfo assembly = {
+	const VkPipelineInputAssemblyStateCreateInfo triangle_list = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	};
@@ -92,7 +152,7 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.scissorCount = 1,
 		.pScissors = &scissor,
 	};
-	const VkPipelineRasterizationStateCreateInfo raster = {
+	const VkPipelineRasterizationStateCreateInfo plain = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 		.polygonMode = VK_POLYGON_MODE_FILL,
 		.cullMode = VK_CULL_MODE_NONE,
@@ -103,14 +163,20 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
 		.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
 	};
-	const VkPipelineColorBlendAttachmentState blend_attachment = {
+	const VkPipelineColorBlendAttachmentState opaque = {
 		.colorWriteMask =
 			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
 	};
 	const VkPipelineColorBlendStateCreateInfo blend = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 		.attachmentCount = 1,
-		.pAttachments = &blend_attachment,
+		.pAttachments = spec->blend ? spec->blend : &opaque,
+	};
+	const VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	const VkPipelineDynamicStateCreateInfo dynamic = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+		.dynamicStateCount = 2,
+		.pDynamicStates = dynamic_states,
 	};
 	const VkPipelineShaderStageCreateInfo stages[] = {
 		{ .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -127,11 +193,13 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.stageCount = 2,
 		.pStages = stages,
 		.pVertexInputState = &input,
-		.pInputAssemblyState = &assembly,
+		.pInputAssemblyState = spec->assembly ? spec->assembly : &triangle_list,
 		.pViewportState = &viewport_state,
-		.pRasterizationState = &raster,
+		.pRasterizationState = spec->raster ? spec->raster : &plain,
 		.pMultisampleState = &multisample,
+		.pDepthStencilState = spec->depth_stencil,
 		.pColorBlendState = &blend,
+		.pDynamicState = spec->dynamic_viewport ? &dynamic : NULL,
 		.layout = spec->layout,
 		.renderPass = render_pass,
 	};
@@ -225,6 +293,19 @@ uint32_t harness_flips(void)
 	return stats.flips;
 }
 
+// Any pixel within the probe's radius holds the colour.
+static bool probe_holds(uint32_t address, const HarnessProbe *probe, uint32_t tolerance)
+{
+	const uint32_t r = probe->radius;
+	for (uint32_t y = probe->y - r; y <= probe->y + r; y++) {
+		for (uint32_t x = probe->x - r; x <= probe->x + r; x++) {
+			if (harness_near(harness_pixel(address, x, y), probe->want, tolerance))
+				return true;
+		}
+	}
+	return false;
+}
+
 bool harness_probes_hold(uint32_t address, const char *what, void *context)
 {
 	HarnessProbes *const probes = context;
@@ -232,7 +313,7 @@ bool harness_probes_hold(uint32_t address, const char *what, void *context)
 	for (uint32_t i = 0; i < probes->count; i++) {
 		const HarnessProbe *const probe = &probes->probes[i];
 		const Rgb pixel = harness_pixel(address, probe->x, probe->y);
-		if (harness_near(pixel, probe->want, probes->tolerance))
+		if (probe_holds(address, probe, probes->tolerance))
 			continue;
 		if (probes->logged++ < MAX_MISSES_LOGGED)
 			xsdk_log_write("%s: %s: %s at %u, %u held %02X %02X %02X, not %02X %02X %02X", probes->test, what,
@@ -242,4 +323,58 @@ bool harness_probes_hold(uint32_t address, const char *what, void *context)
 		holds = false;
 	}
 	return holds;
+}
+
+const VkVertexInputBindingDescription harness_quad_binding = { 0, 16, VK_VERTEX_INPUT_RATE_VERTEX };
+const VkVertexInputAttributeDescription harness_quad_attribute = {
+	.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = 0
+};
+
+VkResult harness_push_layout(const Harness *harness, VkPipelineLayout *layout)
+{
+	const VkPushConstantRange ranges[] = {
+		{ VK_SHADER_STAGE_VERTEX_BIT, 0, 32 },
+		{ VK_SHADER_STAGE_FRAGMENT_BIT, 32, 16 },
+	};
+	const VkPipelineLayoutCreateInfo info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pushConstantRangeCount = 2,
+		.pPushConstantRanges = ranges,
+	};
+	return vkCreatePipelineLayout(harness->device, &info, NULL, layout);
+}
+
+// Top left, top right, bottom left; then top right, bottom right, bottom left: clockwise as it looks, y down.
+VkResult harness_quad_buffer(const Harness *harness, VkBuffer *buffer, VkDeviceMemory *memory)
+{
+	static const float quad[6][4] = {
+		{ 0.0f, 0.0f, 0.0f, 1.0f },
+		{ 1.0f, 0.0f, 0.0f, 1.0f },
+		{ 0.0f, 1.0f, 0.0f, 1.0f },
+		{ 1.0f, 0.0f, 0.0f, 1.0f },
+		{ 1.0f, 1.0f, 0.0f, 1.0f },
+		{ 0.0f, 1.0f, 0.0f, 1.0f },
+	};
+	return harness_buffer(harness, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, quad, sizeof quad, buffer, memory);
+}
+
+// push.vert works out position = unit quad * scale + offset, so the quad's pixels become clip space here.
+void harness_push_quad(VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad)
+{
+	const float half_width = HARNESS_WIDTH / 2.0f;
+	const float half_height = HARNESS_HEIGHT / 2.0f;
+	const float left = quad->mirrored ? quad->x + quad->width : quad->x;
+	const float place[8] = {
+		(quad->mirrored ? -quad->width : quad->width) / half_width,
+		quad->height / half_height,
+		0.0f,
+		1.0f,
+		left / half_width - 1.0f,
+		quad->y / half_height - 1.0f,
+		quad->depth,
+		0.0f,
+	};
+	vkCmdPushConstants(commands, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof place, place);
+	vkCmdPushConstants(commands, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 32, 16, quad->color);
+	vkCmdDraw(commands, 6, 1, 0, 0);
 }

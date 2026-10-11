@@ -86,9 +86,9 @@ static void make_probes(Scene *scene)
 	for (uint32_t i = 0; i < QUADS; i++) {
 		const Draw *const d = &draws[i];
 		scene->probes[i] = (HarnessProbe){ "a quad's centre", pixel_x(d->move_x + d->scale_x / 2),
-			pixel_y(d->move_y + d->scale_y / 2), d->shown };
+			pixel_y(d->move_y + d->scale_y / 2), d->shown, 0 };
 	}
-	scene->probes[QUADS] = (HarnessProbe){ "the clear colour", 20, 20, clear_rgb };
+	scene->probes[QUADS] = (HarnessProbe){ "the clear colour", 20, 20, clear_rgb, 0 };
 	scene->check = (HarnessProbes){ "uniform buffers", scene->probes, QUADS + 1, TOLERANCE, 0 };
 }
 

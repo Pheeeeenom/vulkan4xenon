@@ -17,5 +17,11 @@ void test_texture(const Harness *harness);
 void test_push_constants(const Harness *harness);
 // Quads placed by a matrix and coloured from uniform buffers, one dynamic, in two sets (milestone 2).
 void test_uniform_buffers(const Harness *harness);
+// Index buffers and every topology (milestone 3).
+void test_indexed(const Harness *harness);
+// A depth and stencil attachment: depth tests, a stencil mask and a depth bias (milestone 3).
+void test_depth_stencil(const Harness *harness);
+// Culling, blending, a write mask, dynamic viewport and scissor, and pixel centres (milestone 3).
+void test_raster(const Harness *harness);
 
 #endif

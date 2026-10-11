@@ -10,6 +10,8 @@ enum {
 	// A texture fetch constant holds its address in 4 KB units (xsdk:src/texture.c, FETCH_ADDRESS_ALIGNMENT).
 	IMAGE_ALIGNMENT = 4096,
 	MEMORY_TYPE_BITS = 1,
+	// A depth image's memory is never used, since depth stays in eDRAM; a page keeps allocators happy.
+	DEPTH_IMAGE_BYTES = 4096,
 };
 
 bool v4x_image_format(VkFormat format, uint32_t *xsdk_format)
@@ -26,11 +28,23 @@ bool v4x_image_format(VkFormat format, uint32_t *xsdk_format)
 	}
 }
 
+static VkResult check_depth_create_info(const VkImageCreateInfo *info)
+{
+	const VkImageUsageFlags usage =
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+	if (info->mipLevels != 1 || info->samples != VK_SAMPLE_COUNT_1_BIT || info->tiling != VK_IMAGE_TILING_OPTIMAL ||
+		(info->usage & ~usage))
+		return v4x_host_unsupported("depth images other than a single-sampled attachment of one level");
+	return VK_SUCCESS;
+}
+
 static VkResult check_create_info(const VkImageCreateInfo *info)
 {
 	uint32_t format = 0;
 	if (info->imageType != VK_IMAGE_TYPE_2D || info->extent.depth != 1 || info->arrayLayers != 1 || info->flags)
 		return v4x_host_unsupported("images other than 2D with one layer");
+	if (info->format == VK_FORMAT_D24_UNORM_S8_UINT)
+		return check_depth_create_info(info);
 	if (!v4x_image_format(info->format, &format) || info->samples != VK_SAMPLE_COUNT_1_BIT)
 		return v4x_host_unsupported("image formats other than R8G8B8A8_UNORM and B8G8R8A8_UNORM, single-sampled");
 	if (info->tiling != VK_IMAGE_TILING_OPTIMAL)
@@ -50,6 +64,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
 	Image *const image = v4x_host_alloc(allocator, sizeof *image, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!image)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
+	image->width = pCreateInfo->extent.width;
+	image->height = pCreateInfo->extent.height;
+	image->format = pCreateInfo->format;
+	if (pCreateInfo->format == VK_FORMAT_D24_UNORM_S8_UINT) {
+		image->is_depth = true;
+		*pImage = v4x_handle(image);
+		return VK_SUCCESS;
+	}
 	uint32_t format = 0;
 	(void)v4x_image_format(pCreateInfo->format, &format);
 	const NTSTATUS status = xsdk_texture_init(
@@ -59,9 +81,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
 		v4x_host_free(allocator, image);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
-	image->width = pCreateInfo->extent.width;
-	image->height = pCreateInfo->extent.height;
-	image->format = pCreateInfo->format;
 	image->is_texture = true;
 	*pImage = v4x_handle(image);
 	return VK_SUCCESS;
@@ -78,7 +97,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements(
 	(void)device;
 	const Image *const object = v4x_object(image);
 	*pMemoryRequirements = (VkMemoryRequirements){
-		.size = object->texture.size_bytes,
+		.size = object->is_depth ? DEPTH_IMAGE_BYTES : object->texture.size_bytes,
 		.alignment = IMAGE_ALIGNMENT,
 		.memoryTypeBits = MEMORY_TYPE_BITS,
 	};
@@ -90,6 +109,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory(
 	(void)device;
 	Image *const object = v4x_object(image);
 	const DeviceMemory *const bound = v4x_object(memory);
+	if (object->is_depth)
+		return VK_SUCCESS;
 	xsdk_texture_attach(&object->texture, bound->pointer + memoryOffset / 4);
 	object->address = object->texture.address;
 	return VK_SUCCESS;

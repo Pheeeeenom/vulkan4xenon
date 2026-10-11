@@ -80,9 +80,9 @@ static void make_probes(Scene *scene)
 	for (uint32_t i = 0; i < QUADS; i++) {
 		const Quad *const q = &quads[i];
 		scene->probes[i] = (HarnessProbe){ "a quad's centre", pixel_x(q->offset[0] + q->scale[0] / 2),
-			pixel_y(q->offset[1] + q->scale[1] / 2), q->rgb };
+			pixel_y(q->offset[1] + q->scale[1] / 2), q->rgb, 0 };
 	}
-	scene->probes[QUADS] = (HarnessProbe){ "the clear colour", 20, 20, clear_rgb };
+	scene->probes[QUADS] = (HarnessProbe){ "the clear colour", 20, 20, clear_rgb, 0 };
 	scene->check = (HarnessProbes){ "push constants", scene->probes, QUADS + 1, TOLERANCE, 0 };
 }
 

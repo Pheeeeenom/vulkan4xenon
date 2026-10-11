@@ -111,10 +111,10 @@ static void make_probes(Scene *scene)
 			for (uint32_t x = 0; x < TEXELS; x++)
 				scene->probes[count++] = (HarnessProbe){ image ? "B8G8R8A8 texel" : "R8G8B8A8 texel",
 					(image ? RIGHT_X : LEFT_X) + x * TEXEL_WIDTH + TEXEL_WIDTH / 2,
-					TOP_Y + y * TEXEL_HEIGHT + TEXEL_HEIGHT / 2, texel(image, x, y) };
+					TOP_Y + y * TEXEL_HEIGHT + TEXEL_HEIGHT / 2, texel(image, x, y), 0 };
 		}
 	}
-	scene->probes[count++] = (HarnessProbe){ "the clear colour", 20, 20, clear_rgb };
+	scene->probes[count++] = (HarnessProbe){ "the clear colour", 20, 20, clear_rgb, 0 };
 	scene->check = (HarnessProbes){ "texture", scene->probes, count, TOLERANCE, 0 };
 }
 

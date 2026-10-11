@@ -66,6 +66,13 @@ typedef struct {
 	const VkVertexInputAttributeDescription *attributes;
 	uint32_t attribute_count;
 	VkPipelineLayout layout;
+	// Each NULL for triangle lists, no culling, no depth or stencil, and no blending with every channel written.
+	const VkPipelineInputAssemblyStateCreateInfo *assembly;
+	const VkPipelineRasterizationStateCreateInfo *raster;
+	const VkPipelineDepthStencilStateCreateInfo *depth_stencil;
+	const VkPipelineColorBlendAttachmentState *blend;
+	// The viewport and scissor come from vkCmdSetViewport and vkCmdSetScissor.
+	bool dynamic_viewport;
 } HarnessPipeline;
 
 // Whether an image the test drew holds what it should; failures are counted and the first few logged by the test.
@@ -73,6 +80,11 @@ typedef bool (*HarnessCheck)(uint32_t address, const char *what, void *context);
 
 // One subpass that clears a swapchain image and stores it, and a framebuffer for each image.
 VkResult harness_render_pass(const Harness *harness, VkRenderPass *render_pass, VkFramebuffer *framebuffers);
+// The same with a D24S8 attachment after the colour, cleared too, the view's image in every framebuffer.
+VkResult harness_depth_render_pass(
+	const Harness *harness, VkImageView depth, VkRenderPass *render_pass, VkFramebuffer *framebuffers);
+// A screen-sized D24S8 image and its view.
+VkResult harness_depth_image(const Harness *harness, VkImage *image, VkDeviceMemory *memory, VkImageView *view);
 void harness_destroy_render_pass(const Harness *harness, VkRenderPass render_pass, const VkFramebuffer *framebuffers);
 // Triangle lists over the whole screen: no culling, depth or blending.
 VkResult harness_pipeline(
@@ -94,6 +106,8 @@ typedef struct {
 	uint32_t x;
 	uint32_t y;
 	Rgb want;
+	// 0 for this pixel; more for any pixel this far away or nearer, as lines and points land within a pixel or two.
+	uint32_t radius;
 } HarnessProbe;
 
 typedef struct {
@@ -106,5 +120,26 @@ typedef struct {
 
 // A HarnessCheck: every probe holds its colour; the first few misses are logged. The context is a HarnessProbes.
 bool harness_probes_hold(uint32_t address, const char *what, void *context);
+
+// A rectangle in pixels, drawn by push.vert and push.frag from a unit quad: its depth, colour, and whether it's
+// mirrored left to right, which turns it from clockwise to counter-clockwise as it looks.
+typedef struct {
+	float x;
+	float y;
+	float width;
+	float height;
+	float depth;
+	float color[4];
+	bool mirrored;
+} HarnessQuad;
+
+// push.vert and push.frag's layout: a vertex range of 32 bytes, then a fragment range of 16.
+VkResult harness_push_layout(const Harness *harness, VkPipelineLayout *layout);
+// Six vertices of a unit quad, two clockwise triangles, as harness_quad_binding and harness_quad_attribute lay out.
+VkResult harness_quad_buffer(const Harness *harness, VkBuffer *buffer, VkDeviceMemory *memory);
+extern const VkVertexInputBindingDescription harness_quad_binding;
+extern const VkVertexInputAttributeDescription harness_quad_attribute;
+// Pushes the quad's place and colour, then draws the bound unit quad.
+void harness_push_quad(VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad);
 
 #endif
