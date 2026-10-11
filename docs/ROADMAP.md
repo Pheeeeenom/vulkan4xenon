@@ -1,4 +1,4 @@
-# vulkan4xenon roadmap (draft, 2026-10-11)
+# vulkan4xenon roadmap (agreed 2026-10-11)
 
 **Goal.** A Vulkan 1.0 subset for the Xbox 360: a static library on the xsdk GPU layer, for ports that run on the
 retail kernel. The goal it's measured against is **Dusklight**, a reimplementation of Twilight Princess, running on
@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** A draft for agreement. Nothing is built. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestone 1 is under way. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -69,6 +69,12 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
   `PM4_LOAD_ALU_CONSTANT` (xenia:src/xenia/gpu/command_processor.cc:1477-1500) is a later optimisation. It needs a
   probe first, since partial constant writes hang the GPU (xsdk:docs/HARDWARE.md, milestone 11).
 - **The target is Dusklight,** through encounter's Aurora. It's demanding enough to show what's missing.
+- **Vulkan 1.0 stays the version.** Nothing on the path needs 1.1: aurora-vita's backend asks for 1.0
+  (aurora-vita:lib/vulkan4vita/device.cpp:308), most of what 1.1 promoted is optional, and its one new requirement,
+  subgroup operations, is for compute shaders, which Xenos lacks. A single 1.1 piece a target needs comes as its
+  extension on 1.0, such as `VK_KHR_maintenance1` for a negative viewport height.
+- **Aurora's side is a fork of aurora-vita,** for its backend interface and its design for a GPU without storage
+  buffers (section 5), with its Cg replaced.
 - **The shader subset is xost's,** and its limits become the layer's, listed in SUPPORT.md:
   - no bitwise operations;
   - data-dependent branches inside loops raise an error;
@@ -137,9 +143,23 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   formats.
 - **The backend.** aurora-vita added a backend interface to encounter's Aurora, `lib/gfx/backend.hpp`, and a Vulkan
   backend behind it, about 6,200 lines (aurora-vita:lib/vulkan4vita/). A vulkan4xenon backend follows the same shape.
-  - **Shaders:** that backend writes Cg per GX configuration and compiles it on the Vita
-    (aurora-vita:lib/vulkan4vita/pipeline.cpp:192-222). Here, configurations become SPIR-V, are compiled by xost
-    offline, and ship as a pack harvested from play on a PC.
+  - **Why aurora-vita and not upstream:** upstream draws only through Dawn, and its shaders read the game's vertex
+    arrays from storage buffers and unpack big-endian bytes with integer shifts and masks
+    (aurora:lib/gx/shader.cpp:1717-1764). Xenos has no storage buffers and only float ALU instructions
+    (xenia:src/xenia/gpu/ucode.h:1006, 1359), and WebGPU requires compute shaders. aurora-vita already decodes
+    vertices on the CPU into one stream and keeps uniforms in uniform buffers (aurora-vita:lib/vulkan4vita/cg.hpp).
+  - **Shaders:** that backend writes Cg per GX configuration and compiles it on the Vita with the firmware's compiler,
+    caching the result on the memory card (aurora-vita:lib/vulkan4vita/pipeline.cpp:1, 191-222, 539-542). The 360
+    has no compiler on the console, so:
+    - a generator modelled on `cg.cpp` writes Vulkan GLSL instead, without the integer operations `cg.cpp` uses
+      (`(int)x & mask`, aurora-vita:lib/vulkan4vita/cg.cpp:214);
+    - an offline step runs it over Aurora's pipeline cache, which records every configuration a playthrough used
+      (aurora-vita:lib/gfx/pipeline_cache.cpp:357-370). The cache holds configurations as raw bytes, so one made on a
+      PC is little-endian and the step byte-swaps it;
+    - glslang turns each into SPIR-V and xost into a container, and the pack ships both;
+    - on the console the backend looks up the SPIR-V by configuration and hands it to `vkCreateShaderModule`, which
+      finds the container by that SPIR-V. A configuration missing from the pack isn't drawn, as on aurora-vita
+      without the firmware's compiler (aurora-vita:lib/vulkan4vita/pipeline.cpp:542).
   - **Vertices:** encounter's Aurora fetches the game's raw big-endian vertex arrays in its shaders, and aurora-vita
     decoded them on the CPU because vulkan4vita has no storage buffers. Xenos fetches big-endian data natively under
     an 8-in-16 swap. Fetching the raw arrays directly may avoid the decode; it needs xsdk to set a stream's endian
@@ -164,12 +184,11 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
 
 - Compute, queries, secondary command buffers, more than one queue, multisampling, multiple subpasses and dynamic
   rendering, as vulkan4vita left them out (vulkan4vita:docs/ROADMAP.md:53, 119-120).
-- Runtime SPIR-V compilation, and Vulkan 1.1 and up.
+- Runtime SPIR-V compilation, and Vulkan 1.1 and up (single pieces of 1.1 as extensions, section 2).
 - Geometry and tessellation shaders.
 - xsdk's TODO.md items, each until a milestone or Dusklight needs it.
 
 ## 7. Open
 
-- **Where the Dusklight work lives:** forks of encounter's Aurora and of Dusklight, as aurora-vita is a fork, or
-  something else. Decide before the Dusklight track starts.
-- **A GitHub repository** for this one, when the user wants it.
+- **Where Dusklight's own changes live:** probably a fork, for the byte order and the platform. Decide before the
+  Dusklight track starts. Aurora's side is a fork of aurora-vita (section 2).
