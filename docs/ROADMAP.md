@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 3 are done; milestone 4 is under way. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 4 are done; milestone 5 is next. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -407,7 +407,7 @@ checks passed, milestones 1 and 2's 33 among them, and the console went back to 
 - dynamic state beyond viewport and scissor;
 - instancing.
 
-### Milestone 4: render to texture
+### Milestone 4: render to texture (done)
 
 **Done when** `build/vulkan4xenon_test.xex`, on the console, passes milestones 1 to 3's checks and these, each checked
 by pixel on the image the display shows:
@@ -427,6 +427,25 @@ by pixel on the image the display shows:
   - colour loaded after another pass (3 and 7), where the image is drawn back in, and straight after (4 and 8),
     where eDRAM still holds it;
   - depth loaded after a pass without depth (3).
+
+**Passed on hardware** on 2026-10-11, at `91612ec` with xsdk at `c5d87ed` (`results/2026-10-11-milestone-4/`). All 58
+checks passed, milestones 1 to 3's 45 among them, and the console went back to the Aurora dashboard. The images were
+read back after pass 1 and again after pass 4, and every frame of 60 was checked on screen.
+- **The scene:**
+  - depth tested at 200x120, with depth at the top of eDRAM;
+  - its last column held the red drawn there, past the width's last whole tile of 32, written by resolving the
+    texture's 224-texel pitch;
+  - red and blue in place in R8G8B8A8, resolved without the red-blue swap, and in B8G8R8A8, with it.
+- **The copy** held the scene as pass 1 left it, without passes 3 and 4's quads.
+- **Loads after another pass,** where eDRAM held something else, so the layer drew the image back in:
+  - pass 3 drew the scene back, and its blue showed only where it was nearer than pass 1's depth. So depth stayed in
+    eDRAM through the copy pass, which had none;
+  - pass 7 drew the swapchain image back from its front buffer, sampled as a tiled B8G8R8A8 texture.
+- **Loads straight after:** passes 4 and 8 found eDRAM holding their images, so the layer drew nothing back. The
+  resolves before them, which cleared nothing, left eDRAM's colour as it was.
+- **Xenia disagreed:** there, a draw sampling an image resolved into got its earlier contents (CLAUDE.md). The
+  console decides.
+- **Capture:** `render_to_texture.png` in the results folder.
 
 **Decisions:**
 - **Where attachments go in eDRAM.** Colour from tile 0, and depth from the top, ending at tile 2048. xsdk put depth
