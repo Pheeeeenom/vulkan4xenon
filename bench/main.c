@@ -7,7 +7,9 @@
 
 #include "../tests/tiled_index.h"
 #include "bench.h"
+#include "probes.h"
 #include "scenes.h"
+#include "xsdk/gpu.h"
 #include "xsdk/log.h"
 
 // Runs every scene through each backend in turn, timing each frame's stages as vkbench does
@@ -71,6 +73,8 @@ static uint32_t sorted[MEASURE_FRAMES];
 static Stat results[BACKENDS][SCENES][METRICS];
 static bool ran[BACKENDS][SCENES];
 static uint32_t pictures[BACKENDS][SCENES][GRID_POINTS];
+// What the ring did over the last scene's measured frames (xsdk:SCOPE.md, milestone 19, step 1).
+static XsdkGpuStats ring_use;
 static FILE *frames_csv;
 static FILE *summary_csv;
 static int passed_count;
@@ -121,7 +125,10 @@ static Stat compute(const uint32_t *values)
 static void measure(const BenchBackend *backend, const SceneDef *scene)
 {
 	uint64_t previous = now_ns();
+	XsdkGpuStats ring_start = { 0 };
 	for (int f = 0; f < WARMUP_FRAMES + MEASURE_FRAMES; f++) {
+		if (f == WARMUP_FRAMES)
+			xsdk_gpu_stats(&ring_start);
 		const uint64_t t0 = now_ns();
 		scene_update(scene, f);
 		const uint64_t t1 = now_ns();
@@ -146,6 +153,12 @@ static void measure(const BenchBackend *backend, const SceneDef *scene)
 		}
 		previous = t0;
 	}
+	xsdk_gpu_stats(&ring_use);
+	ring_use.dwords -= ring_start.dwords;
+	ring_use.kicks -= ring_start.kicks;
+	ring_use.waits -= ring_start.waits;
+	ring_use.sleeps -= ring_start.sleeps;
+	ring_use.waited_us -= ring_start.waited_us;
 }
 
 static void write_frames(const BenchBackend *backend, const SceneDef *scene)
@@ -175,7 +188,31 @@ static void report(uint32_t b, uint32_t s)
 	fprintf(summary_csv, "%s,%s,%d,%d", backends[b]->name, scenes[s].name, scenes[s].count, MEASURE_FRAMES);
 	for (int m = 0; m < METRICS; m++)
 		fprintf(summary_csv, ",%u,%u,%u", (unsigned)r[m].mean, (unsigned)r[m].median, (unsigned)r[m].p99);
-	fputc('\n', summary_csv);
+	fprintf(summary_csv, ",%llu,%u,%u,%u,%llu\n", (unsigned long long)ring_use.dwords, (unsigned)ring_use.kicks,
+		(unsigned)ring_use.waits, (unsigned)ring_use.sleeps, (unsigned long long)ring_use.waited_us);
+}
+
+// Tenths of a frame's share of a count over the measured frames, so the log needs no floats.
+static uint32_t tenths_a_frame(uint64_t total)
+{
+	return (uint32_t)((total * 10 + MEASURE_FRAMES / 2) / MEASURE_FRAMES);
+}
+
+static void report_ring(uint32_t b, uint32_t s)
+{
+	const uint32_t count = (uint32_t)scenes[s].count;
+	const uint32_t dwords_tenths = (uint32_t)((ring_use.dwords * 10 / MEASURE_FRAMES + count / 2) / count);
+	const uint32_t kicks = tenths_a_frame(ring_use.kicks);
+	const uint32_t waits = tenths_a_frame(ring_use.waits);
+	const uint32_t sleeps = tenths_a_frame(ring_use.sleeps);
+	xsdk_log_write(
+		"vkbench: %s %s: ring a frame: %u dwords, %u.%u for each of %u; %u.%u kicks; %u.%u waits for room, %u.%u "
+		"sleeps, %u us waiting, %u us a sleep",
+		backends[b]->name, scenes[s].name, (unsigned)(ring_use.dwords / MEASURE_FRAMES), (unsigned)(dwords_tenths / 10),
+		(unsigned)(dwords_tenths % 10), (unsigned)count, (unsigned)(kicks / 10), (unsigned)(kicks % 10),
+		(unsigned)(waits / 10), (unsigned)(waits % 10), (unsigned)(sleeps / 10), (unsigned)(sleeps % 10),
+		(unsigned)(ring_use.waited_us / MEASURE_FRAMES),
+		(unsigned)(ring_use.sleeps ? ring_use.waited_us / ring_use.sleeps : 0));
 }
 
 // The last frame's picture, at the grid's points, as front buffer words: bytes B, G, R, A.
@@ -202,6 +239,7 @@ static bool run_scene(uint32_t b, uint32_t s)
 	for (int m = 0; m < METRICS; m++)
 		results[b][s][m] = compute(samples[m]);
 	report(b, s);
+	report_ring(b, s);
 	write_frames(backend, scene);
 	sample_picture(backend, pictures[b][s]);
 	ran[b][s] = true;
@@ -283,7 +321,8 @@ static void open_results(void)
 	fprintf(summary_csv, "backend,scene,count,frames");
 	for (int m = 0; m < METRICS; m++)
 		fprintf(summary_csv, ",%s_mean_us,%s_median_us,%s_p99_us", metric_names[m], metric_names[m], metric_names[m]);
-	fputc('\n', summary_csv);
+	// The ring's counts over all the measured frames.
+	fprintf(summary_csv, ",ring_dwords,ring_kicks,ring_waits,ring_sleeps,ring_waited_us\n");
 }
 
 int main(void)
@@ -291,6 +330,7 @@ int main(void)
 	xsdk_log_write("vkbench: %u scenes, each %d warm-up and %d measured frames, through xsdk then vulkan4xenon",
 		(unsigned)SCENES, WARMUP_FRAMES, MEASURE_FRAMES);
 	open_results();
+	probes_run();
 	for (uint32_t b = 0; b < BACKENDS; b++)
 		run_backend(b);
 	xsdk_log_write("vkbench: vulkan4xenon against xsdk, medians");

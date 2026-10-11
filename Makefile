@@ -31,7 +31,7 @@ TEST_OBJECTS := $(patsubst tests/%.c,$(BUILD)/tests/%.o,$(TEST_SOURCES))
 
 # vkbench, the benchmark against xsdk's GPU layer; bench/shaders.c comes from tools/build_shaders.py too.
 BENCH_SOURCES := bench/main.c bench/scenes.c bench/assets.c bench/backend_xsdk.c bench/backend_vulkan.c \
-	bench/shaders.c
+	bench/shaders.c bench/probes.c
 BENCH_OBJECTS := $(patsubst bench/%.c,$(BUILD)/bench/%.o,$(BENCH_SOURCES))
 
 .PHONY: all clean

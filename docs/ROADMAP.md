@@ -546,6 +546,10 @@ layer against xsdk's, with the gap's causes named from measurements.
   timings mean nothing.
 - **Comparing pictures:** at every 20th pixel across and down, from the 10th, 64 by 36 points, each channel within 2.
   The first 3 points that differ are logged with both colours.
+- **Counting the ring, after run 1.** Run 1 left the causes inferred from code, so vkbench now also logs, for each
+  scene, what xsdk's ring did a frame: dwords, kicks, waits for room, sleeps and the time waited
+  (`xsdk_gpu_stats`). It also times a 1 ms sleep, and 1 MB written into write-combined memory and into cached memory
+  that is then flushed. Run 2 carries them; they are xsdk milestone 19's first step (xsdk:SCOPE.md).
 
 **New functions:** none. Every call vkbench makes was there after milestone 4.
 
