@@ -7,7 +7,7 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 6 are done. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 7 are done. Section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -645,7 +645,7 @@ log and CSVs, and the test title's tail).
 - **Pointing is forgotten at each render pass's start,** not tracked through the resolves and the image drawn back:
   draws happen only inside passes, and the first draw of each points what it needs.
 
-### Milestone 7: uniform blocks the GPU loads
+### Milestone 7: uniform blocks the GPU loads (done)
 
 **Why.** Milestone 6 left uniform buffers costing 0.87 us a draw: the CPU reads each block from write-combined memory,
 16 bytes at a time. The console loads float constants from memory with `LOAD_ALU_CONSTANT`, but only in whole groups
@@ -667,6 +667,26 @@ overwrite whatever shared a block's groups.
 - vkbench's `uniforms_1000` through the layer costs at most 0.2 us a draw more than `draws_1000`, from 0.87;
 - xsdk_test and vulkan4xenon_test pass in full, and vkbench's backends still draw the same pictures;
 - xost's tests pass.
+
+**Passed on hardware** on 2026-10-11, at `02f593b` with xsdk at `5d4bda6` and xost at `b9b38e9`
+(`results/2026-10-11-milestone-7/`).
+- **vkbench passed all 14 checks,** both backends drawing the same picture in every scene. Through the layer,
+  `uniforms_1000` drew and submitted in 717 us, from 2,091, in 17.3 dwords a draw, from 49.3: 0.50 us a draw less than
+  `draws_1000`'s push constants, where milestone 6 left it 0.87 more. It costs 1.16 times xsdk's own, from 3.4.
+  - The GPU had 0.49 ms left at the submit, from 0.30: the CPU finishes sooner, and each load is the GPU's work now.
+    The scene's draw, submit and GPU time still fell, 1.2 ms from 2.4.
+- **The test title passed all 58 checks** on the second run (`vulkan4xenon_test-tail.log`), its uniform buffers loaded
+  by the GPU at the registers xost gave them. The first (`vulkan4xenon_test-alignment-check.log`) failed only the
+  objects check that still expected 16-byte buffer alignment; it drew everything right.
+- **xsdk_test passed all 203 checks** (xsdk:results/2026-10-11-constant-loading/), test_constants's quads drawn right
+  with their constants loaded from memory.
+- **xost's tests pass,** and its block test fails with the groups of 4 turned off.
+
+**Decisions:**
+- **Push constant blocks stay packed.** The CPU writes them in groups of 4 from its copy, so they can share groups with
+  literals; only a uniform block, which the GPU loads, needs groups to itself.
+- **Buffers are 64-byte aligned,** as the console loaded constants from; with uniform offsets in 256s, every uniform
+  block in a buffer bound at a 64-byte offset can be loaded.
 
 ## 5. The Dusklight track
 
@@ -740,8 +760,9 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   Dusklight track starts. Aurora's side is a fork of aurora-vita (section 2).
 - **What milestone 5 found slow,** for when it's taken on:
   - reading uniform buffers at submit, 4.0 us a draw for two blocks, as mapped memory is write-combined. Milestone 6
-    brought it to 0.87 us with 16-byte reads; the GPU loading blocks itself, once xost places them on groups of 4,
-    would take it to none. Encounter's Aurora passes its uniforms this way;
+    brought it to 0.87 us with 16-byte reads, and milestone 7 to none: the GPU loads each block. Encounter's Aurora
+    passes its uniforms this way;
+  - push constants are now the dearer path: the CPU writes them, 65 dwords a cube against a uniform draw's 17;
   - the replay pointing streams and textures again every draw though they didn't change. Milestone 6 points only what
     changed, and a cube costs 1.22 us through the layer against xsdk's 0.62, 1.97 times;
   - apps writing mapped memory with `memcpy` ran at 185 MB/s there. Since xsdk milestone 20, `memcpy` is xsdk's own
