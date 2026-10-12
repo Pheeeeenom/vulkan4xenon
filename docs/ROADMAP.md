@@ -717,10 +717,11 @@ setters' bookkeeping.
 `af5bb8b` (`results/2026-10-11-milestone-8/`), passing all 14 checks with no waits. Through the layer, against
 milestone 7's run:
 - **`draws_1000` drew and submitted in 1,217 us, from 1,215,** its submit 974 us both times, though a pushed cube took
-  17.3 dwords, from 65.3, and a frame 18 kicks, from 64. The GPU took 325 us after the submit, from 301, the loads
-  being its work now.
+  17.3 dwords, from 65.3, and a frame 18 kicks, from 64.
 - **`states_1000` took 2,021 us, from 1,975,** and `draws_4000` 5,078, from 5,043; `uniforms_1000` was unchanged at
   718.
+- **The GPU took about 24 us longer after each cube scene's submit:** 325 us in `draws_1000`, from 301, and 512 in
+  `uniforms_1000`, from 488, though the build changed neither that scene's path nor its shaders. Why is unmeasured.
 
 **What it showed:** a pushed cube and a uniform one now wrote the same 17.3 dwords and 18 kicks, yet the pushed one's
 submit cost 0.97 us a draw against 0.50. Writing three quarters fewer dwords saved nothing, so the push path's cost
@@ -730,6 +731,13 @@ that is unmeasured.
 
 The layer is back at milestone 7's code. xost packs push blocks again; its `vk_block_literals` test stays, its
 uniform block still on c4 and its literals from c8.
+
+**The revert passed on hardware** on 2026-10-11, at `0579b93` with xsdk at `a7151aa` and xost at `77c7605`
+(`results/2026-10-11-milestone-8-reverted/`): vulkan4xenon_test passed all 58 checks, and vkbench all 14. Through
+the layer it ran milestone 7's figures to within 5 us: `draws_1000` 1,215 us in 65.3 dwords a cube, its submit 974;
+`states_1000` 1,975; `uniforms_1000` 719; the GPU 301 us after `draws_1000`'s submit. The same code runs that close
+from one run to the next, so the ring build's differences above were its own: it was a little slower, not as fast.
+xsdk's TODO.md lists the ring, for if a run shows the cost it removes.
 
 ## 5. The Dusklight track
 
