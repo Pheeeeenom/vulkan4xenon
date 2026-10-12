@@ -7,7 +7,8 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 7 are done. Section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 7 are done, and milestone 8 was tried and reverted. Section 5 has
+the Dusklight track's order, agreed the same day; section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -19,7 +20,8 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
 - **vulkan4vita** (Z:\vulkan4vita, `37af886`), cited as `vulkan4vita:<path>:<line>`.
 - **aurora-vita** (Z:\aurora-vita, `642b549`) is the user's port of encounter's Aurora onto vulkan4vita, cited as
   `aurora-vita:<path>:<line>`.
-- **Dusklight** (TwilitRealm/dusklight at `2c4960d`), cited as `dusklight:<path>:<line>`.
+- **Dusklight** (TwilitRealm/dusklight at `2c4960d`), cited as `dusklight:<path>:<line>`. The port's fork is
+  Z:\dusklight-xenon, from that commit.
 - **encounter's Aurora** (encounter/aurora at `3227d76`, the commit Dusklight pins), cited as `aurora:<path>:<line>`.
   This is the GameCube and Wii compatibility layer Dusklight is built on, not the Aurora dashboard titles launch from.
 - **xost** (xsdk's `xenos-toolchain/`), cited as `xost:<path>:<line>`.
@@ -751,13 +753,27 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   - render passes with load, clear and don't-care, and framebuffer copies drawn into sampled images.
 
   The layer's milestones 1 to 4 cover that.
-- **What Twilight Princess adds beyond aurora-vita's game:**
-  - depth read back on the CPU, for `GXPeekZ` (dusklight:src/d/d_drawlist.cpp:1848);
-  - depth copied into a texture (`GX_TF_Z16`, dusklight:src/m_Do/m_Do_graphic.cpp:1132);
-  - a Z texture with destination alpha (dusklight:libs/JSystem/src/JFramework/JFWDisplay.cpp:522-550).
+- **What Twilight Princess adds beyond aurora-vita's game,** as read on 2026-10-11:
+  - **Depth copied into a texture every frame:** a half-size `GX_TF_Z16` copy for depth of field
+    (dusklight:src/m_Do/m_Do_graphic.cpp:1130-1144), made before the PC build's "depth of field off" return (:1171),
+    so it runs either way. aurora-vita logs depth copies and skips them (aurora-vita:lib/vulkan4vita/encoding.cpp:712-717).
+  - **Shadows in an offscreen target with its own depth** (dusklight:src/d/d_drawlist.cpp:1593-1626), after which
+    the frame goes on with the EFB's depth (aurora-vita:lib/gfx/recording.cpp:258-264). The layer keeps depth only in
+    eDRAM, and loses it when another depth attachment comes between (SUPPORT.md, "Render passes").
+  - **15 to 20 framebuffer copies a frame:** bloom's sub-rectangles, depth of field, the half-size frame and shadows
+    (dusklight:src/m_Do/m_Do_graphic.cpp:943-1015, 1523-1678). Each breaks the render pass.
+  - **`GXPeekZ`,** the game's only CPU read of the framebuffer (dusklight:src/d/d_drawlist.cpp:1848): up to 64 points a
+    frame for occlusion tests, the sun's lens flare, the lantern's glow and golden bugs' sparkles
+    (dusklight:src/d/d_kankyo_rain.cpp:337-362). aurora-vita returns 0 (aurora-vita:lib/vulkan4vita/backend.cpp:510-520),
+    which only hides them.
+  - **Fog range adjustment on every 3D draw** (dusklight:src/d/d_kankyo.cpp:1257, 9457-9460). aurora-vita reads a
+    960-float table from a uniform (aurora-vita:lib/vulkan4vita/cg.cpp:1307), past the layer's 4 KB uniform range.
 
-  On xsdk's side these meet open items in its TODO.md: depth resolves, a constant blend colour, more texture
-  formats.
+  Not needed after all: the Z texture with destination alpha (dusklight:libs/JSystem/src/JFramework/JFWDisplay.cpp:522-550)
+  is in `clearEfb`, which returns at once on PC (:486); with it go the game's only destination alpha and any need for
+  a constant blend colour, as aurora-vita clears by drawing with write masks. Every GX texture format, palettes too,
+  is decoded to RGBA8 on the CPU (aurora-vita:lib/gfx/texture_convert.cpp:668-753), so more formats would save memory
+  but block nothing.
 - **The backend.** aurora-vita added a backend interface to encounter's Aurora, `lib/gfx/backend.hpp`, and a Vulkan
   backend behind it, about 6,200 lines (aurora-vita:lib/vulkan4vita/). A vulkan4xenon backend follows the same shape.
   - **Why aurora-vita and not upstream:** upstream draws only through Dawn, and its shaders read the game's vertex
@@ -790,12 +806,37 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   - **Memory:** a budget within the console's 512 MB, which the CPU and GPU share.
   - **Byte order:** the console is big-endian like the GameCube, so the PC build's swaps at load must turn off
     (dusklight:include/helpers/endian.h).
-- **A likely order:**
-  1. the game running without drawing, on encounter's Aurora's null backend, to settle the platform, the disc and
-     memory;
-  2. the title screen through the vulkan4xenon backend;
-  3. gameplay with Twilight Princess's extra features;
-  4. performance.
+- **What the shaders need from xost,** beyond the GLSL generator (aurora-vita:lib/vulkan4vita/cg.cpp):
+  - uniform arrays indexed at run time: the position, normal and texture matrices are picked by an index per vertex
+    (cg.cpp:1094, 1103, 1166-1167). Xenos reads constants at `c[a0 + n]`, `a0` set by `MOVA`
+    (xenia:src/xenia/gpu/ucode.h:196-202, 1140-1148); xost reads arrays only by a loop counter (xost:docs/xsc.md);
+  - the fragment's position, for range fog: the pixel shader's generated parameter
+    (xenia:src/xenia/gpu/registers.h:140, 234);
+  - depth written by a pixel shader, to draw depth back into eDRAM (xenia:src/xenia/gpu/shader.h:972);
+  - vertex inputs past position, colour and texture coordinates, for the matrix indices;
+  - Twilight Princess's longest TEV chains within xost's 16 registers a pixel shader, unchecked.
+- **What the layer needs at start-up:** 8-bit normalized vertex attributes, which xsdk has (`XSDK_VERTEX_UBYTE4N`,
+  xsdk:include/xsdk/shader.h). The rest is the fork's to change: one memory type, a `B8G8R8A8` swapchain, no Vita
+  extensions, 256-byte uniform offsets, and textures of any size tiled rather than linear.
+- **The order, agreed on 2026-10-11:**
+  1. **Milestone 9: Dusklight on Aurora's null backend,** running on the console without drawing up to the title
+     scene's game loop: the build, the platform from xsdk, the disc, memory and byte order.
+  2. **Milestone 10: the shaders:** the GLSL generator, run offline over a pipeline cache recorded on a PC, and what
+     xost needs above. It can overlap milestone 9.
+  3. **Milestone 11: the title screen drawn** (stage F_SP102, dusklight:src/d/d_com_inf_game.cpp:1221) with its
+     colour effects, through render to texture as it stands; depth copies skipped, as aurora-vita does.
+  4. **Depth out of eDRAM:** xsdk resolves depth to memory and samples it, after console probes of what a depth
+     resolve writes (xenia:src/xenia/gpu/xenos.h:917-924); then the layer stores, samples and reloads depth
+     attachments. That brings the Z16 copy, shadows over the EFB's depth, and `GXPeekZ` read from resolved depth.
+  5. **Copies at the frame's pace,** if the frame needs it: sub-rectangle resolves, which libxenon says can't be done
+     (libxenon:drivers/xenos/xe.c:1076) and Xenia finds games doing (xenia:src/xenia/gpu/xenos.h:944-976), and small
+     passes kept out of the EFB's eDRAM.
+
+  Later: logic ops, lines and points (the minimap), native texture formats, uploads that don't stall, the sampler's
+  maximum LOD.
+- **Where the code lives (decided 2026-10-11):** Dusklight's changes in a fork of its own, Z:\dusklight-xenon, from
+  TwilitRealm/dusklight at `2c4960d` (remote `upstream`). Aurora's are a fork of aurora-vita, which is built on
+  `3227d76`, the commit Dusklight pins.
 
 ## 6. Left out
 
@@ -807,8 +848,6 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
 
 ## 7. Open
 
-- **Where Dusklight's own changes live:** probably a fork, for the byte order and the platform. Decide before the
-  Dusklight track starts. Aurora's side is a fork of aurora-vita (section 2).
 - **What milestone 5 found slow,** for when it's taken on:
   - reading uniform buffers at submit, 4.0 us a draw for two blocks, as mapped memory is write-combined. Milestone 6
     brought it to 0.87 us with 16-byte reads, and milestone 7 to none: the GPU loads each block. Encounter's Aurora
