@@ -833,6 +833,49 @@ the layer it ran milestone 7's figures to within 5 us: `draws_1000` 1,215 us in 
 from one run to the next, so the ring build's differences above were its own: it was a little slower, not as fast.
 xsdk's TODO.md lists the ring, for if a run shows the cost it removes.
 
+### Milestone 10: the boot screens drawn
+
+**Why.** The game's own frames on the console, first what it shows while it loads. Read on 2026-10-12:
+- **The PC build draws nothing before the title.** It skips the GameCube's warning, Nintendo and Dolby screens
+  (dusklight:src/d/d_s_logo.cpp:1227-1229), so the archives load behind black and the title scene fades in.
+- **Those screens are simple:** each is one textured 2D quad, under the fader's full-screen one. They take position,
+  colour and one texture coordinate, one to three TEV stages, alpha blending and an alpha compare, with no depth and no
+  framebuffer copies (dusklight:libs/JSystem/src/J2DGraph/J2DPicture.cpp:704-786,
+  libs/JSystem/src/J2DGraph/J2DGrafContext.cpp:33-65). Their textures, in the disc's LogoUs.arc, are I4, IA4 and IA8.
+  That is about five shader configurations. The title scene's are several dozen at least, with fog, matrices picked
+  per vertex, palettes and framebuffer copies.
+- **aurora-vita's backend fits our fork's seam unchanged** (aurora-vita:lib/gfx/backend.hpp, the same in the fork),
+  6,328 lines of C++ (aurora-vita:lib/vulkan4vita/). Beyond what the layer has, it uses 8-bit vertex colours
+  (vulkan4xenon refuses them, src/pipeline.c:40-58), a second memory type, an RGBA swapchain and linear textures, and
+  compiles Cg on the Vita (aurora-vita:lib/vulkan4vita/pipeline.cpp:192-222).
+- **xost compiles a restricted GLSL** (xost:docs/xsc.md, xsc/lower.py): one store per local, no function calls and no
+  unary minus, and one comparison per discard. Indices into blocks must be constants. The boot screens' shaders fit
+  that; the title scene's matrices picked per vertex, fragment position and depth export don't.
+- **A PC's recorded configurations don't carry over:** Aurora's pipeline cache keeps each configuration as its raw
+  struct, bitfields included, with 32-bit hashes on a 32-bit host (aurora:lib/gx/pipeline.hpp, lib/hash.hpp).
+
+**Decided with the user (2026-10-12):** the first frames are the GameCube's boot screens, restored on the console
+under `__XSDK__` with the PC's code kept; the title scene moves to milestone 11. Shader configurations are recorded by
+the 360's own null backend, in Xenia or on the console, instead of on a PC.
+
+**In two steps,** each run on the console:
+1. **The boot screens and their shaders.** Dusklight shows the warning, Nintendo and Dolby screens on the null
+   backend. A GLSL generator for the boot screens' configurations, modelled on aurora-vita's `cg.cpp` and written in
+   the form xost compiles, runs in the null backend and writes each configuration's GLSL to a file on `game:\`. An
+   offline step compiles each with glslang and xost into a shader bundle.
+2. **The backend.** Aurora's vulkan4xenon backend, made from aurora-vita's:
+   - with one memory type, a `B8G8R8A8` swapchain, every texture tiled and uniforms at 256-byte offsets;
+   - with stores that are safe for write-combined memory;
+   - with its shaders taken from the bundle.
+
+   The layer takes 8-bit RGBA vertex colours, and Aurora's texture conversion reads IA8 on a big-endian host.
+
+**Done when,** on the console:
+- the warning, Nintendo and Dolby screens show with their fades while the game loads;
+- the title scene then runs, its configurations missing from the bundle left undrawn;
+- every recorded boot-screen configuration compiles with xost;
+- xsdk_test and vulkan4xenon_test pass in full.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
@@ -878,9 +921,10 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
     has no compiler on the console, so:
     - a generator modelled on `cg.cpp` writes Vulkan GLSL instead, without the integer operations `cg.cpp` uses
       (`(int)x & mask`, aurora-vita:lib/vulkan4vita/cg.cpp:214);
-    - an offline step runs it over Aurora's pipeline cache, which records every configuration a playthrough used
-      (aurora-vita:lib/gfx/pipeline_cache.cpp:357-370). The cache holds configurations as raw bytes, so one made on a
-      PC is little-endian and the step byte-swaps it;
+    - the 360's null backend runs it on every configuration the game asks for and writes the GLSL out, in Xenia or
+      on the console (decided 2026-10-12, milestone 10). Aurora's pipeline cache holds configurations as raw structs
+      (aurora-vita:lib/gfx/pipeline_cache.cpp:357-370), bitfields included, so one recorded on a PC doesn't carry
+      over;
     - glslang turns each into SPIR-V and xost into a container, and the pack ships both;
     - on the console the backend looks up the SPIR-V by configuration and hands it to `vkCreateShaderModule`, which
       finds the container by that SPIR-V. A configuration missing from the pack isn't drawn, as on aurora-vita
@@ -913,9 +957,11 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
 - **The order, agreed on 2026-10-11:**
   1. **Milestone 9: Dusklight on Aurora's null backend,** running on the console without drawing up to the title
      scene's game loop: the build, the platform from xsdk, the disc, memory and byte order.
-  2. **Milestone 10: the shaders:** the GLSL generator, run offline over a pipeline cache recorded on a PC, and what
-     xost needs above. It can overlap milestone 9.
-  3. **Milestone 11: the title screen drawn** (stage F_SP102, dusklight:src/d/d_com_inf_game.cpp:1221) with its
+  2. **Milestone 10: the boot screens drawn** (section 4), changed on 2026-10-12 from "the shaders, from a pipeline
+     cache recorded on a PC": the GLSL generator for the boot screens' configurations, recorded on the 360, and the
+     backend that draws them.
+  3. **Milestone 11: the title screen drawn** (stage F_SP102, dusklight:src/d/d_com_inf_game.cpp:1221), with the rest
+     of the generator and what xost needs above, and its
      colour effects, through render to texture as it stands; depth copies skipped, as aurora-vita does. It takes the
      byte order milestone 9 leaves: Aurora's texture conversion and the arrays flagged little-endian.
   4. **Depth out of eDRAM:** xsdk resolves depth to memory and samples it, after console probes of what a depth
