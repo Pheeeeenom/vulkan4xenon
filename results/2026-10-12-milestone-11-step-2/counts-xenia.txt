@@ -1,0 +1,67 @@
+refused configs: 62
+
+by the first thing each needs, in the order the generator checks:
+   40 fog
+   15 matrices picked per vertex
+    4 lighting
+    3 indirect texturing
+
+needing each:
+   50 fog
+   46 lighting
+   15 matrices picked per vertex
+    5 indirect texturing
+
+by all they need:
+   31 fog + lighting
+   10 fog + lighting + matrices picked per vertex
+    7 fog
+    5 matrices picked per vertex
+    4 lighting
+    3 indirect texturing
+    1 fog + indirect texturing
+    1 fog + indirect texturing + lighting
+
+fog: 50 configs
+   41 fog (perspective LIN, range)
+    6 fog (perspective LIN)
+    1 fog (perspective REVEXP2)
+    1 fog (perspective REVEXP, range)
+    1 fog (perspective REVEXP2, range)
+  43 of them adjusted by range
+
+matrices picked per vertex: 15 configs
+    8 matrices picked per vertex (PNMTXIDX TEX1MTXIDX)
+    7 matrices picked per vertex (PNMTXIDX)
+
+indirect texturing: 5 configs
+    3 indirect texturing (1 indirect stages, TEV stages 0)
+    1 indirect texturing (1 indirect stages, TEV stages 0 1)
+    1 indirect texturing (1 indirect stages, TEV stages 2)
+
+lighting: 46 configs, 46 with their light masks cleared
+  46 of them change when their masks are cleared
+  lit channels:
+   30 COLOR0 lights 0xff DF_CLAMP AF_SPOT ambient REG
+   11 COLOR0 lights 0xfe DF_CLAMP AF_SPOT ambient REG
+    2 COLOR0 lights 0x01 DF_CLAMP AF_SPOT ambient REG
+    1 COLOR0 lights 0x7e DF_CLAMP AF_SPOT ambient REG
+    1 COLOR0 lights 0xfc DF_CLAMP AF_SPOT ambient REG
+    1 COLOR0 lights 0xfe DF_CLAMP AF_SPOT ambient VTX
+  lights a lit channel sums: 1 in 2, 6 in 2, 7 in 12, 8 in 30
+
+targets: 12
+  Copy target 20x11, GX format 6, 16 texels or less on a side
+  Copy target 40x22, GX format 6
+  Copy target 80x45, GX format 6
+  Copy target 160x90, GX format 6
+  Copy target 192x192, GX format 6
+  Copy target 320x180, GX format 6
+  Copy target 640x360, GX format 6
+  Copy target 1280x720, GX format 6
+  Offscreen depth target 384x384, GX format none
+  Offscreen depth target 960x360, GX format none
+  Offscreen target 384x384, GX format none
+  Offscreen target 960x360, GX format none
+
+programs recorded: 69

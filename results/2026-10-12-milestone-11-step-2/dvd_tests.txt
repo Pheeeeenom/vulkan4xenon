@@ -1,0 +1,93 @@
+Running main() from /home/xenon/build/aurora-host/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 39 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 17 tests from DVDStubs
+[ RUN      ] DVDStubs.Constants
+[       OK ] DVDStubs.Constants (0 ms)
+[ RUN      ] DVDStubs.StructSizes
+[       OK ] DVDStubs.StructSizes (0 ms)
+[ RUN      ] DVDStubs.InitWithoutDisc
+[       OK ] DVDStubs.InitWithoutDisc (0 ms)
+[ RUN      ] DVDStubs.GetDriveStatus
+[       OK ] DVDStubs.GetDriveStatus (0 ms)
+[ RUN      ] DVDStubs.Reset
+[       OK ] DVDStubs.Reset (0 ms)
+[ RUN      ] DVDStubs.ResetRequired
+[       OK ] DVDStubs.ResetRequired (0 ms)
+[ RUN      ] DVDStubs.PauseResume
+[       OK ] DVDStubs.PauseResume (0 ms)
+[ RUN      ] DVDStubs.AutoInvalidation
+[       OK ] DVDStubs.AutoInvalidation (0 ms)
+[ RUN      ] DVDStubs.Cancel
+[       OK ] DVDStubs.Cancel (0 ms)
+[ RUN      ] DVDStubs.CancelAsync
+[       OK ] DVDStubs.CancelAsync (0 ms)
+[ RUN      ] DVDStubs.CancelAll
+[       OK ] DVDStubs.CancelAll (0 ms)
+[ RUN      ] DVDStubs.SeekStubs
+[       OK ] DVDStubs.SeekStubs (0 ms)
+[ RUN      ] DVDStubs.GetFSTLocation
+[       OK ] DVDStubs.GetFSTLocation (0 ms)
+[ RUN      ] DVDStubs.GetCurrentDiskID
+[       OK ] DVDStubs.GetCurrentDiskID (0 ms)
+[ RUN      ] DVDStubs.FileInfoStatus
+[       OK ] DVDStubs.FileInfoStatus (0 ms)
+[ RUN      ] DVDStubs.TransferredSize
+[       OK ] DVDStubs.TransferredSize (0 ms)
+[ RUN      ] DVDStubs.CommandBlockStatus
+[       OK ] DVDStubs.CommandBlockStatus (0 ms)
+[----------] 17 tests from DVDStubs (5 ms total)
+
+[----------] 10 tests from DVDNoDisc
+[ RUN      ] DVDNoDisc.OpenFails
+[       OK ] DVDNoDisc.OpenFails (0 ms)
+[ RUN      ] DVDNoDisc.FastOpenFails
+[       OK ] DVDNoDisc.FastOpenFails (0 ms)
+[ RUN      ] DVDNoDisc.CloseNullHandle
+[       OK ] DVDNoDisc.CloseNullHandle (0 ms)
+[ RUN      ] DVDNoDisc.AbsoluteCommandsPreserveUserData
+[       OK ] DVDNoDisc.AbsoluteCommandsPreserveUserData (0 ms)
+[ RUN      ] DVDNoDisc.OpenDirFails
+[       OK ] DVDNoDisc.OpenDirFails (0 ms)
+[ RUN      ] DVDNoDisc.CloseDir
+[       OK ] DVDNoDisc.CloseDir (0 ms)
+[ RUN      ] DVDNoDisc.ChangeDirFails
+[       OK ] DVDNoDisc.ChangeDirFails (0 ms)
+[ RUN      ] DVDNoDisc.ConvertPathFails
+[       OK ] DVDNoDisc.ConvertPathFails (0 ms)
+[ RUN      ] DVDNoDisc.ConvertEntrynumToPathFails
+[       OK ] DVDNoDisc.ConvertEntrynumToPathFails (0 ms)
+[ RUN      ] DVDNoDisc.GetCurrentDir
+[       OK ] DVDNoDisc.GetCurrentDir (0 ms)
+[----------] 10 tests from DVDNoDisc (3 ms total)
+
+[----------] 12 tests from DVDDiscTest
+[ RUN      ] DVDDiscTest.ConvertPathRoot
+[       OK ] DVDDiscTest.ConvertPathRoot (0 ms)
+[ RUN      ] DVDDiscTest.ConvertPathDotDotDot
+[       OK ] DVDDiscTest.ConvertPathDotDotDot (0 ms)
+[ RUN      ] DVDDiscTest.ConvertPathInvalid
+[       OK ] DVDDiscTest.ConvertPathInvalid (0 ms)
+[ RUN      ] DVDDiscTest.ConvertEntrynumToPathRoot
+[       OK ] DVDDiscTest.ConvertEntrynumToPathRoot (0 ms)
+[ RUN      ] DVDDiscTest.ConvertEntrynumToPathFile
+[       OK ] DVDDiscTest.ConvertEntrynumToPathFile (0 ms)
+[ RUN      ] DVDDiscTest.ConvertEntrynumToPathOverlay
+[       OK ] DVDDiscTest.ConvertEntrynumToPathOverlay (0 ms)
+[ RUN      ] DVDDiscTest.OpenDirRoot
+[       OK ] DVDDiscTest.OpenDirRoot (0 ms)
+[ RUN      ] DVDDiscTest.ChangeDirRoot
+[       OK ] DVDDiscTest.ChangeDirRoot (0 ms)
+[ RUN      ] DVDDiscTest.OpenCloseFile
+[       OK ] DVDDiscTest.OpenCloseFile (0 ms)
+[ RUN      ] DVDDiscTest.ReadFile
+[       OK ] DVDDiscTest.ReadFile (0 ms)
+[ RUN      ] DVDDiscTest.ReadAsync
+[       OK ] DVDDiscTest.ReadAsync (0 ms)
+[ RUN      ] DVDDiscTest.DiskID
+[       OK ] DVDDiscTest.DiskID (0 ms)
+[----------] 12 tests from DVDDiscTest (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 39 tests from 3 test suites ran. (44 ms total)
+[  PASSED  ] 39 tests.

@@ -1023,6 +1023,28 @@ target it creates; `tools/count_refusals.py` counts both (`counts-xenia.txt`, fr
 - **The console run** went as at milestone 24: the title scene at 29.1 to 30.0 fps once loaded, 8 MB free at its end
   and status 0, with milestone 24's other errors.
 
+**Step 2 passed on hardware** on 2026-10-12, Dusklight `3d1853a` with Aurora `da395ea`
+(`results/2026-10-12-milestone-11-step-2/`; Dusklight's log names `8f99ef3`, the commit at its last configure):
+- **Upstream's five fixes** applied to the fork without a conflict, each keeping its author and naming the commit it
+  came from: `77997d4` as `d6b542b`, `3094e04` as `f8bb045`, `0857ad8` as `95613f0`, `afa388d` as `2676de6` and
+  `c8406f2` as `d2617ff`. Aurora's DVD tests passed all 39 on the host (`dvd_tests.txt`), among them `c8406f2`'s new
+  one and the 12 that read a disc, through the fork's ISO reader from the GameCube disc Dusklight reads.
+- **The packed alpha compares in the GLSL** (`da395ea`): an alpha op's R8, GR16 and BGR24 compares take their keys from
+  the colour operands a and b, as the WGSL now does, while A8 still compares the alpha operands. Aurora's new
+  `vulkan4xenon_glsl_tests` checks each on a config made to hit it, and passed all 7 (`vulkan4xenon_glsl_tests.txt`).
+  Broken on purpose, comparing the alpha operands again, it failed the 6 packed compares and passed A8. glslang and xost
+  compiled all 42 programs its configs and the backend's own make. None of the title scene's programs compares in its
+  alpha op: the recording build in Xenia wrote the pack's 69 as before, byte for byte, and refused step 1's 62
+  (`dusklight-record-xenia.log`, `counts-xenia.txt`).
+- **Dusklight's settings:** pipelines compile on 2 threads (`Pipeline compilation: 2 at a time`, from 4), and draws of
+  up to 4096 vertices take their indices from Aurora's patterns. A frame's indices peaked at 222 KB, from 223:
+  patterns serve only draws not merged into the one before, and a merged draw's indices still go into the frame's pool
+  (aurora-xenon:lib/gx/command_processor.cpp, `draw_prim`).
+- **The console run** (`dusklight.log`) went as at milestone 24: the title scene at 29.2 to 30.0 fps once loaded,
+  against 29.4 to 30.0, and 9 MB free at its end, as then; status 0, with milestone 24's other errors and step 1's 62
+  refused. The 10 seconds it loads in ran at 14.8 fps, against 19.2 at milestone 24 and 15.9 at step 1, both on 4
+  threads: the count's 10-second windows take the boot screens' end and the loading in other parts each run.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
