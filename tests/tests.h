@@ -27,5 +27,7 @@ void test_depth_stencil(const Harness *harness);
 void test_raster(const Harness *harness);
 // Images rendered, copied, loaded and sampled in the passes after, depth kept in eDRAM (milestone 4).
 void test_render_to_texture(const Harness *harness);
+// Uniform arrays read at run-time indices: matrices picked per vertex, colours by pixel column (milestone 11).
+void test_run_time_index(const Harness *harness);
 
 #endif
