@@ -7,8 +7,8 @@ the console through it.
 **The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
 native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
 
-**Status.** Agreed on 2026-10-11. Milestones 1 to 7 are done, and milestone 8 was tried and reverted. Section 5 has
-the Dusklight track's order, agreed the same day; section 7 lists what's still open.
+**Status.** Agreed on 2026-10-11. Milestones 1 to 7, 9 and 10 are done, and milestone 8 was tried and reverted.
+Section 5 has the Dusklight track's order, agreed the same day; section 7 lists what's still open.
 
 **Constraints.** xsdk's, unchanged:
 - No Microsoft tooling, no leaked SDK material, no OpenXeChain.
@@ -885,6 +885,38 @@ the 360's own null backend, in Xenia or on the console, instead of on a PC.
 - the console recorded 36 programs, byte for byte the ones Xenia recorded from the same build;
 - glslang and xost compiled all 8 of the boot screens' and 27 of the title scene's 28. The last needs 18 registers,
   over the pixel shader's 16 (`compile.txt`), and xost only warns that it would hang.
+
+**Step 2 passed on hardware** on 2026-10-12, Dusklight `a2aa9cc` with Aurora `82dfa81` and this repository at
+`6be3389` (`results/2026-10-12-milestone-10-step-2/`; Dusklight's log names `54e3f14`, the commit at its last
+configure):
+- **The boot screens drawn:** Aurora's vulkan4xenon backend drew the warning, Nintendo and Dolby screens, which faded
+  in and out on the user's screen, at 50 to 60 fps. The title scene then ran its minute, at 19 fps over the 10 seconds
+  it loaded in and 30 after, its configurations missing from the pack left undrawn, and the title exited with status 0
+  (`dusklight.log`). Its other errors are the title scene's, left for milestone 11: GLSL not yet written for fog,
+  lighting, matrices picked per vertex and indirect texturing, depth copies, `GXPeekZ`, and a 20x11 copy target, under
+  the layer's smallest colour attachment.
+- **The pack** holds 68 of the 69 programs recorded: the 36 the console recorded in step 1, and the backend's 33 clears,
+  copies and present, which Xenia recorded from the same build. The title scene's 18-register program is left out, so
+  its draws are skipped. Aurora's `tools/build_glsl_pack.py` builds it, through this repository's
+  `tools/build_shaders.py`.
+- **The tests:** vulkan4xenon_test passed all 64 checks, 8-bit packed vertex colours among them
+  (`vulkan4xenon_test-tail.log`). Broken on purpose, the colours packed the other way round, it failed only the two
+  packed-colour pixel checks: the yellow corner read as magenta, cyan as white and magenta as yellow
+  (`vulkan4xenon_test-broken.log`). xsdk_test passed all 230 (`xsdk_test-tail.log`).
+- **Memory is tight.** The title scene started with 46 MB free and ended with 7: as it loaded, the GPU's physical pages
+  went from 54 to 72 MB and newlib's heap from 330 to 347 MB. Aurora's frame pools and texture caches are sized for the
+  console from runs in Xenia, at about 4 times a frame's peak for the pools and 16, 16 and 8 MiB for the texture
+  caches. The game's root heap keeps the PC's 256 MB, 137 of it used, until gameplay can be measured (decided with
+  the user). Dusklight's run log now prints the kernel's count of the title's memory every 10 seconds; Xenia's
+  `MmQueryStatistics` doesn't count as the console's does.
+- **Two runs before it ran out of memory** soon after the title scene loaded. On a first run Dusklight opens a preset
+  window, which the backend doesn't draw, since Aurora records RmlUi's draws only on Dawn. The press that skipped the
+  warning screen chose the Dusklight preset there unseen, turning on frame interpolation and 4x shadow maps, whose
+  1536x1536 targets are over the layer's 1280x720 (`dusklight-preset.log`). The window isn't opened on the console now.
+  Xenia, where nothing presses a button, never showed it. Saving the settings fails on the console ("Function not
+  implemented"), so the preset didn't stay.
+
+With that, milestone 10 is done: the console draws the game's boot screens while it loads.
 
 ## 5. The Dusklight track
 
