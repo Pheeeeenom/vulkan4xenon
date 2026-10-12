@@ -35,7 +35,7 @@ wsl.exe -d Debian --exec bash -c 'cd /mnt/z/vulkan4xenon && make'
   `--bundle v4x_blit_bundle --prefix v4x_`.
 - Xenia has no display controller, so the swapchain can't be made there and every check after it fails. Xenia still
   smoke-tests the device, the object checks and pipeline creation. Launch it as xsdk's CLAUDE.md says; the log lands
-  in its `cache\xsdk.log`.
+  in its `cache` folder, named after the `.xex` (`cache\vulkan4xenon_test.log`).
 - In Xenia, a draw sampling an image the layer resolved into gets the image as it was before that resolve, even across
   submissions; the cause is unknown, since xsdk's own resolve-then-sample test passes there. So `render_to_texture`'s
   checks past pass 1 fail in Xenia, and only the console settles them.
