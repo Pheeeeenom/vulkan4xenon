@@ -774,8 +774,10 @@ user after the scope above). Their settings come from `config.json` until that r
    exits.
 2. **The platform.** SDL3's xsdk backends: the controller on `XamInputGetState`, audio on xsdk's audio client, the
    timer, threads on xsdk's pthreads and paths on `game:\`; in xsdk, what they need beyond it today, as xsdk
-   milestone 21 (xsdk:SCOPE.md). Dusklight runs the game on the null backend. The `.xex` reaches `main01` and
-   reports the disc missing.
+   milestone 21 (xsdk:SCOPE.md). Dusklight runs the game on the null backend up to the disc. The game reads the
+   disc's ID before `main01` (dusklight:src/dusk/version.cpp:13-24, called at dusklight:src/m_Do/m_Do_main.cpp:903),
+   so with no reader yet the `.xex` reports the disc missing and ends; reaching `main01` moved to step 3, agreed with
+   the user on 2026-10-12.
 3. **The disc, byte order and memory.** An ISO reader in place of nod, with 64-bit offsets; the big-endian path made
    whole in Dusklight and Aurora; memory sized from measured peaks.
 
@@ -784,6 +786,18 @@ user after the scope above). Their settings come from `config.json` until that r
   F_SP102, dusklight:src/d/d_com_inf_game.cpp:1221) for a minute on the null backend, with no call failing;
 - its log names the scene, its frame rate and each heap's peak;
 - xsdk_test passes in full.
+
+**Steps 1 and 2 passed on hardware** on 2026-10-12, xsdk_test passing in full with each (xsdk:docs/HARDWARE.md, from
+"What the kernel leaves a title"):
+- **Step 1,** Dusklight `e7e916c`: the `.xex` showed the splash, logged its image, 32 MB on the console's calling
+  convention, and the 442 MB of the title's 480 MB left free, and exited. xsdk's heap now reserves the title's free
+  memory at its first growth, 443 MB here (xsdk:results/2026-10-12-memory/, 2026-10-12-heap-reservation/ and
+  2026-10-12-dusklight-mcall-xsdk/).
+- **Step 2,** Dusklight `3adfb33` with Aurora `933efa4`, SDL-xenon `c86389c89` and xsdk `f770193`: the game's own
+  startup ran on the null backend, reading its config, starting Aurora with no window and loading RmlUi's fonts, and
+  ended with status 1 at the missing `game:\dusklight.iso` (xsdk:results/2026-10-12-dusklight-step-2/). It took two
+  xsdk changes: `main` gets argc 1, since Dusklight reads its options from `argv[1]`, and a path `std::filesystem`
+  makes absolute, `game:\` in front of `game:\...`, starts over at its second drive.
 
 **The revert passed on hardware** on 2026-10-11, at `0579b93` with xsdk at `a7151aa` and xost at `77c7605`
 (`results/2026-10-11-milestone-8-reverted/`): vulkan4xenon_test passed all 58 checks, and vkbench all 14. Through
