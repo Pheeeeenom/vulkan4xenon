@@ -861,12 +861,13 @@ the 360's own null backend, in Xenia or on the console, instead of on a PC.
 **In two steps,** each run on the console:
 1. **The boot screens and their shaders.** Dusklight shows the warning, Nintendo and Dolby screens on the null
    backend. A GLSL generator for the boot screens' configurations, modelled on aurora-vita's `cg.cpp` and written in
-   the form xost compiles, runs in the null backend and writes each configuration's GLSL to a file on `game:\`. An
-   offline step compiles each with glslang and xost into a shader bundle.
+   the form xost compiles, runs in the null backend and writes each configuration's GLSL to a file on `game:\`.
+   Each recorded program compiles with glslang and xost.
 2. **The backend.** Aurora's vulkan4xenon backend, made from aurora-vita's:
    - with one memory type, a `B8G8R8A8` swapchain, every texture tiled and uniforms at 256-byte offsets;
    - with stores that are safe for write-combined memory;
-   - with its shaders taken from the bundle.
+   - with its shaders from a bundle an offline step builds out of the recorded GLSL, leaving out any program xost
+     can't fit in the pixel shader's 16 registers.
 
    The layer takes 8-bit RGBA vertex colours, and Aurora's texture conversion reads IA8 on a big-endian host.
 
