@@ -931,26 +931,52 @@ programs (xsdk:results/2026-10-12-milestone-24/dusklight.log):
   less on a side (src/image.c:54-56), the size at which xsdk packs a texture.
 - **Byte order,** left by milestone 9 until drawing shows it: Aurora's texture conversion swaps, the vertex and matrix
   arrays Dusklight flags little-endian in 58 places, and the memory card and controller binding files.
+- **From encounter's upstream** (aurora:`3227d76..c8406f2`, read 2026-10-12): 23 commits, none of them a speed-up,
+  and Dusklight's upstream still pins `3227d76`. Five apply onto the fork without conflict and fix something:
+  `3094e04`, packed TEV alpha compares taking the colour operands from before the stage; `afa388d`, `SET_REG_FIELD`
+  masking the value to its field; `c8406f2`, the DVD keeping its handle out of `userData`; `0857ad8`, texture
+  coordinates as a texgen source, a fatal error before; and `77997d4`, `CARDProbeEx` with null outputs. `b922153`
+  bounds the texture content, copy and offscreen caches with an LRU, and conflicts in 9 files with the fork's
+  backend-neutral types. The rest are left: `d664382`'s input rework drops `aurora/lib/input.hpp`, which Dusklight
+  includes (dusklight:src/dusk/action_bindings.cpp:6), and the others are churn, or already in the fork.
+- **The fork's tuning,** read the same day:
+  - a shader config's key holds its channels' light masks (aurora-xenon:lib/gx/gx.hpp:185), so each mask makes a
+    pipeline of its own, and a draw is skipped until its pipeline is built (aurora-xenon:lib/vulkan4xenon/encoding.cpp,
+    `usable_pipeline`);
+  - pipelines compile on as many threads as cores less two, 4 on xsdk
+    (aurora-xenon:lib/gfx/pipeline_cache.cpp:1149-1155), but the backend holds one lock across the pack lookup and
+    the pipeline's creation (aurora-xenon:lib/vulkan4xenon/pipeline.cpp:503);
+  - quads, strips and fans take their indices from prebuilt patterns only when `AURORA_INDEX_PATTERN_VERTICES` is
+    set (aurora-xenon:CMakeLists.txt), and Dusklight doesn't set it.
 - **Left for milestone 12,** depth out of eDRAM: the Z16 depth copy and `GXPeekZ`.
 
-**Agreed with the user on 2026-10-12,** with Dusklight's PC build as the reference. **In five steps,** each run on
-the console:
+**Agreed with the user on 2026-10-12,** with Dusklight's PC build as the reference, and the audit's items added the same
+day. **In six steps,** each run on the console:
 1. **What the scene needs, measured.** A recording build logs, once each, every refused configuration with all it
-   needs, not only the first, and each copy target's size and format; a run in Xenia counts them, and says whether the
-   scene turns range fog on. The user captures the title screen as the console draws it now, and the same moment from
-   Dusklight's PC build, the reference agreed with the user. The counts decide whether range fog and small copy targets are in
-   this milestone.
-2. **xost: uniform arrays indexed at run time,** in vertex shaders (`m[int(i)]` lowered to `MOVA` and `c[a0 + n]`),
+   needs, not only the first, and each copy target's size and format; a run in Xenia counts them, says whether the
+   scene turns range fog on, and counts the configurations that differ only in their light masks. The user captures
+   the title screen as the console draws it now, and the same moment from Dusklight's PC build, the reference agreed
+   with the user. The counts decide whether range fog and small copy targets are in this milestone.
+2. **Aurora from upstream, and the 360's settings:** `3094e04`, `afa388d`, `c8406f2`, `0857ad8` and `77997d4`
+   picked, with `3094e04`'s packed alpha compares mirrored in the fork's GLSL generator, which today compares the
+   alpha operands (aurora-xenon:lib/vulkan4xenon/glsl.cpp, `alpha_op`): checked by a config made to hit it, its GLSL
+   reading the colour operands as the WGSL does and compiling with glslang and xost. Dusklight takes Aurora's index
+   patterns, `AURORA_INDEX_PATTERN_VERTICES` 4096, under the patterns' 16-bit indices, and 2 pipeline compile
+   threads. The title scene runs as at milestone 24, its frame rate and free memory compared.
+3. **xost: uniform arrays indexed at run time,** in vertex shaders (`m[int(i)]` lowered to `MOVA` and `c[a0 + n]`),
    and, if step 1 finds range fog, in pixel shaders with the fragment's position. Checked through xost's oracle, and
    on the console by vulkan4xenon_test: a vertex shader that picks each quad's matrix by a vertex attribute, broken on
    purpose with the index ignored.
-3. **xsdk: small GPU allocations share pages** (an xsdk milestone of its own): allocations under a page come from
-   shared 64 KiB pages, as shaders' microcode does, with an xsdk_test check that many of them fit where they took a
-   page each and draw right, broken on purpose by overlapping two.
-4. **The generator and the pack:** fog, lighting, matrices picked per vertex and indirect texturing, and range fog if
-   step 1 finds it, as gx/shader.cpp's WGSL writes them, in the GLSL xost compiles. The scene is recorded again in
-   Xenia, since every program's name is the hash of its text, and the pack rebuilt.
-5. **What drawing shows:** the byte order above, fixed where the captures show it wrong, and the copy targets step 1
+4. **Memory:** xsdk's small GPU allocations share pages (an xsdk milestone of its own): allocations under a page
+   come from shared 64 KiB pages, as shaders' microcode does, with an xsdk_test check that many of them fit where
+   they took a page each and draw right, broken on purpose by overlapping two. Aurora's texture content, copy and
+   offscreen caches take upstream's LRU bounds (`b922153`), ported by hand to the fork's backend-neutral types.
+5. **The generator and the pack:** fog, lighting, matrices picked per vertex and indirect texturing, and range fog if
+   step 1 finds it, as gx/shader.cpp's WGSL writes them, in the GLSL xost compiles. Lighting's light masks are
+   either kept in the key, each mask's lights unrolled, or left out of it by a backend limit, all eight lights
+   unrolled and each one switched by a constant: decided with the user from step 1's counts. The scene is recorded
+   again in Xenia, since every program's name is the hash of its text, and the pack rebuilt.
+6. **What drawing shows:** the byte order above, fixed where the captures show it wrong, and the copy targets step 1
    finds, if the layer must take small colour attachments.
 
 **Done when,** on the console:
@@ -960,6 +986,8 @@ the console:
 - the title screen, captured, matches the reference capture of the same moment, as the user judges it, both filed in
   `results/`;
 - it ends with no less free memory than milestone 10's 7 MB;
+- the fork carries upstream's `3094e04`, `afa388d`, `c8406f2`, `0857ad8` and `77997d4` and `b922153`'s bounded
+  caches, and Dusklight runs with index patterns and 2 pipeline compile threads;
 - vulkan4xenon_test, with its matrix-per-vertex check, vkbench and xsdk_test pass in full, vkbench within the noise of
   its last run.
 
