@@ -763,8 +763,10 @@ memory and byte order before anything draws. Read on 2026-10-11, what stands in 
 **Decided with the user:** SDL3 is ported, an xsdk platform added to it in a fork of its own, so Aurora, Dusklight and
 borealis call it unchanged; the disc is a plain ISO on the console's drive; the forks are Z:\dusklight-xenon,
 Z:\aurora-xenon (from aurora-vita) and Z:\SDL-xenon (from release 3.4.10). Switched off: code mods, which load code
-at run time; Dawn and nod; borealis's HTTP, network, crash, Discord, update and Sentry parts; and Dusklight's menus,
-whose settings come from `config.json` until a renderer brings them back.
+at run time; Dawn and nod; borealis's HTTP, network, crash, Discord, update and Sentry parts. Dusklight's menus, RmlUi,
+run with a render interface that draws nothing: their header uses RmlUi's types in 23 of the game's files, so turning
+them off would touch all of those, and the vulkan4xenon backend needs RmlUi's renderer later anyway (agreed with the
+user after the scope above). Their settings come from `config.json` until that renderer brings them back.
 
 **In three steps,** each run on the console:
 1. **It builds and starts.** A CMake toolchain file in xsdk; the forks wired together; the libraries the build keeps
