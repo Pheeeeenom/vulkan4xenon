@@ -868,8 +868,8 @@ the 360's own null backend, in Xenia or on the console, instead of on a PC.
   over the pixel shader's 16 (`compile.txt`), and xost only warns that it would hang.
 
 **Step 2 passed on hardware** on 2026-10-12, Dusklight `bc6327f` with Aurora `b8edd5c` and this repository at
-`6be3389` (`results/2026-10-12-milestone-10-step-2/`; Dusklight's log names `54e3f14`, now `e599ef5`, the commit at its last
-configure):
+`6be3389` (`results/2026-10-12-milestone-10-step-2/`; Dusklight's log names `54e3f14`, now `e599ef5`, the commit at
+its last configure):
 - **The boot screens drawn:** Aurora's vulkan4xenon backend drew the warning, Nintendo and Dolby screens, which faded
   in and out on the user's screen, at 50 to 60 fps. The title scene then ran its minute, at 19 fps over the 10 seconds
   it loaded in and 30 after, its configurations missing from the pack left undrawn, and the title exited with status 0
