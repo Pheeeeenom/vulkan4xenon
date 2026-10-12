@@ -4,8 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// vkbench ported from vulkan4vita (vulkan4vita:bench/): the same scenes through xsdk's GPU layer and through
-// vulkan4xenon (docs/ROADMAP.md, milestone 5).
+// vkbench: the same scenes through xsdk's GPU layer and through vulkan4xenon (docs/ROADMAP.md, milestone 5).
 
 enum {
 	SCREEN_WIDTH = 1280,

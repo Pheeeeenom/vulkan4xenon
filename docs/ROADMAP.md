@@ -4,9 +4,6 @@
 retail kernel. The goal it's measured against is **Dusklight**, a reimplementation of Twilight Princess, running on
 the console through it.
 
-**The template.** vulkan4vita is the layout to follow (vulkan4vita:docs/ROADMAP.md:3-30). What it did on the Vita's
-native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita specifics don't carry over.
-
 **Status.** Agreed on 2026-10-11. Milestones 1 to 7, 9 and 10 are done, and milestone 8 was tried and reverted.
 Section 5 has the Dusklight track's order, agreed the same day; section 7 lists what's still open.
 
@@ -17,45 +14,38 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
 
 **Sources.**
 - **xsdk** (Z:\Xbox-360-SDK), cited as `xsdk:<path>`. What the console has settled is in `xsdk:docs/HARDWARE.md`.
-- **vulkan4vita** (Z:\vulkan4vita, `37af886`), cited as `vulkan4vita:<path>:<line>`.
-- **aurora-vita** (Z:\aurora-vita, `642b549`) is the user's port of encounter's Aurora onto vulkan4vita, cited as
-  `aurora-vita:<path>:<line>`.
 - **Dusklight** (TwilitRealm/dusklight at `2c4960d`), cited as `dusklight:<path>:<line>`. The port's fork is
   Z:\dusklight-xenon, from that commit.
 - **encounter's Aurora** (encounter/aurora at `3227d76`, the commit Dusklight pins), cited as `aurora:<path>:<line>`.
   This is the GameCube and Wii compatibility layer Dusklight is built on, not the Aurora dashboard titles launch from.
+- **Aurora's fork** (xenosworks/aurora-xenon, branch `xenon`, on `3227d76`), with the backend interface, the null
+  backend and the vulkan4xenon backend, cited as `aurora-xenon:<path>`.
 - **xost** (xsdk's `xenos-toolchain/`), cited as `xost:<path>:<line>`.
 
-## 1. What carries over from vulkan4vita
+## 1. How the layer is built
 
 - **A static library.**
-  - Apps call `vk*` directly; `vkGetInstanceProcAddr` and `vkGetDeviceProcAddr` work too
-    (vulkan4vita:docs/ROADMAP.md:10-13).
-  - It reports Vulkan 1.0, refuses 1.1 and up, and claims no conformance (vulkan4vita:docs/SUPPORT.md:5-7).
-- **Khronos headers, vendored** in `third_party/vulkan-headers/`, as vulkan4vita carries them. They're Apache-2.0.
+  - Apps call `vk*` directly; `vkGetInstanceProcAddr` and `vkGetDeviceProcAddr` work too.
+  - It reports Vulkan 1.0, refuses 1.1 and up, and claims no conformance.
+- **Khronos headers, vendored** in `third_party/vulkan-headers/`. They're Apache-2.0.
 - **docs/SUPPORT.md** is the one list of what exists, every limit below the spec's minimum, and every deviation, each
-  with a reason. It changes in the same commit as the code (vulkan4vita:CODE_GUIDELINES.md:131-138).
-- **Milestones written as vulkan4vita writes them** (vulkan4vita:docs/ROADMAP.md:3-64):
+  with a reason. It changes in the same commit as the code (CODE_GUIDELINES.md).
+- **Milestones written one way:**
   - **Done when:** criteria a hardware run can check.
   - **Passed on hardware** on a date, at a commit, with the results' folder.
   - **Decisions**, **How it maps onto Xenos**, **New functions**, **New tests** and **Not in milestone N**.
-- **Feature tests** in one title, each checking pixels of the presented image (vulkan4vita:README.md:157-162). They're
-  broken on purpose before a hardware run, as xsdk's are.
-- **A benchmark against the raw GPU layer,** as vulkan4vita measured itself against raw GXM
-  (vulkan4vita:README.md:12-48).
+- **Feature tests** in one title, each checking pixels of the presented image. They're broken on purpose before a
+  hardware run, as xsdk's are.
+- **A benchmark against the raw GPU layer,** xsdk's, scene for scene.
 - **The boot logo:** the vulkan4xenon logo shows from `vkCreateDevice` until the app's first present, fading in from
-  black (vulkan4vita:docs/ROADMAP.md:706-758). The image and its generator are xsdk's (`xsdk:assets/vulkan4xenon.png`,
+  black. The image and its generator are xsdk's (`xsdk:assets/vulkan4xenon.png`,
   `xsdk:tools/gen_splash.py`). The Vulkan logo is a registered trademark of the Khronos Group, used at the user's
   choice.
-- **Lessons that transfer:**
-  - Where the GPU's own ordering isn't proven, wait on the CPU. GXM's sync flags didn't order transfers against scenes
-    on hardware (vulkan4vita:docs/ROADMAP.md:203-205).
-  - Measure vendor fast paths before keeping them: GXM's precomputed draws didn't pay, and that milestone closed
-    (vulkan4vita:docs/ROADMAP.md:322-395).
-  - Check the accounting before the ratio: a miscounted present skewed every early benchmark
-    (vulkan4vita:docs/ROADMAP.md:264-271).
-  - A passing test can hide an app that hangs, as the boot logo's present chain did
-    (vulkan4vita:docs/ROADMAP.md:729-733).
+- **Rules of thumb:**
+  - Where the GPU's own ordering isn't proven, wait on the CPU.
+  - Measure fast paths before keeping them.
+  - Check the accounting before the ratio: a miscounted present skews every benchmark.
+  - A passing test can hide an app that hangs, so the boot logo's present chain is checked through to the screen.
 
 ## 2. Decided (2026-10-11)
 
@@ -65,18 +55,18 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
   - A build step runs xost over each module and writes a bundle of Xenos containers keyed by the SPIR-V; xost goes
     SPIR-V → Xenos (xost:docs/xsc.md:1-14).
   - `vkCreateShaderModule` hashes the code and finds its container. A module missing from the bundle fails with
-    `VK_ERROR_FEATURE_NOT_PRESENT`, as vulkan4vita fails without its own format (vulkan4vita:docs/SUPPORT.md:11-16).
+    `VK_ERROR_FEATURE_NOT_PRESENT`.
   - **Python only in that offline step.** xost moving off Python is a later item (xsdk:TODO.md, "Toolchain").
 - **Uniform buffers are copied into float constants** when a command buffer replays. Loading them from memory with
   `PM4_LOAD_ALU_CONSTANT` (xenia:src/xenia/gpu/command_processor.cc:1477-1500) is a later optimisation. It needs a
   probe first, since partial constant writes hang the GPU (xsdk:docs/HARDWARE.md, milestone 11).
 - **The target is Dusklight,** through encounter's Aurora. It's demanding enough to show what's missing.
-- **Vulkan 1.0 stays the version.** Nothing on the path needs 1.1: aurora-vita's backend asks for 1.0
-  (aurora-vita:lib/vulkan4vita/device.cpp:308), most of what 1.1 promoted is optional, and its one new requirement,
+- **Vulkan 1.0 stays the version.** Nothing on the path needs 1.1: Aurora's backend asks for 1.0
+  (aurora-xenon:lib/vulkan4xenon/device.cpp:303), most of what 1.1 promoted is optional, and its one new requirement,
   subgroup operations, is for compute shaders, which Xenos lacks. A single 1.1 piece a target needs comes as its
   extension on 1.0, such as `VK_KHR_maintenance1` for a negative viewport height.
-- **Aurora's side is a fork of aurora-vita,** for its backend interface and its design for a GPU without storage
-  buffers (section 5), with its Cg replaced.
+- **Aurora's side is a fork,** aurora-xenon, with a backend interface and a design for a GPU without storage buffers
+  (section 5).
 - **The shader subset is xost's,** and its limits become the layer's, listed in SUPPORT.md:
   - no bitwise operations;
   - data-dependent branches inside loops raise an error;
@@ -96,14 +86,14 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
 | Push constants | Float constants, set at replay. |
 | Images | `XsdkTexture`: optimal tiling is Xenos's tiled layout; linear tiling is linear with one level. Formats and mips as xsdk milestones 15 and 16 settled. |
 | Image views, samplers | The texture's and the sampler state's halves of a fetch constant (`xsdk_gpu_set_texture`). |
-| Descriptor sets | Combined image samplers fill fetch-constant slots 0 up; uniform buffers fill constant blocks. Bindings are numbered in order across the pipeline layout, as vulkan4vita numbers them (vulkan4vita:docs/SUPPORT.md:41-127). |
+| Descriptor sets | Combined image samplers fill fetch-constant slots 0 up; uniform buffers fill constant blocks. Bindings are numbered in order across the pipeline layout. |
 | Graphics pipelines | Built once at creation from xsdk's depth and stencil, blend and raster state blocks. The vertex input state gives a patched copy of the vertex shader (xsdk milestone 17). |
 | Render passes, framebuffers | One subpass. A render pass instance draws into eDRAM, and each attachment's store op is a resolve into its image. A clear load op is the resolve's clear; a load op draws the image back in. 1280x720 colour and depth fit eDRAM (xsdk:SCOPE.md 3.4). |
-| Command buffers | Recorded into the layer's own list and replayed into the ring at `vkQueueSubmit`, as vulkan4vita replays (vulkan4vita:docs/ROADMAP.md:21-30). xsdk's recorded command buffers (milestone 18) can take over where a buffer's state is all known when it's recorded. |
+| Command buffers | Recorded into the layer's own list and replayed into the ring at `vkQueueSubmit`. xsdk's recorded command buffers (milestone 18) can take over where a buffer's state is all known when it's recorded. |
 | Fences | xsdk's fences. |
 | Semaphores, barriers | One queue, so semaphores do nothing. Barriers order copies against draws. |
-| Swapchain | `VK_KHR_surface` and `VK_KHR_display`, as vulkan4vita has, over `xsdk_present`: 2 or 3 images at 1280x720. |
-| Copies | `vkCmdCopyBufferToImage` and the like run on the CPU at replay, as vulkan4vita settled on (vulkan4vita:docs/ROADMAP.md:585-634). |
+| Swapchain | `VK_KHR_surface` and `VK_KHR_display` over `xsdk_present`: 2 or 3 images at 1280x720. |
+| Copies | `vkCmdCopyBufferToImage` and the like run on the CPU at replay. |
 
 ## 4. The layer's milestones
 
@@ -120,7 +110,7 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
 3. **Pipeline state.** Done when the feature tests cover, through Vulkan, what xsdk milestones 12 to 14 cover through
    the GPU layer: depth and stencil, blending, culling, dynamic viewport and scissor, indexed draws and topologies.
 4. **Render to texture.** Done when an image rendered in one render pass is sampled in the next, with depth in eDRAM,
-   checked by pixel. Encounter's Aurora copies its framebuffer this way (aurora-vita:lib/vulkan4vita/encoding.cpp).
+   checked by pixel. Encounter's Aurora copies its framebuffer this way.
 5. **The benchmark.** Done when the same scenes run through the raw GPU layer and through Vulkan, with the gap
    measured on the console and its causes named.
 6. **The replay's cost,** agreed on 2026-10-11 after milestone 5 and xsdk milestones 19 and 20 measured it. Done when
@@ -160,9 +150,8 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
   - Apps link `libvulkan4xenon.a` and call `vk*` directly; `vkGetInstanceProcAddr` and `vkGetDeviceProcAddr` look
     names up in one table.
   - Dispatchable handles point at the layer's structs. Non-dispatchable ones are those pointers as 64-bit integers.
-    This is vulkan4vita's scheme (vulkan4vita:src/objects.h:384-393).
 - **Replay.**
-  - `vkQueueSubmit` replays on the caller's thread into xsdk's ring, as vulkan4vita's first milestone did.
+  - `vkQueueSubmit` replays on the caller's thread into xsdk's ring.
   - Each command buffer gets a fixed list of commands when it's allocated. Recording past its end makes
     `vkEndCommandBuffer` return `VK_ERROR_OUT_OF_HOST_MEMORY`.
 - **Memory.**
@@ -203,8 +192,7 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
   - `vkCreateDevice` fades it in over half a second and leaves it up.
   - The swapchain takes over the display without showing anything of its own, so the logo stays until the first
     present flips.
-  - Its buffers are freed only after that flip and one more vblank: vulkan4vita's hang came from freeing the logo's
-    frame too early (vulkan4vita:docs/ROADMAP.md:729-733).
+  - Its buffers are freed only after that flip and one more vblank, as freeing the logo's frame too early can hang.
 
 **How it maps onto Xenos:** as section 3, less descriptors, uniform buffers, images other than the swapchain's, and
 copies.
@@ -212,8 +200,7 @@ copies.
 **New in xsdk:**
 - `xsdk_splash_begin` and `xsdk_splash_end`, with `xsdk_present_open` taking over a splash's display;
 - `xsdk_present_buffer_address`;
-- `xsdk_display_shown_address`, so a test can read the image actually on screen, as vulkan4vita's tests read the
-  Vita's (vulkan4vita:tests/harness.c:1066-1080).
+- `xsdk_display_shown_address`, so a test can read the image actually on screen.
 
 **New in xost:**
 - instruction templates built from Xenia's definitions, checked against the corpus as test vectors;
@@ -302,7 +289,7 @@ the Aurora dashboard.
     fetch reads them unswapped. xsdk gains these two byte-order formats beside its 0xAARRGGBB one.
   - xsdk splits working out a texture from placing it, so an image's texels live in the `VkDeviceMemory` it's bound
     to.
-- **Copies run on the CPU at replay,** as vulkan4vita settled (vulkan4vita:docs/ROADMAP.md:585-634). Replay first
+- **Copies run on the CPU at replay.** Replay first
   waits for the GPU to finish what came before, since nothing yet orders the GPU's reads of the image against the
   CPU's writes. `vkCmdCopyBufferToImage` copies whole mip levels.
 - **Samplers** become xsdk's sampler state: point or linear filtering, nearest or linear mips, repeat, mirrored repeat
@@ -422,8 +409,7 @@ checks passed, milestones 1 and 2's 33 among them, and the console went back to 
 
 **Done when** `build/vulkan4xenon_test.xex`, on the console, passes milestones 1 to 3's checks and these, each checked
 by pixel on the image the display shows:
-- `render_to_texture`: eight render passes a frame for 60 frames, in the order encounter's Aurora draws a frame
-  (aurora-vita:lib/vulkan4vita/encoding.cpp:647-756):
+- `render_to_texture`: eight render passes a frame for 60 frames, in the order encounter's Aurora draws a frame:
   1. a scene drawn into a 200x120 `R8G8B8A8_UNORM` image with a D24S8 attachment, both cleared, depth tested;
   2. that image drawn into a 96x64 `B8G8R8A8_UNORM` image, as encounter's Aurora copies its framebuffer;
   3. the scene loaded again, colour and depth, with a quad that shows only where it's nearer than pass 1's depth;
@@ -497,8 +483,7 @@ attachments are new.
 
 **Not in milestone 4:**
 - render areas smaller than the framebuffer. Milestone 1 put them here, but they need a resolve of part of eDRAM or
-  clears by drawing, and encounter's Aurora always renders whole targets
-  (aurora-vita:lib/vulkan4vita/encoding.cpp:275, 713). They wait for an app that needs them.
+  clears by drawing, and encounter's Aurora always renders whole targets. They wait for an app that needs them.
 - depth resolves, so depth loaded after eDRAM lost it, sampled or copied;
 - colour attachments 16 texels or less on a side, with mips, or more than one in a subpass.
 
@@ -508,8 +493,7 @@ attachments are new.
 vulkan4xenon, in two runs of the title, and this section records each scene's draw + submit and GPU time through the
 layer against xsdk's, with the gap's causes named from measurements.
 
-- **vkbench, ported** from vulkan4vita (vulkan4vita:bench/, vulkan4vita:README.md:12-48): its scenes, data and
-  per-frame metrics, with a backend for xsdk's GPU layer in raw GXM's place and none for vitaGL.
+- **vkbench:** scenes, data and per-frame metrics, with a backend for xsdk's GPU layer and one for vulkan4xenon.
   - Both backends are in one title and run one after the other, so code they share is laid out the same for both.
   - Both draw with the same xost-compiled shaders: the xsdk backend loads the containers of the bundle vulkan4xenon
     looks SPIR-V up in, and sets their constants where the bundle says.
@@ -519,7 +503,7 @@ layer against xsdk's, with the gap's causes named from measurements.
   - `draws_250`, `draws_1000` and `draws_4000`: that many cubes, one draw each, with depth, no state changes;
   - `states_250` and `states_1000`: the texture changes every draw, the shader every second and blending every fourth;
   - `uniforms_1000`: `draws_1000` with each draw's matrix and tint in a dynamic uniform buffer, as encounter's Aurora
-    passes its uniforms (aurora-vita:lib/vulkan4vita/), where the other scenes push them. Milestone 2 left the cost of
+    passes its uniforms, where the other scenes push them. Milestone 2 left the cost of
     reading uniform buffers at replay for this one to measure;
   - `stream_1000` and `stream_8000`: that many sprites, moved on the CPU and written out every frame, one draw;
   - `fill_4` and `fill_16`: alpha-blended full-screen layers, bound by the GPU, so both should tie.
@@ -528,7 +512,7 @@ layer against xsdk's, with the gap's causes named from measurements.
   the submit's kick to its fence landing, with the CPU spinning on it. 60 warm-up and 600 measured frames a scene.
   Medians, means and 99th percentiles go in the log and in `game:\vkbench_summary.csv`, every frame in
   `game:\vkbench_frames.csv`.
-- **Accounting,** checked before any ratio (vulkan4vita:docs/ROADMAP.md:264-271):
+- **Accounting,** checked before any ratio:
   - xsdk's draw calls write the ring as they go and the layer writes it in `vkQueueSubmit`, so draw + submit is the
     number to compare, not either alone;
   - both kick the ring only at their fence, or when it fills (xsdk:src/gpu.c), so the GPU starts at submit in both;
@@ -743,16 +727,14 @@ memory and byte order before anything draws. Read on 2026-10-11, what stands in 
 - **Dusklight quits on the null backend:** with `BACKEND_NULL` it runs only its launcher's UI loop and returns
   (dusklight:src/m_Do/m_Do_main.cpp:737-751).
 - **SDL3 is under everything:** Aurora's events, controller, file streams, paths, ticks and delays, threads and audio,
-  and Dusklight's frame limiter (dusklight:src/dusk/time.h:31-72), with no port to the 360. The user's Strikers port
-  built SDL3 for the Vita for the same reasons (strikers-vita `c1b2730`), release 3.4.10, the one Aurora pins
-  (aurora-vita:cmake/AuroraDependencyVersions.cmake:21).
-- **nod, Aurora's disc reader, is Rust** (aurora:cmake/AuroraNodProvider.cmake:41-80), with no target here. Strikers
-  replaced it with its own reader.
-- **RmlUi,** Dusklight's own menus, builds only with Dawn in aurora-vita (aurora-vita:CMakeLists.txt:37).
+  and Dusklight's frame limiter (dusklight:src/dusk/time.h:31-72), with no port to the 360. Aurora pins release
+  3.4.10 (aurora:cmake/AuroraDependencyVersions.cmake:20).
+- **nod, Aurora's disc reader, is Rust** (aurora:cmake/AuroraNodProvider.cmake:41-80), with no target here.
+- **RmlUi,** Dusklight's own menus, builds only with Dawn, as it draws with WebGPU.
 - **Byte order:** the console is big-endian like the GameCube, so the PC build's swaps must turn off. Dusklight's data
   is mostly typed `BE()` fields behind one switch, `TARGET_LITTLE_ENDIAN`, but its big-endian branch has no `BSWAP64`
   and swaps constants regardless (dusklight:include/helpers/endian.h:9-29, 63-98), and Aurora's command stream writer
-  swaps every word (aurora-vita:lib/gx/fifo.hpp:90-106), which breaks even the null backend.
+  swaps every word (aurora:lib/gx/fifo.hpp), which breaks even the null backend.
 - **Types:** PowerPC's `char` is unsigned, and Dusklight adds `-fsigned-char` only on ARM
   (dusklight:CMakeLists.txt:256-260); xsdk's `uint32_t` is `unsigned long`, the PC build's `u32` `unsigned int`
   (dusklight:libs/dolphin/include/dolphin/types.h:15-17).
@@ -762,7 +744,7 @@ memory and byte order before anything draws. Read on 2026-10-11, what stands in 
 
 **Decided with the user:** SDL3 is ported, an xsdk platform added to it in a fork of its own, so Aurora, Dusklight and
 borealis call it unchanged; the disc is a plain ISO on the console's drive; the forks are Z:\dusklight-xenon,
-Z:\aurora-xenon (from aurora-vita) and Z:\SDL-xenon (from release 3.4.10). Switched off: code mods, which load code
+Z:\aurora-xenon and Z:\SDL-xenon (from release 3.4.10). Switched off: code mods, which load code
 at run time; Dawn and nod; borealis's HTTP, network, crash, Discord, update and Sentry parts. Dusklight's menus, RmlUi,
 run with a render interface that draws nothing: their header uses RmlUi's types in 23 of the game's files, so turning
 them off would touch all of those, and the vulkan4xenon backend needs RmlUi's renderer later anyway (agreed with the
@@ -784,8 +766,8 @@ user after the scope above). Their settings come from `config.json` until that r
      main.dol (dusklight:src/dusk/dvd_asset.cpp:39), walks the FST as nod does and reads files by offset. Wii and
      compressed images are refused. A GameCube disc holds 1,459,978,240 bytes, so 32-bit offsets reach all of it.
    - **Byte order, as far as the null backend runs it:**
-     - Aurora's command-stream writer swaps every value (aurora-vita:lib/gx/fifo.hpp:90-106), while its reader swaps
-       only data not in the host's order (aurora-vita:lib/internal.hpp:96-105); the writer will swap only on a
+     - Aurora's command-stream writer swaps every value (aurora:lib/gx/fifo.hpp), while its reader swaps only data
+       not in the host's order (aurora:lib/internal.hpp); the writer will swap only on a
        little-endian host.
      - Dusklight swaps the `BE<>` values the compiler sets at build time whatever the host
        (dusklight:include/helpers/endian.h:63-98). About 10 are hit, among them the message files' signature
@@ -844,10 +826,9 @@ xsdk's TODO.md lists the ring, for if a run shows the cost it removes.
   libs/JSystem/src/J2DGraph/J2DGrafContext.cpp:33-65). Their textures, in the disc's LogoUs.arc, are I4, IA4 and IA8.
   That is about five shader configurations. The title scene's are several dozen at least, with fog, matrices picked
   per vertex, palettes and framebuffer copies.
-- **aurora-vita's backend fits our fork's seam unchanged** (aurora-vita:lib/gfx/backend.hpp, the same in the fork),
-  6,328 lines of C++ (aurora-vita:lib/vulkan4vita/). Beyond what the layer has, it uses 8-bit vertex colours
-  (vulkan4xenon refuses them, src/pipeline.c:40-58), a second memory type, an RGBA swapchain and linear textures, and
-  compiles Cg on the Vita (aurora-vita:lib/vulkan4vita/pipeline.cpp:192-222).
+- **A Vulkan backend fits the fork's seam** (aurora-xenon:lib/gfx/backend.hpp). Beyond what the layer had, it would
+  want 8-bit vertex colours (vulkan4xenon refused them, src/pipeline.c:40-58), a second memory type, an RGBA
+  swapchain, linear textures and a shader compiler at run time.
 - **xost compiles a restricted GLSL** (xost:docs/xsc.md, xsc/lower.py): one store per local, no function calls and no
   unary minus, and one comparison per discard. Indices into blocks must be constants. The boot screens' shaders fit
   that; the title scene's matrices picked per vertex, fragment position and depth export don't.
@@ -860,10 +841,10 @@ the 360's own null backend, in Xenia or on the console, instead of on a PC.
 
 **In two steps,** each run on the console:
 1. **The boot screens and their shaders.** Dusklight shows the warning, Nintendo and Dolby screens on the null
-   backend. A GLSL generator for the boot screens' configurations, modelled on aurora-vita's `cg.cpp` and written in
-   the form xost compiles, runs in the null backend and writes each configuration's GLSL to a file on `game:\`.
-   Each recorded program compiles with glslang and xost.
-2. **The backend.** Aurora's vulkan4xenon backend, made from aurora-vita's:
+   backend. A GLSL generator for the boot screens' configurations, modelled on Aurora's WGSL
+   (aurora:lib/gx/shader.cpp) and written in the form xost compiles, runs in the null backend and writes each
+   configuration's GLSL to a file on `game:\`. Each recorded program compiles with glslang and xost.
+2. **The backend.** Aurora's vulkan4xenon backend:
    - with one memory type, a `B8G8R8A8` swapchain, every texture tiled and uniforms at 256-byte offsets;
    - with stores that are safe for write-combined memory;
    - with its shaders from a bundle an offline step builds out of the recorded GLSL, leaving out any program xost
@@ -922,7 +903,7 @@ With that, milestone 10 is done: the console draws the game's boot screens while
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
 
-- **What encounter's Aurora needs from Vulkan.** aurora-vita's backend uses (aurora-vita:lib/vulkan4vita/):
+- **What encounter's Aurora needs from Vulkan,** through a backend on the fork's seam:
   - six dynamic uniform buffers, eight combined image samplers and 16 bytes of push constants;
   - dynamic viewport and scissor only;
   - triangle lists with 16-bit indices;
@@ -930,49 +911,47 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   - render passes with load, clear and don't-care, and framebuffer copies drawn into sampled images.
 
   The layer's milestones 1 to 4 cover that.
-- **What Twilight Princess adds beyond aurora-vita's game,** as read on 2026-10-11:
+- **What Twilight Princess adds,** as read on 2026-10-11:
   - **Depth copied into a texture every frame:** a half-size `GX_TF_Z16` copy for depth of field
     (dusklight:src/m_Do/m_Do_graphic.cpp:1130-1144), made before the PC build's "depth of field off" return (:1171),
-    so it runs either way. aurora-vita logs depth copies and skips them (aurora-vita:lib/vulkan4vita/encoding.cpp:712-717).
+    so it runs either way. The backend logs depth copies and skips them
+    (aurora-xenon:lib/vulkan4xenon/encoding.cpp:599).
   - **Shadows in an offscreen target with its own depth** (dusklight:src/d/d_drawlist.cpp:1593-1626), after which
-    the frame goes on with the EFB's depth (aurora-vita:lib/gfx/recording.cpp:258-264). The layer keeps depth only in
+    the frame goes on with the EFB's depth (aurora:lib/gfx/recording.cpp). The layer keeps depth only in
     eDRAM, and loses it when another depth attachment comes between (SUPPORT.md, "Render passes").
   - **15 to 20 framebuffer copies a frame:** bloom's sub-rectangles, depth of field, the half-size frame and shadows
     (dusklight:src/m_Do/m_Do_graphic.cpp:943-1015, 1523-1678). Each breaks the render pass.
   - **`GXPeekZ`,** the game's only CPU read of the framebuffer (dusklight:src/d/d_drawlist.cpp:1848): up to 64 points a
     frame for occlusion tests, the sun's lens flare, the lantern's glow and golden bugs' sparkles
-    (dusklight:src/d/d_kankyo_rain.cpp:337-362). aurora-vita returns 0 (aurora-vita:lib/vulkan4vita/backend.cpp:510-520),
-    which only hides them.
-  - **Fog range adjustment on every 3D draw** (dusklight:src/d/d_kankyo.cpp:1257, 9457-9460). aurora-vita reads a
-    960-float table from a uniform (aurora-vita:lib/vulkan4vita/cg.cpp:1307), past the layer's 4 KB uniform range.
+    (dusklight:src/d/d_kankyo_rain.cpp:337-362). The backend returns 0
+    (aurora-xenon:lib/vulkan4xenon/backend.cpp:489-497), which only hides them.
+  - **Fog range adjustment on every 3D draw** (dusklight:src/d/d_kankyo.cpp:1257, 9457-9460), a factor for each pixel
+    column.
 
   Not needed after all: the Z texture with destination alpha (dusklight:libs/JSystem/src/JFramework/JFWDisplay.cpp:522-550)
   is in `clearEfb`, which returns at once on PC (:486); with it go the game's only destination alpha and any need for
-  a constant blend colour, as aurora-vita clears by drawing with write masks. Every GX texture format, palettes too,
-  is decoded to RGBA8 on the CPU (aurora-vita:lib/gfx/texture_convert.cpp:668-753), so more formats would save memory
+  a constant blend colour, as the backend clears by drawing with write masks. Every GX texture format, palettes too,
+  is decoded to RGBA8 on the CPU (aurora:lib/gfx/texture_convert.cpp), so more formats would save memory
   but block nothing.
-- **The backend.** aurora-vita added a backend interface to encounter's Aurora, `lib/gfx/backend.hpp`, and a Vulkan
-  backend behind it, about 6,200 lines (aurora-vita:lib/vulkan4vita/). A vulkan4xenon backend follows the same shape.
-  - **Why aurora-vita and not upstream:** upstream draws only through Dawn, and its shaders read the game's vertex
+- **The backend.** The fork adds a backend interface to encounter's Aurora, `lib/gfx/backend.hpp`, and the
+  vulkan4xenon backend goes behind it.
+  - **Why a fork and not upstream:** upstream draws only through Dawn, and its shaders read the game's vertex
     arrays from storage buffers and unpack big-endian bytes with integer shifts and masks
     (aurora:lib/gx/shader.cpp:1717-1764). Xenos has no storage buffers and only float ALU instructions
-    (xenia:src/xenia/gpu/ucode.h:1006, 1359), and WebGPU requires compute shaders. aurora-vita already decodes
-    vertices on the CPU into one stream and keeps uniforms in uniform buffers (aurora-vita:lib/vulkan4vita/cg.hpp).
-  - **Shaders:** that backend writes Cg per GX configuration and compiles it on the Vita with the firmware's compiler,
-    caching the result on the memory card (aurora-vita:lib/vulkan4vita/pipeline.cpp:1, 191-222, 539-542). The 360
-    has no compiler on the console, so:
-    - a generator modelled on `cg.cpp` writes Vulkan GLSL instead, without the integer operations `cg.cpp` uses
-      (`(int)x & mask`, aurora-vita:lib/vulkan4vita/cg.cpp:214);
+    (xenia:src/xenia/gpu/ucode.h:1006, 1359), and WebGPU requires compute shaders. So the backend decodes vertices
+    on the CPU into one stream and keeps uniforms in uniform buffers (aurora-xenon:lib/vulkan4xenon/decode.hpp).
+  - **Shaders:** the 360 has no shader compiler on the console, so:
+    - a generator modelled on the WGSL's (aurora:lib/gx/shader.cpp) writes Vulkan GLSL, without its integer
+      operations;
     - the 360's null backend runs it on every configuration the game asks for and writes the GLSL out, in Xenia or
       on the console (decided 2026-10-12, milestone 10). Aurora's pipeline cache holds configurations as raw structs
-      (aurora-vita:lib/gfx/pipeline_cache.cpp:357-370), bitfields included, so one recorded on a PC doesn't carry
+      (aurora:lib/gfx/pipeline_cache.cpp), bitfields included, so one recorded on a PC doesn't carry
       over;
     - glslang turns each into SPIR-V and xost into a container, and the pack ships both;
     - on the console the backend looks up the SPIR-V by configuration and hands it to `vkCreateShaderModule`, which
-      finds the container by that SPIR-V. A configuration missing from the pack isn't drawn, as on aurora-vita
-      without the firmware's compiler (aurora-vita:lib/vulkan4vita/pipeline.cpp:542).
-  - **Vertices:** encounter's Aurora fetches the game's raw big-endian vertex arrays in its shaders, and aurora-vita
-    decoded them on the CPU because vulkan4vita has no storage buffers. Xenos fetches big-endian data natively under
+      finds the container by that SPIR-V. A configuration missing from the pack isn't drawn.
+  - **Vertices:** encounter's Aurora fetches the game's raw big-endian vertex arrays in its shaders; the backend
+    decodes them on the CPU, as the layer has no storage buffers. Xenos fetches big-endian data natively under
     an 8-in-16 swap. Fetching the raw arrays directly may avoid the decode; it needs xsdk to set a stream's endian
     swap, which is 8-in-32 for every stream today. Unverified until tried.
 - **The rest of the port:**
@@ -984,9 +963,9 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   - **Memory:** a budget within the console's 512 MB, which the CPU and GPU share.
   - **Byte order:** the console is big-endian like the GameCube, so the PC build's swaps at load must turn off
     (dusklight:include/helpers/endian.h).
-- **What the shaders need from xost,** beyond the GLSL generator (aurora-vita:lib/vulkan4vita/cg.cpp):
+- **What the shaders need from xost,** beyond the GLSL generator:
   - uniform arrays indexed at run time: the position, normal and texture matrices are picked by an index per vertex
-    (cg.cpp:1094, 1103, 1166-1167). Xenos reads constants at `c[a0 + n]`, `a0` set by `MOVA`
+    (aurora:lib/gx/shader.cpp). Xenos reads constants at `c[a0 + n]`, `a0` set by `MOVA`
     (xenia:src/xenia/gpu/ucode.h:196-202, 1140-1148); xost reads arrays only by a loop counter (xost:docs/xsc.md);
   - the fragment's position, for range fog: the pixel shader's generated parameter
     (xenia:src/xenia/gpu/registers.h:140, 234);
@@ -994,8 +973,8 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   - vertex inputs past position, colour and texture coordinates, for the matrix indices;
   - Twilight Princess's longest TEV chains within xost's 16 registers a pixel shader, unchecked.
 - **What the layer needs at start-up:** 8-bit normalized vertex attributes, which xsdk has (`XSDK_VERTEX_UBYTE4N`,
-  xsdk:include/xsdk/shader.h). The rest is the fork's to change: one memory type, a `B8G8R8A8` swapchain, no Vita
-  extensions, 256-byte uniform offsets, and textures of any size tiled rather than linear.
+  xsdk:include/xsdk/shader.h). The rest is the backend's to fit: one memory type, a `B8G8R8A8` swapchain,
+  256-byte uniform offsets, and textures of any size tiled rather than linear.
 - **The order, agreed on 2026-10-11:**
   1. **Milestone 9: Dusklight on Aurora's null backend,** running on the console without drawing up to the title
      scene's game loop: the build, the platform from xsdk, the disc, memory and byte order.
@@ -1004,7 +983,7 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
      backend that draws them.
   3. **Milestone 11: the title screen drawn** (stage F_SP102, dusklight:src/d/d_com_inf_game.cpp:1221), with the rest
      of the generator and what xost needs above, and its
-     colour effects, through render to texture as it stands; depth copies skipped, as aurora-vita does. It takes the
+     colour effects, through render to texture as it stands; depth copies skipped. It takes the
      byte order milestone 9 leaves: Aurora's texture conversion and the arrays flagged little-endian.
   4. **Depth out of eDRAM:** xsdk resolves depth to memory and samples it, after console probes of what a depth
      resolve writes (xenia:src/xenia/gpu/xenos.h:917-924); then the layer stores, samples and reloads depth
@@ -1016,13 +995,13 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   Later: logic ops, lines and points (the minimap), native texture formats, uploads that don't stall, the sampler's
   maximum LOD.
 - **Where the code lives (decided 2026-10-11):** Dusklight's changes in a fork of its own, Z:\dusklight-xenon, from
-  TwilitRealm/dusklight at `2c4960d` (remote `upstream`). Aurora's are a fork of aurora-vita, which is built on
-  `3227d76`, the commit Dusklight pins.
+  TwilitRealm/dusklight at `2c4960d` (remote `upstream`). Aurora's are a fork of encounter's Aurora,
+  aurora-xenon, on `3227d76`, the commit Dusklight pins.
 
 ## 6. Left out
 
 - Compute, queries, secondary command buffers, more than one queue, multisampling, multiple subpasses and dynamic
-  rendering, as vulkan4vita left them out (vulkan4vita:docs/ROADMAP.md:53, 119-120).
+  rendering.
 - Runtime SPIR-V compilation, and Vulkan 1.1 and up (single pieces of 1.1 as extensions, section 2).
 - Geometry and tessellation shaders.
 - xsdk's TODO.md items, each until a milestone or Dusklight needs it.

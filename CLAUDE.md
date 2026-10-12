@@ -11,7 +11,6 @@ is running Dusklight on the console. See README.md and docs/ROADMAP.md.
   docs/ROADMAP.md.
 - Back up any claim about Xenos, the kernel or xsdk with evidence: Xenia, libxenon, xost, xsdk's docs/HARDWARE.md, or
   a hardware result. Say which. No Microsoft tooling, no leaked SDK material, no OpenXeChain.
-- vulkan4vita (Z:\vulkan4vita) is the template for layout and process, not for Vita specifics.
 - "Aurora" here means encounter's Aurora, the GameCube and Wii layer Dusklight is built on. The console's dashboard is
   "the Aurora dashboard".
 - Hardware runs are on the user's RGH console, as for xsdk: the user copies the `.xex` over FTP, launches it from the

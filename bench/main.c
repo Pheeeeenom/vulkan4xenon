@@ -12,8 +12,8 @@
 #include "xsdk/gpu.h"
 #include "xsdk/log.h"
 
-// Runs every scene through each backend in turn, timing each frame's stages as vkbench does
-// (vulkan4vita:bench/main.c), and compares the two (docs/ROADMAP.md, milestone 5).
+// Runs every scene through each backend in turn, timing each frame's stages, and compares the two
+// (docs/ROADMAP.md, milestone 5).
 
 enum {
 	WARMUP_FRAMES = 60,

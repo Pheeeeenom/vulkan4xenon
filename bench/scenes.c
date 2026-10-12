@@ -7,7 +7,7 @@
 #include "bench.h"
 #include "vmath.h"
 
-// vkbench's scenes (vulkan4vita:bench/scenes.c), in Vulkan's clip space, y down and depth 0 to 1, for both backends.
+// vkbench's scenes, in Vulkan's clip space, y down and depth 0 to 1, for both backends.
 
 #define ASPECT        ((float)SCREEN_WIDTH / (float)SCREEN_HEIGHT)
 #define SPRITE_HALF   0.03f

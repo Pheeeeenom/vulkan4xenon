@@ -4,7 +4,7 @@
 #include <math.h>
 #include <string.h>
 
-// Column-major 4x4 matrices, as GLSL reads them, from vulkan4vita:bench/vmath.h.
+// Column-major 4x4 matrices, as GLSL reads them.
 
 static inline void mat4_mul(float out[16], const float a[16], const float b[16])
 {

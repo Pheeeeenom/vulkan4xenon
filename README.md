@@ -5,8 +5,7 @@
 # vulkan4xenon
 
 A Vulkan 1.0 subset for the Xbox 360, built as a static library on the xsdk homebrew SDK's GPU layer, which drives
-Xenos directly under the retail kernel. It follows the layout of vulkan4vita, which does the same on the PS Vita's
-GXM.
+Xenos directly under the retail kernel.
 
 The goal is running Dusklight, a reimplementation of Twilight Princess built on encounter's Aurora, on an RGH console.
 
@@ -38,7 +37,7 @@ That makes `build/libvulkan4xenon.a`, the test title, `build/vulkan4xenon_test.x
 
 ## Benchmark
 
-vkbench, ported from vulkan4vita, runs the same scenes through xsdk's GPU layer and then through vulkan4xenon, with
+vkbench runs the same scenes through xsdk's GPU layer and then through vulkan4xenon, with
 the same shaders, and logs each frame's draw + submit and GPU time for both, what xsdk's ring did, and whether they
 drew the same picture.
 Every frame goes in `game:\vkbench_frames.csv` and the summary in `game:\vkbench_summary.csv`. docs/ROADMAP.md,

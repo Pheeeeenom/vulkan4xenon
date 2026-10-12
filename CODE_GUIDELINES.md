@@ -23,7 +23,6 @@ rule gets in the way of correct code, change the rule in its own commit first.
 
 ## Vulkan behavior
 
-As vulkan4vita's (vulkan4vita:CODE_GUIDELINES.md:131-138):
 - Follow the Vulkan spec for everything implemented. Where Xenos or xsdk makes that impossible, document the deviation
   in docs/SUPPORT.md.
 - Don't advertise anything that isn't implemented. Features, limits and formats reported to the app match reality.

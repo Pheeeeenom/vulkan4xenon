@@ -10,7 +10,7 @@
 #include "xsdk/log.h"
 #include "xsdk/present.h"
 
-// The scenes through vulkan4xenon, as vkbench's Vulkan build draws them (vulkan4vita:bench/backend_vulkan.c).
+// The scenes through vulkan4xenon.
 
 enum {
 	MAX_IMAGES = 3,

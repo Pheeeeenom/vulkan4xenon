@@ -5,7 +5,7 @@
 
 #include "bench.h"
 
-// vkbench's meshes and textures (vulkan4vita:bench/assets.c).
+// vkbench's meshes and textures.
 
 enum {
 	TEXTURE_BYTES = TEXTURE_SIZE * TEXTURE_SIZE * 4,
