@@ -788,16 +788,16 @@ user after the scope above). Their settings come from `config.json` until that r
 
 **All three steps passed on hardware** on 2026-10-12, xsdk_test passing in full with each (xsdk:docs/HARDWARE.md, from
 "What the kernel leaves a title"):
-- **Step 1,** Dusklight `1b68017`: the `.xex` showed the splash, logged its image, 32 MB on the console's calling
+- **Step 1,** Dusklight `455b3f5`: the `.xex` showed the splash, logged its image, 32 MB on the console's calling
   convention, and the 442 MB of the title's 480 MB left free, and exited. xsdk's heap now reserves the title's free
   memory at its first growth, 443 MB here (xsdk:results/2026-10-12-memory/, 2026-10-12-heap-reservation/ and
   2026-10-12-dusklight-mcall-xsdk/).
-- **Step 2,** Dusklight `cc1ed7a` with Aurora `58f9fb3`, SDL-xenon `c86389c89` and xsdk `f770193`: the game's own
+- **Step 2,** Dusklight `13316c3` with Aurora `c7f5905`, SDL-xenon `c86389c89` and xsdk `f770193`: the game's own
   startup ran on the null backend, reading its config, starting Aurora with no window and loading RmlUi's fonts, and
   ended with status 1 at the missing `game:\dusklight.iso` (xsdk:results/2026-10-12-dusklight-step-2/). It took two
   xsdk changes: `main` gets argc 1, since Dusklight reads its options from `argv[1]`, and a path `std::filesystem`
   makes absolute, `game:\` in front of `game:\...`, starts over at its second drive.
-- **Step 3,** Dusklight `ecfef9f` with Aurora `600815f`, SDL-xenon `c86389c89` and xsdk `c98ceb8`, the GZ2E01 disc
+- **Step 3,** Dusklight `0069f0d` with Aurora `94c1353`, SDL-xenon `c86389c89` and xsdk `c98ceb8`, the GZ2E01 disc
   beside it: the title scene ran its minute on the null backend at 30 fps, after 19 fps over the 10 seconds it
   loaded in, and the title exited with status 0 (xsdk:results/2026-10-12-dusklight-step-3/). At their peaks the
   game's root heap held 137 MB of its 256 and newlib's heap 377 MB of the 443 it reserves. Two console crashes
@@ -858,7 +858,7 @@ the 360's own null backend, in Xenia or on the console, instead of on a PC.
 - every recorded boot-screen configuration compiles with xost;
 - xsdk_test and vulkan4xenon_test pass in full.
 
-**Step 1 passed on hardware** on 2026-10-12, Dusklight `ac2bc00` with Aurora `e1ad449`
+**Step 1 passed on hardware** on 2026-10-12, Dusklight `8089c2f` with Aurora `d263186`
 (`results/2026-10-12-milestone-10-step-1/`):
 - the logo scene went through the warning, Nintendo and Dolby screens on the null backend at 60 fps, the warning
   holding its minute with no button pressed;
@@ -867,8 +867,8 @@ the 360's own null backend, in Xenia or on the console, instead of on a PC.
 - glslang and xost compiled all 8 of the boot screens' and 27 of the title scene's 28. The last needs 18 registers,
   over the pixel shader's 16 (`compile.txt`), and xost only warns that it would hang.
 
-**Step 2 passed on hardware** on 2026-10-12, Dusklight `bc6327f` with Aurora `b8edd5c` and this repository at
-`6be3389` (`results/2026-10-12-milestone-10-step-2/`; Dusklight's log names `54e3f14`, now `e599ef5`, the commit at
+**Step 2 passed on hardware** on 2026-10-12, Dusklight `43b8f65` with Aurora `037ac39` and this repository at
+`6be3389` (`results/2026-10-12-milestone-10-step-2/`; Dusklight's log names `54e3f14`, now `b03a1f6`, the commit at
 its last configure):
 - **The boot screens drawn:** Aurora's vulkan4xenon backend drew the warning, Nintendo and Dolby screens, which faded
   in and out on the user's screen, at 50 to 60 fps. The title scene then ran its minute, at 19 fps over the 10 seconds
