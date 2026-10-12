@@ -20,8 +20,7 @@ LIBS := -Wl,--start-group $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) -lstdc++ -l
 
 LAYER_SOURCES := src/host.c src/proc_addr.c src/instance.c src/physical_device.c src/display.c src/device.c \
 	src/memory.c src/shader.c src/pipeline.c src/render_pass.c src/command_buffer.c src/queue.c src/sync.c \
-	src/swapchain.c src/image.c src/sampler.c src/descriptor.c src/pipeline_state.c src/blit.c src/blit_shaders.c \
-	src/constant_ring.c
+	src/swapchain.c src/image.c src/sampler.c src/descriptor.c src/pipeline_state.c src/blit.c src/blit_shaders.c
 LAYER_OBJECTS := $(patsubst src/%.c,$(BUILD)/src/%.o,$(LAYER_SOURCES))
 
 # tests/shaders.c and src/blit_shaders.c come from tools/build_shaders.py, run by hand where glslang and xost are.

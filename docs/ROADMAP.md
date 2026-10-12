@@ -127,7 +127,7 @@ native GPU API, GXM, this does on Xenos through xsdk's GPU layer. Its Vita speci
 7. **Uniform blocks the GPU loads,** agreed on 2026-10-11 after milestone 6. Done when the GPU loads each uniform block
    straight from its buffer, and reading uniform buffers costs a draw next to nothing.
 8. **Push constants the GPU loads,** agreed on 2026-10-11 after milestone 7. Done when each draw's push constants go
-   through a ring the GPU loads them from, and push draws cost less for it.
+   through a ring the GPU loads them from, and push draws cost less for it. They cost the same, so it was reverted.
 
 ### Milestone 1: a triangle through Vulkan (done)
 
@@ -690,7 +690,7 @@ overwrite whatever shared a block's groups.
 - **Buffers are 64-byte aligned,** as the console loaded constants from; with uniform offsets in 256s, every uniform
   block in a buffer bound at a 64-byte offset can be loaded.
 
-### Milestone 8: push constants the GPU loads
+### Milestone 8: push constants the GPU loads (reverted)
 
 **Why.** After milestone 7 a draw taking its matrix and tint from uniform buffers cost 0.72 us through the layer, and
 one pushing them 1.22 us: the CPU writes push blocks into constants itself, through xsdk's setters and their copy, 65
@@ -712,6 +712,24 @@ setters' bookkeeping.
   change is reverted (xsdk:CODE_GUIDELINES.md, "Measure, don't guess");
 - vulkan4xenon_test passes in full, and vkbench's backends still draw the same pictures;
 - xost's tests pass.
+
+**Not faster on hardware,** so reverted on 2026-10-11. vkbench ran at `2e94c05` with xsdk at `a7151aa` and xost at
+`af5bb8b` (`results/2026-10-11-milestone-8/`), passing all 14 checks with no waits. Through the layer, against
+milestone 7's run:
+- **`draws_1000` drew and submitted in 1,217 us, from 1,215,** its submit 974 us both times, though a pushed cube took
+  17.3 dwords, from 65.3, and a frame 18 kicks, from 64. The GPU took 325 us after the submit, from 301, the loads
+  being its work now.
+- **`states_1000` took 2,021 us, from 1,975,** and `draws_4000` 5,078, from 5,043; `uniforms_1000` was unchanged at
+  718.
+
+**What it showed:** a pushed cube and a uniform one now wrote the same 17.3 dwords and 18 kicks, yet the pushed one's
+submit cost 0.97 us a draw against 0.50. Writing three quarters fewer dwords saved nothing, so the push path's cost
+isn't the command stream. What the push path does beyond the uniform path is copy each `vkCmdPushConstants` into the
+replay's push array, then copy each block back out, into constants before, into the ring here. Where the time goes in
+that is unmeasured.
+
+The layer is back at milestone 7's code. xost packs push blocks again; its `vk_block_literals` test stays, its
+uniform block still on c4 and its literals from c8.
 
 ## 5. The Dusklight track
 
@@ -787,7 +805,9 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   - reading uniform buffers at submit, 4.0 us a draw for two blocks, as mapped memory is write-combined. Milestone 6
     brought it to 0.87 us with 16-byte reads, and milestone 7 to none: the GPU loads each block. Encounter's Aurora
     passes its uniforms this way;
-  - push constants are now the dearer path: the CPU writes them, 65 dwords a cube against a uniform draw's 17;
+  - push constants are now the dearer path, 0.97 us a draw at submit against a uniform draw's 0.50. Milestone 8 had
+    the GPU load them, 17 dwords a cube from 65, and the submit didn't move, so the cost lies elsewhere in the push
+    path;
   - the replay pointing streams and textures again every draw though they didn't change. Milestone 6 points only what
     changed, and a cube costs 1.22 us through the layer against xsdk's 0.62, 1.97 times;
   - apps writing mapped memory with `memcpy` ran at 185 MB/s there. Since xsdk milestone 20, `memcpy` is xsdk's own
