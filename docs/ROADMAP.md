@@ -954,9 +954,8 @@ programs (xsdk:results/2026-10-12-milestone-24/dusklight.log):
 day. **In six steps,** each run on the console:
 1. **What the scene needs, measured.** A recording build logs, once each, every refused configuration with all it
    needs, not only the first, and each copy target's size and format; a run in Xenia counts them, says whether the
-   scene turns range fog on, and counts the configurations that differ only in their light masks. The user captures
-   the title screen as the console draws it now, and the same moment from Dusklight's PC build, the reference agreed
-   with the user. The counts decide whether range fog and small copy targets are in this milestone.
+   scene turns range fog on, and counts the configurations that differ only in their light masks. The counts decide
+   whether range fog and small copy targets are in this milestone.
 2. **Aurora from upstream, and the 360's settings:** `3094e04`, `afa388d`, `c8406f2`, `0857ad8` and `77997d4`
    picked, with `3094e04`'s packed alpha compares mirrored in the fork's GLSL generator, which today compares the
    alpha operands (aurora-xenon:lib/vulkan4xenon/glsl.cpp, `alpha_op`): checked by a config made to hit it, its GLSL
@@ -976,8 +975,15 @@ day. **In six steps,** each run on the console:
    either kept in the key, each mask's lights unrolled, or left out of it by a backend limit, all eight lights
    unrolled and each one switched by a constant: decided with the user from step 1's counts. The scene is recorded
    again in Xenia, since every program's name is the hash of its text, and the pack rebuilt.
-6. **What drawing shows:** the byte order above, fixed where the captures show it wrong, and the copy targets step 1
-   finds, if the layer must take small colour attachments.
+6. **What drawing shows:** the user captures the title screen on the console, and the same moment from Dusklight's
+   PC build, the reference agreed with the user, at the settings the console runs: a 1280x720 window, Dusk bloom and
+   depth of field, the internal resolution automatic, 1x shadows and no frame interpolation. The byte order above is
+   fixed where the captures show it wrong, and the copy targets step 1 finds are drawn, if the layer must take small
+   colour attachments.
+
+**Changed with the user on 2026-10-12,** after step 1: the captures moved from step 1 to step 6, where they're first
+compared. Step 1's counts settled all it decides, and a capture of what the console draws before step 5 would show
+nothing step 6 can't.
 
 **Done when,** on the console:
 - the title scene runs its minute and exits with status 0, refusing no configuration for fog, lighting, matrices picked
@@ -990,6 +996,32 @@ day. **In six steps,** each run on the console:
   caches, and Dusklight runs with index patterns and 2 pipeline compile threads;
 - vulkan4xenon_test, with its matrix-per-vertex check, vkbench and xsdk_test pass in full, vkbench within the noise of
   its last run.
+
+**Step 1 passed on hardware** on 2026-10-12, Dusklight `8f99ef3` with Aurora `265dcda`
+(`results/2026-10-12-milestone-11-step-1/`; Dusklight's log names `1961c31`, the commit at its last configure). The
+generator logs each configuration it refuses once, under its hash, with all it needs; a recording build logs each
+target it creates; `tools/count_refusals.py` counts both (`counts-xenia.txt`, from the recording build in Xenia):
+- **62 configurations refused,** the same 62 needing the same in the recording build and the drawing build in Xenia
+  (`dusklight-record-xenia.log`, `dusklight-xenia.log`) and the drawing build on the console (`dusklight.log`):
+  - **fog 50, lighting 46, matrices picked per vertex 15, indirect texturing 5,** and nothing else;
+  - **most need more than one:** fog and lighting 31, those and matrices picked per vertex 10, fog alone 7, matrices
+    alone 5, lighting alone 4, indirect texturing alone 3, and indirect texturing with fog 2, one of them lit too;
+  - **by the first each needs** they are 40, 15, 4 and 3. Milestone 24's 64 lines, 42 of them fog, were one for each
+    pipeline asking, so two configurations were logged twice.
+- **Range fog is on:** 43 of the 50 fog configurations adjust it by range. All are perspective: 47 linear and 3 reverse
+  exponential, 2 of those squared. Range fog is in this milestone.
+- **Lighting:** every lit channel is COLOR0, with clamped diffuse and spot attenuation, its ambient from the register
+  in all but one. 30 sum all eight lights, 12 seven, 2 six and 2 one. No two configurations differ only in their light
+  masks: the 46 stay 46 with every mask cleared, though each one's hash changes. Keeping the masks in the key costs no
+  pipeline here, and leaving them out saves none.
+- **Matrices picked per vertex:** by the position matrix's index alone in 7, and by it and texture matrix 1's in 8.
+- **Indirect texturing:** one indirect stage in each of the 5.
+- **Targets:** copies at 1280x720 and each half of it down to 20x11, and one at 192x192, all RGBA8 (GX format 6); and
+  offscreen targets with depth at 384x384 and 960x360. Only the 20x11 copy is 16 texels or less on a side, so small
+  copy targets are in this milestone too, at step 6.
+- **The programs the generator writes didn't change:** the recording wrote the pack's 69, byte for byte.
+- **The console run** went as at milestone 24: the title scene at 29.1 to 30.0 fps once loaded, 8 MB free at its end
+  and status 0, with milestone 24's other errors.
 
 ## 5. The Dusklight track
 
