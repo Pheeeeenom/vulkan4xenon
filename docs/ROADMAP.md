@@ -804,7 +804,7 @@ user after the scope above). Their settings come from `config.json` until that r
 - its log names the scene, its frame rate and each heap's peak;
 - xsdk_test passes in full.
 
-**Steps 1 and 2 passed on hardware** on 2026-10-12, xsdk_test passing in full with each (xsdk:docs/HARDWARE.md, from
+**All three steps passed on hardware** on 2026-10-12, xsdk_test passing in full with each (xsdk:docs/HARDWARE.md, from
 "What the kernel leaves a title"):
 - **Step 1,** Dusklight `e7e916c`: the `.xex` showed the splash, logged its image, 32 MB on the console's calling
   convention, and the 442 MB of the title's 480 MB left free, and exited. xsdk's heap now reserves the title's free
@@ -815,6 +815,16 @@ user after the scope above). Their settings come from `config.json` until that r
   ended with status 1 at the missing `game:\dusklight.iso` (xsdk:results/2026-10-12-dusklight-step-2/). It took two
   xsdk changes: `main` gets argc 1, since Dusklight reads its options from `argv[1]`, and a path `std::filesystem`
   makes absolute, `game:\` in front of `game:\...`, starts over at its second drive.
+- **Step 3,** Dusklight `33e94c7` with Aurora `33c1b47`, SDL-xenon `c86389c89` and xsdk `c98ceb8`, the GZ2E01 disc
+  beside it: the title scene ran its minute on the null backend at 30 fps, after 19 fps over the 10 seconds it
+  loaded in, and the title exited with status 0 (xsdk:results/2026-10-12-dusklight-step-3/). At their peaks the
+  game's root heap held 137 MB of its 256 and newlib's heap 377 MB of the 443 it reserves. Two console crashes
+  Xenia never showed came first: a float load from Aurora's byte-packed command stream raised an alignment exception
+  (GCC had merged an integer load and a cast into it), and Dusklight's reset freed message queues whose woken threads
+  then relocked their mutexes, corrupting newlib's heap. The calls that still fail don't stop it: the memory card has
+  no save yet, the pipeline cache has no database (sqlite has no file system here), and there's no window to title.
+
+With that, milestone 9 is done: Dusklight runs on the console, from its disc, up to the title scene's game loop.
 
 **The revert passed on hardware** on 2026-10-11, at `0579b93` with xsdk at `a7151aa` and xost at `77c7605`
 (`results/2026-10-11-milestone-8-reverted/`): vulkan4xenon_test passed all 58 checks, and vkbench all 14. Through
