@@ -24,8 +24,9 @@ LAYER_OBJECTS := $(patsubst src/%.c,$(BUILD)/src/%.o,$(LAYER_SOURCES))
 
 # tests/shaders.c and src/blit_shaders.c come from tools/build_shaders.py, run by hand where glslang and xost are.
 TEST_SOURCES := tests/main.c tests/harness.c tests/harness_scene.c tests/test_boot_logo.c tests/test_objects.c \
-	tests/test_triangle.c tests/test_texture.c tests/test_push_constants.c tests/test_uniform_buffers.c \
-	tests/test_indexed.c tests/test_depth_stencil.c tests/test_raster.c tests/test_render_to_texture.c tests/shaders.c
+	tests/test_triangle.c tests/test_packed_colour.c tests/test_texture.c tests/test_push_constants.c \
+	tests/test_uniform_buffers.c tests/test_indexed.c tests/test_depth_stencil.c tests/test_raster.c \
+	tests/test_render_to_texture.c tests/shaders.c
 TEST_OBJECTS := $(patsubst tests/%.c,$(BUILD)/tests/%.o,$(TEST_SOURCES))
 
 # vkbench, the benchmark against xsdk's GPU layer; bench/shaders.c comes from tools/build_shaders.py too.

@@ -153,6 +153,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 	case VK_FORMAT_R32G32_SFLOAT:
 	case VK_FORMAT_R32G32B32_SFLOAT:
 	case VK_FORMAT_R32G32B32A32_SFLOAT:
+	case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
 		pFormatProperties->bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
 		break;
 	default:

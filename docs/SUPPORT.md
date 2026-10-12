@@ -89,7 +89,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - Graphics pipelines, otherwise `VK_ERROR_FEATURE_NOT_PRESENT`:
   - a vertex and a fragment stage, entry point `main`, no specialization constants;
   - per-vertex bindings with strides a multiple of 4, up to 1020 bytes;
-  - `VK_FORMAT_R32_SFLOAT` to `R32G32B32A32_SFLOAT` attributes at offsets a multiple of 4;
+  - `VK_FORMAT_R32_SFLOAT` to `R32G32B32A32_SFLOAT` and `A8B8G8R8_UNORM_PACK32` attributes at offsets a multiple of
+    4;
   - point lists, line lists and strips, and triangle lists, strips and fans, without primitive restart (an xsdk
     TODO);
   - one viewport and scissor, set in the pipeline or dynamic; no other dynamic state;
@@ -238,7 +239,7 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 |---|---|
 | `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending |
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment |
-| `VK_FORMAT_R32_SFLOAT`, `R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT` | buffer: vertex buffer |
+| `VK_FORMAT_R32_SFLOAT`, `R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
 
 Vulkan 1.0 requires many more formats and features; each missing one is a deviation.
 

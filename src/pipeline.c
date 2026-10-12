@@ -52,6 +52,11 @@ static bool vertex_format(VkFormat format, uint32_t *xsdk_format)
 	case VK_FORMAT_R32G32B32A32_SFLOAT:
 		*xsdk_format = XSDK_VERTEX_FLOAT4;
 		return true;
+	// A packed word, red in its low byte, is what xsdk's ubyte4n fetches: its x from the word's bits 0-7
+	// (xsdk:docs/HARDWARE.md, milestone 17's vertex formats).
+	case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+		*xsdk_format = XSDK_VERTEX_UBYTE4N;
+		return true;
 	default:
 		return false;
 	}

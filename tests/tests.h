@@ -11,6 +11,8 @@ void test_boot_logo(Harness *harness, uint32_t shown_before_device);
 void test_objects(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.
 void test_triangle(const Harness *harness);
+// The triangle with 8-bit colours packed in a word, as Aurora decodes vertex colours (milestone 10).
+void test_packed_colour(const Harness *harness);
 // Images copied in from a buffer and sampled through descriptor sets (milestone 2).
 void test_texture(const Harness *harness);
 // Quads placed and coloured by push constants (milestone 2).
