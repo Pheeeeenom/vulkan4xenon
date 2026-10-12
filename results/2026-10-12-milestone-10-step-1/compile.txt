@@ -1,0 +1,37 @@
+ok   172ccfa9a454e318.vert: 972 bytes, 2 literals, 2 blocks, 0 samplers
+ok   32d160ecc3deb658.vert: 988 bytes, 2 literals, 2 blocks, 0 samplers
+ok   3ba44326990edfeb.vert: 1136 bytes, 2 literals, 2 blocks, 0 samplers
+ok   4e6272cd5ea024f5.vert: 1564 bytes, 2 literals, 2 blocks, 0 samplers
+ok   55a0066e2650ed99.vert: 1212 bytes, 2 literals, 2 blocks, 0 samplers
+ok   58786ba1a7e49515.vert: 1372 bytes, 2 literals, 2 blocks, 0 samplers
+ok   88a3de8e328f385a.vert: 920 bytes, 2 literals, 2 blocks, 0 samplers
+ok   8e555ecc28e3d240.vert: 1084 bytes, 2 literals, 2 blocks, 0 samplers
+ok   bacc292ad5a86eb3.vert: 2460 bytes, 2 literals, 2 blocks, 0 samplers
+ok   d5d99e338acc096e.vert: 1020 bytes, 2 literals, 2 blocks, 0 samplers
+ok   d8d724f61446ecbb.vert: 1384 bytes, 2 literals, 2 blocks, 0 samplers
+ok   12d30073b6d47043.frag: 796 bytes, 3 literals, 1 blocks, 1 samplers
+ok   1675a46dea18c182.frag: 516 bytes, 3 literals, 0 blocks, 1 samplers
+ok   1ad5c2f8e1cc2653.frag: 572 bytes, 1 literals, 1 blocks, 1 samplers
+ok   1e5db8674ad9d29e.frag: 384 bytes, 0 literals, 1 blocks, 0 samplers
+ok   22d6a7758d2d5d84.frag: 512 bytes, 1 literals, 1 blocks, 0 samplers
+ok   233aa73af10f83bc.frag: 744 bytes, 1 literals, 1 blocks, 2 samplers
+ok   246ca2b33bb1fdf4.frag: 708 bytes, 3 literals, 1 blocks, 1 samplers
+ok   33d3ad7a449b966c.frag: 528 bytes, 1 literals, 1 blocks, 0 samplers
+ok   3de421fc6f9f3122.frag: 356 bytes, 2 literals, 0 blocks, 0 samplers
+ok   46d1eea9e1360669.frag: 1392 bytes, 7 literals, 1 blocks, 3 samplers
+ok   607a7b7110387a22.frag: 572 bytes, 1 literals, 1 blocks, 1 samplers
+ok   6b7ff186cc28cce5.frag: 816 bytes, 3 literals, 1 blocks, 1 samplers
+ok   85ae52ee303f618c.frag: 536 bytes, 1 literals, 1 blocks, 1 samplers
+ok   92f6cc89e68fccea.frag: 200 bytes, 1 literals, 0 blocks, 0 samplers
+ok   946541a3cc485e48.frag: 536 bytes, 1 literals, 1 blocks, 1 samplers
+ok   9f1eca9bebdc35b6.frag: 576 bytes, 1 literals, 1 blocks, 1 samplers
+ok   a35e191254f5ef46.frag: 788 bytes, 4 literals, 1 blocks, 1 samplers
+ok   a478595f52157a73.frag: 448 bytes, 1 literals, 0 blocks, 1 samplers
+ok   c2679fcd0788b78d.frag: 800 bytes, 1 literals, 1 blocks, 2 samplers
+ok   c98a0ca2e68f85a1.frag: 688 bytes, 2 literals, 1 blocks, 1 samplers
+ok   dae9addf7280e276.frag: 572 bytes, 1 literals, 1 blocks, 1 samplers
+ok   e19f86ee747cb140.frag: 836 bytes, 1 literals, 1 blocks, 2 samplers
+ok   e2f1c3a692fdfb84.frag: 504 bytes, 1 literals, 1 blocks, 0 samplers
+FAIL xost e3fba406929fde97.frag: RuntimeError: xsc warning: pixel shader still needs 18 GPRs (r0..r17) > Xenos budget 16 after allocation; will HANG on hardware.
+ok   e6ec5aee8cc08f41.frag: 560 bytes, 2 literals, 1 blocks, 0 samplers
+35 passed, 1 failed

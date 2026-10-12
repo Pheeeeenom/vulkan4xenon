@@ -877,6 +877,15 @@ the 360's own null backend, in Xenia or on the console, instead of on a PC.
 - every recorded boot-screen configuration compiles with xost;
 - xsdk_test and vulkan4xenon_test pass in full.
 
+**Step 1 passed on hardware** on 2026-10-12, Dusklight `970c424` with Aurora `dc9a278`
+(`results/2026-10-12-milestone-10-step-1/`):
+- the logo scene went through the warning, Nintendo and Dolby screens on the null backend at 60 fps, the warning
+  holding its minute with no button pressed;
+- the title scene then ran its minute at 30 fps, and the title exited with status 0;
+- the console recorded 36 programs, byte for byte the ones Xenia recorded from the same build;
+- glslang and xost compiled all 8 of the boot screens' and 27 of the title scene's 28. The last needs 18 registers,
+  over the pixel shader's 16 (`compile.txt`), and xost only warns that it would hang.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
