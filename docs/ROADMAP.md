@@ -778,8 +778,25 @@ user after the scope above). Their settings come from `config.json` until that r
    disc's ID before `main01` (dusklight:src/dusk/version.cpp:13-24, called at dusklight:src/m_Do/m_Do_main.cpp:903),
    so with no reader yet the `.xex` reports the disc missing and ends; reaching `main01` moved to step 3, agreed with
    the user on 2026-10-12.
-3. **The disc, byte order and memory.** An ISO reader in place of nod, with 64-bit offsets; the big-endian path made
-   whole in Dusklight and Aurora; memory sized from measured peaks.
+3. **The disc, byte order and memory,** as scoped with the user on 2026-10-12:
+   - **The disc:** a reader for plain GameCube ISOs behind nod's C API, in Aurora's fork. It reads the disc header,
+     holds boot.bin, bi2.bin, the apploader, main.dol and the FST in memory, since Dusklight reads data out of
+     main.dol (dusklight:src/dusk/dvd_asset.cpp:39), walks the FST as nod does and reads files by offset. Wii and
+     compressed images are refused. A GameCube disc holds 1,459,978,240 bytes, so 32-bit offsets reach all of it.
+   - **Byte order, as far as the null backend runs it:**
+     - Aurora's command-stream writer swaps every value (aurora-vita:lib/gx/fifo.hpp:90-106), while its reader swaps
+       only data not in the host's order (aurora-vita:lib/internal.hpp:96-105); the writer will swap only on a
+       little-endian host.
+     - Dusklight swaps the `BE<>` values the compiler sets at build time whatever the host
+       (dusklight:include/helpers/endian.h:63-98). About 10 are hit, among them the message files' signature
+       (dusklight:libs/JSystem/src/JMessage/data.cpp:5) and the audio envelope tables.
+   - **Left for milestone 11,** when drawing shows whether they're right: Aurora's texture conversion swaps; the
+     vertex and matrix arrays Dusklight flags little-endian in 58 places; and the memory card and controller binding
+     files, which read back on the console but differ from a PC's.
+   - **Memory:** the PC's sizes stay, 256 MB of main memory and 24 MB of ARAM
+     (dusklight:src/m_Do/m_Do_main.cpp:705-706), inside the 442 MB the title has free.
+   - **The run ends itself** a minute into the title scene, with status 0, after logging the frame rate and each
+     heap's peak.
 
 **Done when,** on the console:
 - Dusklight's `.xex` starts with the splash, opens the ISO from the console's drive and runs the title scene (stage
@@ -889,7 +906,8 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
   2. **Milestone 10: the shaders:** the GLSL generator, run offline over a pipeline cache recorded on a PC, and what
      xost needs above. It can overlap milestone 9.
   3. **Milestone 11: the title screen drawn** (stage F_SP102, dusklight:src/d/d_com_inf_game.cpp:1221) with its
-     colour effects, through render to texture as it stands; depth copies skipped, as aurora-vita does.
+     colour effects, through render to texture as it stands; depth copies skipped, as aurora-vita does. It takes the
+     byte order milestone 9 leaves: Aurora's texture conversion and the arrays flagged little-endian.
   4. **Depth out of eDRAM:** xsdk resolves depth to memory and samples it, after console probes of what a depth
      resolve writes (xenia:src/xenia/gpu/xenos.h:917-924); then the layer stores, samples and reloads depth
      attachments. That brings the Z16 copy, shadows over the EFB's depth, and `GXPeekZ` read from resolved depth.
