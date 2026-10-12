@@ -130,6 +130,8 @@ the Dusklight track's order, agreed the same day; section 7 lists what's still o
    straight from its buffer, and reading uniform buffers costs a draw next to nothing.
 8. **Push constants the GPU loads,** agreed on 2026-10-11 after milestone 7. Done when each draw's push constants go
    through a ring the GPU loads them from, and push draws cost less for it. They cost the same, so it was reverted.
+9. **Dusklight on Aurora's null backend,** agreed on 2026-10-11, the first of the Dusklight track (section 5). Done
+   when Dusklight runs its title scene on the console for a minute without drawing.
 
 ### Milestone 1: a triangle through Vulkan (done)
 
@@ -733,6 +735,53 @@ that is unmeasured.
 
 The layer is back at milestone 7's code. xost packs push blocks again; its `vk_block_literals` test stays, its
 uniform block still on c4 and its literals from c8.
+
+### Milestone 9: Dusklight on Aurora's null backend
+
+**Why.** Every later milestone needs the game running on the console, and running it settles the platform, the disc,
+memory and byte order before anything draws. Read on 2026-10-11, what stands in the way:
+- **Dusklight quits on the null backend:** with `BACKEND_NULL` it runs only its launcher's UI loop and returns
+  (dusklight:src/m_Do/m_Do_main.cpp:737-751).
+- **SDL3 is under everything:** Aurora's events, controller, file streams, paths, ticks and delays, threads and audio,
+  and Dusklight's frame limiter (dusklight:src/dusk/time.h:31-72), with no port to the 360. The user's Strikers port
+  built SDL3 for the Vita for the same reasons (strikers-vita `c1b2730`), release 3.4.10, the one Aurora pins
+  (aurora-vita:cmake/AuroraDependencyVersions.cmake:21).
+- **nod, Aurora's disc reader, is Rust** (aurora:cmake/AuroraNodProvider.cmake:41-80), with no target here. Strikers
+  replaced it with its own reader.
+- **RmlUi,** Dusklight's own menus, builds only with Dawn in aurora-vita (aurora-vita:CMakeLists.txt:37).
+- **Byte order:** the console is big-endian like the GameCube, so the PC build's swaps must turn off. Dusklight's data
+  is mostly typed `BE()` fields behind one switch, `TARGET_LITTLE_ENDIAN`, but its big-endian branch has no `BSWAP64`
+  and swaps constants regardless (dusklight:include/helpers/endian.h:9-29, 63-98), and Aurora's command stream writer
+  swaps every word (aurora-vita:lib/gx/fifo.hpp:90-106), which breaks even the null backend.
+- **Types:** PowerPC's `char` is unsigned, and Dusklight adds `-fsigned-char` only on ARM
+  (dusklight:CMakeLists.txt:256-260); xsdk's `uint32_t` is `unsigned long`, the PC build's `u32` `unsigned int`
+  (dusklight:libs/dolphin/include/dolphin/types.h:15-17).
+- **Memory:** the game asks for 256 MB of GameCube memory and 24 MB of ARAM (dusklight:src/m_Do/m_Do_main.cpp:705-706),
+  and Aurora's null backend about 63 MB of pools; xsdk's heap reserves 256 MB (xsdk:src/sbrk.c). What the kernel
+  leaves a title is unmeasured.
+
+**Decided with the user:** SDL3 is ported, an xsdk platform added to it in a fork of its own, so Aurora, Dusklight and
+borealis call it unchanged; the disc is a plain ISO on the console's drive; the forks are Z:\dusklight-xenon,
+Z:\aurora-xenon (from aurora-vita) and Z:\SDL-xenon (from release 3.4.10). Switched off: code mods, which load code
+at run time; Dawn and nod; borealis's HTTP, network, crash, Discord, update and Sentry parts; and Dusklight's menus,
+whose settings come from `config.json` until a renderer brings them back.
+
+**In three steps,** each run on the console:
+1. **It builds and starts.** A CMake toolchain file in xsdk; the forks wired together; the libraries the build keeps
+   built with xsdk's toolchain. The `.xex` shows the splash, logs its size and the memory the kernel left free, and
+   exits.
+2. **The platform.** SDL3's xsdk backends: the controller on `XamInputGetState`, audio on xsdk's audio client, the
+   timer, threads on xsdk's pthreads and paths on `game:\`; in xsdk, what they need beyond it today, as xsdk
+   milestone 21 (xsdk:SCOPE.md). Dusklight runs the game on the null backend. The `.xex` reaches `main01` and
+   reports the disc missing.
+3. **The disc, byte order and memory.** An ISO reader in place of nod, with 64-bit offsets; the big-endian path made
+   whole in Dusklight and Aurora; memory sized from measured peaks.
+
+**Done when,** on the console:
+- Dusklight's `.xex` starts with the splash, opens the ISO from the console's drive and runs the title scene (stage
+  F_SP102, dusklight:src/d/d_com_inf_game.cpp:1221) for a minute on the null backend, with no call failing;
+- its log names the scene, its frame rate and each heap's peak;
+- xsdk_test passes in full.
 
 **The revert passed on hardware** on 2026-10-11, at `0579b93` with xsdk at `a7151aa` and xost at `77c7605`
 (`results/2026-10-11-milestone-8-reverted/`): vulkan4xenon_test passed all 58 checks, and vkbench all 14. Through
