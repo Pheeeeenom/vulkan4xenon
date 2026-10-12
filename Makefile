@@ -15,7 +15,6 @@ INCLUDES := -Iinclude -Ithird_party/vulkan-headers/include -I$(XSDK)/include
 CFLAGS := -mcpu=cell -fno-pic -std=gnu17 -O2 -g $(WARNINGS) $(INCLUDES) -MMD -MP
 LDFLAGS := -static -nostdlib -T $(XSDK)/src/xsdk.ld
 XSDK_LIBRARY := $(XSDK)/build/libxsdk.a
-XSDK_CRT0 := $(XSDK)/build/sdk/crt0.o
 LIBS := -Wl,--start-group $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) -lstdc++ -lc -lm -lgcc -Wl,--end-group
 
 LAYER_SOURCES := src/host.c src/proc_addr.c src/instance.c src/physical_device.c src/display.c src/device.c \
@@ -41,12 +40,12 @@ all: $(BUILD)/vulkan4xenon_test.xex $(BUILD)/vkbench.xex
 $(BUILD)/%.xex: $(BUILD)/%.elf $(XSDK)/tools/elf2xex.py
 	$(PYTHON) $(XSDK)/tools/elf2xex.py $< $@
 
-$(BUILD)/vulkan4xenon_test.elf: $(TEST_OBJECTS) $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) $(XSDK_CRT0)
-	$(CC) $(LDFLAGS) -Wl,-Map,$(BUILD)/vulkan4xenon_test.map -o $@ $(XSDK_CRT0) $(TEST_OBJECTS) $(LIBS)
+$(BUILD)/vulkan4xenon_test.elf: $(TEST_OBJECTS) $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY)
+	$(CC) $(LDFLAGS) -Wl,-Map,$(BUILD)/vulkan4xenon_test.map -o $@ $(TEST_OBJECTS) $(LIBS)
 	$(OBJDUMP) -d $@ | $(PYTHON) $(XSDK)/tools/xenia_scan.py
 
-$(BUILD)/vkbench.elf: $(BENCH_OBJECTS) $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) $(XSDK_CRT0)
-	$(CC) $(LDFLAGS) -Wl,-Map,$(BUILD)/vkbench.map -o $@ $(XSDK_CRT0) $(BENCH_OBJECTS) $(LIBS)
+$(BUILD)/vkbench.elf: $(BENCH_OBJECTS) $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY)
+	$(CC) $(LDFLAGS) -Wl,-Map,$(BUILD)/vkbench.map -o $@ $(BENCH_OBJECTS) $(LIBS)
 	$(OBJDUMP) -d $@ | $(PYTHON) $(XSDK)/tools/xenia_scan.py
 
 $(BUILD)/libvulkan4xenon.a: $(LAYER_OBJECTS)
