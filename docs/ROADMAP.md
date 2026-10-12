@@ -899,6 +899,70 @@ configure):
 
 With that, milestone 10 is done: the console draws the game's boot screens while it loads.
 
+Since then: pixel shaders get 64 registers under xsdk's split, so the pack holds all 69 programs, and the title scene's
+18-register program draws (xsdk:docs/HARDWARE.md, milestone 24).
+
+### Milestone 11: the title screen drawn
+
+**Why.** The title scene, stage F_SP102 (dusklight:src/d/d_com_inf_game.cpp:1221), is the first scene the player
+sees, and what it draws today is only the configurations the pack holds. Read on 2026-10-12, from the run with all 69
+programs (xsdk:results/2026-10-12-milestone-24/dusklight.log):
+- **The configurations the generator refuses,** each logged once with its first reason (Aurora
+  lib/vulkan4xenon/glsl.cpp, `make_plan`): fog 42, matrices picked per vertex 15, lighting 4, indirect texturing 3.
+  A configuration needing several is counted once, so how many need each isn't known.
+- **What each needs:**
+  - **Lighting:** the WGSL loops over a channel's lights, testing its mask's bits (aurora:lib/gx/shader.cpp). Unrolled
+    over the lights the config's mask names, the lights are read at constant indices, with `normalize`, `dot`, `max`
+    and division, which xost compiles (xost:docs/xsc.md). Its vertices also carry normals.
+  - **Fog:** the WGSL reads the fragment's depth (aurora:lib/gx/shader.cpp); clip z and w can reach the fragment
+    program in an interpolant instead, with `exp2` for the exponential kinds. Range fog adds a factor by the pixel's
+    column: the fragment's position, xost's generated parameter (xenia:src/xenia/gpu/registers.h:140, 234),
+    and a constant array indexed at run time. The game turns range fog on per environment
+    (dusklight:src/d/d_kankyo.cpp:9459).
+  - **Matrices picked per vertex:** the position, normal and texture matrices come from arrays indexed by a vertex
+    attribute (aurora:lib/gx/shader.cpp). Xenos reads constants at `c[a0 + n]`, `a0` set by `MOVA`
+    (xenia:src/xenia/gpu/ucode.h:196-202, 1140-1148); xost reads arrays only by a loop counter.
+  - **Indirect texturing:** the WGSL masks texel values with an integer `&` (aurora:lib/gx/shader.cpp); the masks are a
+    power of two less one, so `mod` of the floor does it without the bit operations Xenos lacks.
+- **Memory:** each pipeline's two shaders take two 64 KiB pages at least, as xsdk rounds every GPU allocation up to a
+  page (xsdk:src/gpu.c, `allocate`; xsdk:TODO.md, "Small GPU allocations"). The refused configurations' pipelines would
+  take about 8 MB more, and the title scene ends with 9 to 11 MB free.
+- **Copy targets:** the scene copies into a 20x11 target, which the layer refuses as a colour attachment 16 texels or
+  less on a side (src/image.c:54-56), the size at which xsdk packs a texture.
+- **Byte order,** left by milestone 9 until drawing shows it: Aurora's texture conversion swaps, the vertex and matrix
+  arrays Dusklight flags little-endian in 58 places, and the memory card and controller binding files.
+- **Left for milestone 12,** depth out of eDRAM: the Z16 depth copy and `GXPeekZ`.
+
+**Agreed with the user on 2026-10-12,** with Dusklight's PC build as the reference. **In five steps,** each run on
+the console:
+1. **What the scene needs, measured.** A recording build logs, once each, every refused configuration with all it
+   needs, not only the first, and each copy target's size and format; a run in Xenia counts them, and says whether the
+   scene turns range fog on. The user captures the title screen as the console draws it now, and the same moment from
+   Dusklight's PC build, the reference agreed with the user. The counts decide whether range fog and small copy targets are in
+   this milestone.
+2. **xost: uniform arrays indexed at run time,** in vertex shaders (`m[int(i)]` lowered to `MOVA` and `c[a0 + n]`),
+   and, if step 1 finds range fog, in pixel shaders with the fragment's position. Checked through xost's oracle, and
+   on the console by vulkan4xenon_test: a vertex shader that picks each quad's matrix by a vertex attribute, broken on
+   purpose with the index ignored.
+3. **xsdk: small GPU allocations share pages** (an xsdk milestone of its own): allocations under a page come from
+   shared 64 KiB pages, as shaders' microcode does, with an xsdk_test check that many of them fit where they took a
+   page each and draw right, broken on purpose by overlapping two.
+4. **The generator and the pack:** fog, lighting, matrices picked per vertex and indirect texturing, and range fog if
+   step 1 finds it, as gx/shader.cpp's WGSL writes them, in the GLSL xost compiles. The scene is recorded again in
+   Xenia, since every program's name is the hash of its text, and the pack rebuilt.
+5. **What drawing shows:** the byte order above, fixed where the captures show it wrong, and the copy targets step 1
+   finds, if the layer must take small colour attachments.
+
+**Done when,** on the console:
+- the title scene runs its minute and exits with status 0, refusing no configuration for fog, lighting, matrices picked
+  per vertex or indirect texturing, and missing no program from the pack; the depth copies and `GXPeekZ` are the only
+  unsupported features it reports;
+- the title screen, captured, matches the reference capture of the same moment, as the user judges it, both filed in
+  `results/`;
+- it ends with no less free memory than milestone 10's 7 MB;
+- vulkan4xenon_test, with its matrix-per-vertex check, vkbench and xsdk_test pass in full, vkbench within the noise of
+  its last run.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
