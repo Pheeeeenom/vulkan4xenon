@@ -49,6 +49,7 @@ def compile_spirv(glslang, source, directory):
 def lower(xost, spirv_bytes, source):
     """The container, xost's pooled literals, and where its blocks and samplers landed."""
     sys.path.insert(0, str(xost))
+    from xasm.program import XSDK_REGISTERS
     from xsc import spirv
     from xsc.lower import lower_ex
     from xsc.resolve import resolve_interface
@@ -56,7 +57,9 @@ def lower(xost, spirv_bytes, source):
     interface = resolve_interface(spirv.Module.parse(spirv_bytes))
     resources = [(b.kind, b.descriptor_set or 0, b.binding or 0, b.reg, b.regs) for b in interface.blocks]
     resources += [("sampler", v.descriptor_set or 0, v.binding or 0, slot, 1) for v, slot in interface.samplers]
-    container, manifest = lower_ex(spirv.Module.parse(spirv_bytes))
+    # The layer runs on xsdk, whose set-up gives each kind of shader 64 registers (xsdk:src/gpu_setup.c); xost
+    # refuses a shader past its kind's share, which would hang the GPU.
+    container, manifest = lower_ex(spirv.Module.parse(spirv_bytes), XSDK_REGISTERS)
     literals = []
     for entry in manifest:
         if len(entry) != 2:
