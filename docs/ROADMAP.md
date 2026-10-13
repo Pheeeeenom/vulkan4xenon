@@ -1222,6 +1222,29 @@ them with vector instructions.
   drew the title scene with nothing missing at 29.8, 28.9, 29.9, 29.8 and 30.0 fps once loaded, and exited with status
   0, 8 MB free.
 
+**Then the memory for the attract demo** (2026-10-13; `results/2026-10-13-attract-demo-memory/`), the out of memory
+step 1 left open, three fixes agreed with the user:
+- **Movie frames kept for nothing** (Aurora `b9ede7a`): Aurora's pre-conversion worker parked its result for content
+  the FIFO thread had already converted inline and uploaded, at the draw it reached first. A movie's frames come once
+  each, so nothing took them until the ready budget or their 120 s ran out, and the recording build's budget was
+  Aurora's 128 MiB. The worker now checks the content wasn't uploaded before it parks. Aurora's Dawn tests passed, the
+  texture cache's 39 with a new one that holds the worker in its conversion while the draw uploads the same content
+  (`aurora-dawn-tests.txt`); with the check removed only that test failed, 64 bytes parked
+  (`aurora-dawn-tests-not-parked-check-removed.txt`).
+- **MEM1, the game's root heap, at 144 MiB** (Dusklight `24404604ed`, the Xbox 360 only), from the PC's 256: it parents
+  the system, game, archive and smaller heaps at fixed sizes, 140,176 KB in all, and past start-up only a debug build's
+  camera editor and previewer take from it, so 119 MiB were never handed out.
+- **The recording build takes the drawing build's frame pools, index patterns and texture caps** (the same commit), so
+  its memory is the drawing build's.
+- **On the console,** with the title scene held 300 s rather than 60 for the run: the drawing build (`dusklight.log`) ran
+  the title scene with 120 MB free, from 8, at 28.7 to 29.9 fps, then played the movie to the end with 35 to 44 MB
+  free; the root heap peaked at 140,176 KB of 147,439. The recording build (`dusklight_record.log`), which had run out
+  of memory as the movie began, played it at 30 fps with 197 MB free, flat. Both exited with status 0.
+- **Open: the movie plays at 7.5 fps** in the drawing build, as the user saw on the screen and a second run logged
+  (`dusklight_rerun.log`), and the title's physical pages rise from 69 to about 145 MB while it plays. On the null backend it plays at 30, so the cost is the backend's:
+  each movie frame is three new textures, made and uploaded, and each upload waits for the GPU (docs/SUPPORT.md,
+  Commands).
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

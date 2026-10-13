@@ -1,0 +1,671 @@
+== gx_texture_cache_tests
+Running main() from /home/xenon/build/aurora-golden-dawn/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 39 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 39 tests from GxTextureCacheTest
+[ RUN      ] GxTextureCacheTest.CalculatesTiledAndLinearMipSourceSizes
+[       OK ] GxTextureCacheTest.CalculatesTiledAndLinearMipSourceSizes (0 ms)
+[ RUN      ] GxTextureCacheTest.ReusesIdenticalContentAtDifferentAddresses
+[       OK ] GxTextureCacheTest.ReusesIdenticalContentAtDifferentAddresses (0 ms)
+[ RUN      ] GxTextureCacheTest.ObjectHitDoesNotHashAgain
+[       OK ] GxTextureCacheTest.ObjectHitDoesNotHashAgain (0 ms)
+[ RUN      ] GxTextureCacheTest.ChangedContentAndMetadataMiss
+[       OK ] GxTextureCacheTest.ChangedContentAndMetadataMiss (0 ms)
+[ RUN      ] GxTextureCacheTest.DestroyedObjectStillReusesContent
+[       OK ] GxTextureCacheTest.DestroyedObjectStillReusesContent (0 ms)
+[ RUN      ] GxTextureCacheTest.PaletteContentIncludesTlutBytesAndMetadata
+[       OK ] GxTextureCacheTest.PaletteContentIncludesTlutBytesAndMetadata (0 ms)
+[ RUN      ] GxTextureCacheTest.StaticClearReresolvesBoundTextureButRetainsContent
+[       OK ] GxTextureCacheTest.StaticClearReresolvesBoundTextureButRetainsContent (0 ms)
+[ RUN      ] GxTextureCacheTest.ReplacementAppearsOnAlreadyBoundTexture
+[       OK ] GxTextureCacheTest.ReplacementAppearsOnAlreadyBoundTexture (0 ms)
+[ RUN      ] GxTextureCacheTest.PendingReplacementPublishEvictsItsVanillaObjectEntry
+[       OK ] GxTextureCacheTest.PendingReplacementPublishEvictsItsVanillaObjectEntry (0 ms)
+[ RUN      ] GxTextureCacheTest.PendingReplacementPublishRebindsLoadedSlot
+[       OK ] GxTextureCacheTest.PendingReplacementPublishRebindsLoadedSlot (0 ms)
+[ RUN      ] GxTextureCacheTest.SourceReplacementReusesContentHashPass
+[       OK ] GxTextureCacheTest.SourceReplacementReusesContentHashPass (0 ms)
+[ RUN      ] GxTextureCacheTest.TlutRefreshInvalidatesBoundPaletteTexture
+[       OK ] GxTextureCacheTest.TlutRefreshInvalidatesBoundPaletteTexture (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyRevisionRequeuesDynamicPaletteConversion
+[       OK ] GxTextureCacheTest.CopyRevisionRequeuesDynamicPaletteConversion (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyRecreationAtSameDestinationRebindsHandle
+[       OK ] GxTextureCacheTest.CopyRecreationAtSameDestinationRebindsHandle (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheReusesAlternatingSizesAcrossFrames
+[       OK ] GxTextureCacheTest.CopyCacheReusesAlternatingSizesAcrossFrames (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheKeysIncludeBothDimensionsFormatAndDestination
+[       OK ] GxTextureCacheTest.CopyCacheKeysIncludeBothDimensionsFormatAndDestination (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame
+[       OK ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheBudgetIsSharedAcrossDestinations
+[       OK ] GxTextureCacheTest.CopyCacheBudgetIsSharedAcrossDestinations (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheHitAlsoTrimsNewlySupersededLargeCopy
+[       OK ] GxTextureCacheTest.CopyCacheHitAlsoTrimsNewlySupersededLargeCopy (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheSweepExpiresVariantsButPreservesCurrentContents
+[       OK ] GxTextureCacheTest.CopyCacheSweepExpiresVariantsButPreservesCurrentContents (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheCanDisableReuseWithoutDiscardingCurrentCopies
+[       OK ] GxTextureCacheTest.CopyCacheCanDisableReuseWithoutDiscardingCurrentCopies (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheBoundsContinuousParticleSizeChurn
+[       OK ] GxTextureCacheTest.CopyCacheBoundsContinuousParticleSizeChurn (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheEvictionRetainsOutstandingOwners
+[       OK ] GxTextureCacheTest.CopyCacheEvictionRetainsOutstandingOwners (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheEvictionRetiresDependentPaletteConversions
+[       OK ] GxTextureCacheTest.CopyCacheEvictionRetiresDependentPaletteConversions (0 ms)
+[ RUN      ] GxTextureCacheTest.DestroyCopyRetiresEveryVariantAndOnlyThatDestination
+[       OK ] GxTextureCacheTest.DestroyCopyRetiresEveryVariantAndOnlyThatDestination (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheClearAndShutdownResetOwnershipAndAccounting
+[       OK ] GxTextureCacheTest.CopyCacheClearAndShutdownResetOwnershipAndAccounting (0 ms)
+[ RUN      ] GxTextureCacheTest.ObjectAgingKeepsContentEntry
+[       OK ] GxTextureCacheTest.ObjectAgingKeepsContentEntry (0 ms)
+[ RUN      ] GxTextureCacheTest.BoundObjectIsNotAgedOut
+[       OK ] GxTextureCacheTest.BoundObjectIsNotAgedOut (0 ms)
+[ RUN      ] GxTextureCacheTest.ContentCacheEvictsLeastRecentlyUsedEntry
+[       OK ] GxTextureCacheTest.ContentCacheEvictsLeastRecentlyUsedEntry (0 ms)
+[ RUN      ] GxTextureCacheTest.OversizedEntryIsReturnedButNotRetained
+[       OK ] GxTextureCacheTest.OversizedEntryIsReturnedButNotRetained (0 ms)
+[ RUN      ] GxTextureCacheTest.ContentEvictionPreservesObjectAndRecordedOwners
+[       OK ] GxTextureCacheTest.ContentEvictionPreservesObjectAndRecordedOwners (0 ms)
+[ RUN      ] GxTextureCacheTest.ShutdownRestoresContentCacheBudgetAndAccounting
+[       OK ] GxTextureCacheTest.ShutdownRestoresContentCacheBudgetAndAccounting (0 ms)
+[ RUN      ] GxTextureCacheTest.PreconvertedContentIsUsedAtFirstBind
+[       OK ] GxTextureCacheTest.PreconvertedContentIsUsedAtFirstBind (1 ms)
+[ RUN      ] GxTextureCacheTest.ContentRewrittenAfterPreconversionConvertsInline
+[       OK ] GxTextureCacheTest.ContentRewrittenAfterPreconversionConvertsInline (1 ms)
+[ RUN      ] GxTextureCacheTest.SourceIsCopiedWhenQueued
+[       OK ] GxTextureCacheTest.SourceIsCopiedWhenQueued (1 ms)
+[ RUN      ] GxTextureCacheTest.UploadedContentIsNotConvertedAgain
+[       OK ] GxTextureCacheTest.UploadedContentIsNotConvertedAgain (1 ms)
+[ RUN      ] GxTextureCacheTest.ContentUploadedWhileConvertingIsNotParked
+[       OK ] GxTextureCacheTest.ContentUploadedWhileConvertingIsNotParked (1 ms)
+[ RUN      ] GxTextureCacheTest.SameObjectIsQueuedOnce
+[       OK ] GxTextureCacheTest.SameObjectIsQueuedOnce (1 ms)
+[ RUN      ] GxTextureCacheTest.PaletteAndPcFormatsAreNotPreconverted
+[       OK ] GxTextureCacheTest.PaletteAndPcFormatsAreNotPreconverted (0 ms)
+[----------] 39 tests from GxTextureCacheTest (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 39 tests from 1 test suite ran. (19 ms total)
+[  PASSED  ] 39 tests.
+== gx_fifo_tests
+Running main() from /home/xenon/build/aurora-golden-dawn/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 236 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 220 tests from GXFifoTest
+[ RUN      ] GXFifoTest.DrawIndexed_RoundTripThroughProcessor
+[       OK ] GXFifoTest.DrawIndexed_RoundTripThroughProcessor (0 ms)
+[ RUN      ] GXFifoTest.BeginIndexed_RoundTripsThroughProcessor
+[       OK ] GXFifoTest.BeginIndexed_RoundTripsThroughProcessor (0 ms)
+[ RUN      ] GXFifoTest.BeginIndexed_RecordsDisplayList
+[       OK ] GXFifoTest.BeginIndexed_RecordsDisplayList (0 ms)
+[ RUN      ] GXFifoTest.GXCallsWriteTheStreamsBytesOfBefore
+[golden] stream seed 0x00000001: 33339 bytes, hash 0x5F1973F3944030FA
+[golden] stream seed 0x9E3779B9: 32817 bytes, hash 0xE3737D4B1464A3B6
+[golden] stream seed 0x2545F491: 33681 bytes, hash 0x1C94F82CB30314E1
+[       OK ] GXFifoTest.GXCallsWriteTheStreamsBytesOfBefore (0 ms)
+[ RUN      ] GXFifoTest.ReservedVertexDataWritesTheBytesOfOneCallAValue
+[2] aurora::gx::fifo: 65537 bytes written between publishes, more than a 65536 byte chunk: given a chunk of their own
+[       OK ] GXFifoTest.ReservedVertexDataWritesTheBytesOfOneCallAValue (0 ms)
+[ RUN      ] GXFifoTest.NoVertexDataReservationInAList
+[       OK ] GXFifoTest.NoVertexDataReservationInAList (0 ms)
+[ RUN      ] GXFifoTest.GXCallsWriteTheListsBytesOfBefore
+[golden] list seed 0x00000001: 17248 bytes, hash 0x9A1BD2EE88F497D1
+[golden] list seed 0x9E3779B9: 17152 bytes, hash 0x076D6CE0100876A2
+[       OK ] GXFifoTest.GXCallsWriteTheListsBytesOfBefore (0 ms)
+[ RUN      ] GXFifoTest.FifoPublishesOnlyAtExplicitBoundary
+[       OK ] GXFifoTest.FifoPublishesOnlyAtExplicitBoundary (1 ms)
+[ RUN      ] GXFifoTest.IndexCountPastU16
+[       OK ] GXFifoTest.IndexCountPastU16 (1 ms)
+[ RUN      ] GXFifoTest.DrawsTakeIndicesFromThePatterns
+[       OK ] GXFifoTest.DrawsTakeIndicesFromThePatterns (0 ms)
+[ RUN      ] GXFifoTest.DrawMergedIntoAPatternDrawBuildsBothIndices
+[       OK ] GXFifoTest.DrawMergedIntoAPatternDrawBuildsBothIndices (0 ms)
+[ RUN      ] GXFifoTest.CommandsGoRoundTheChunksInOrder
+[       OK ] GXFifoTest.CommandsGoRoundTheChunksInOrder (4 ms)
+[ RUN      ] GXFifoTest.AutoSizedDrawCarriedToTheNextChunkIsPatched
+[       OK ] GXFifoTest.AutoSizedDrawCarriedToTheNextChunkIsPatched (0 ms)
+[ RUN      ] GXFifoTest.WriterWaitsForAChunkTheProcessorHasLeft
+[       OK ] GXFifoTest.WriterWaitsForAChunkTheProcessorHasLeft (103 ms)
+[ RUN      ] GXFifoTest.FrameBeginsAheadOfCommandsWrittenBetweenFrames
+[       OK ] GXFifoTest.FrameBeginsAheadOfCommandsWrittenBetweenFrames (0 ms)
+[ RUN      ] GXFifoTest.FrameBoundariesAndSettingsReachTheProcessorInOrder
+[       OK ] GXFifoTest.FrameBoundariesAndSettingsReachTheProcessorInOrder (0 ms)
+[ RUN      ] GXFifoTest.DrainIsWokenOnceNotPerList
+[       OK ] GXFifoTest.DrainIsWokenOnceNotPerList (51 ms)
+[ RUN      ] GXFifoTest.WaitDrawDoneWaitsForItsTokenNotLaterCommands
+[       OK ] GXFifoTest.WaitDrawDoneWaitsForItsTokenNotLaterCommands (0 ms)
+[ RUN      ] GXFifoTest.DrawSyncTokenCanBePolledAndCallsBack
+[       OK ] GXFifoTest.DrawSyncTokenCanBePolledAndCallsBack (0 ms)
+[ RUN      ] GXFifoTest.EveryPublishReachesTheProcessor
+[       OK ] GXFifoTest.EveryPublishReachesTheProcessor (14 ms)
+[ RUN      ] GXFifoTest.FramesEndWithoutWaitingForTheProcessor
+[       OK ] GXFifoTest.FramesEndWithoutWaitingForTheProcessor (0 ms)
+[ RUN      ] GXFifoTest.AutoSizedDrawPublishesAfterLengthPatch
+[       OK ] GXFifoTest.AutoSizedDrawPublishesAfterLengthPatch (0 ms)
+[ RUN      ] GXFifoTest.CommandsAfterFinalDrawRemainPendingUntilDrain
+[       OK ] GXFifoTest.CommandsAfterFinalDrawRemainPendingUntilDrain (0 ms)
+[ RUN      ] GXFifoTest.FrameBufferCommandsPublishAfterTheirCompletePayload
+[       OK ] GXFifoTest.FrameBufferCommandsPublishAfterTheirCompletePayload (0 ms)
+[ RUN      ] GXFifoTest.ClearTexCopySrc_ClearsAsACopyWithout
+[       OK ] GXFifoTest.ClearTexCopySrc_ClearsAsACopyWithout (0 ms)
+[ RUN      ] GXFifoTest.DrawDoneProcessesPublishedAndUnpublishedTailBeforeCallback
+[       OK ] GXFifoTest.DrawDoneProcessesPublishedAndUnpublishedTailBeforeCallback (0 ms)
+[ RUN      ] GXFifoTest.SetDrawDonePublishesTailWithoutDraining
+[       OK ] GXFifoTest.SetDrawDonePublishesTailWithoutDraining (0 ms)
+[ RUN      ] GXFifoTest.SetDrawDoneInDisplayListDispatchesWhenCalled
+[       OK ] GXFifoTest.SetDrawDoneInDisplayListDispatchesWhenCalled (0 ms)
+[ RUN      ] GXFifoTest.DrainWaitsForDrawDoneCallbackToReturn
+[       OK ] GXFifoTest.DrainWaitsForDrawDoneCallbackToReturn (10 ms)
+[ RUN      ] GXFifoTest.AuroraSyncGXProcessesTailWithoutDrawDoneCallback
+[       OK ] GXFifoTest.AuroraSyncGXProcessesTailWithoutDrawDoneCallback (0 ms)
+[ RUN      ] GXFifoTest.CallDisplayListWritesTheListsAddressNotItsBytes
+[       OK ] GXFifoTest.CallDisplayListWritesTheListsAddressNotItsBytes (0 ms)
+[ RUN      ] GXFifoTest.CallDisplayListWhileRecordingCopiesTheList
+[       OK ] GXFifoTest.CallDisplayListWhileRecordingCopiesTheList (0 ms)
+[ RUN      ] GXFifoTest.DisplayListRewrittenAfterDrawDoneDrawsItsNewBytes
+[       OK ] GXFifoTest.DisplayListRewrittenAfterDrawDoneDrawsItsNewBytes (0 ms)
+[ RUN      ] GXFifoTest.DisplayListCallPublishesAtCompleteBoundary
+[       OK ] GXFifoTest.DisplayListCallPublishesAtCompleteBoundary (0 ms)
+[ RUN      ] GXFifoTest.BpMask_AppliesToNextWriteOnly
+[       OK ] GXFifoTest.BpMask_AppliesToNextWriteOnly (0 ms)
+[ RUN      ] GXFifoTest.IndirectTextureMask_IsShadowOnly
+[       OK ] GXFifoTest.IndirectTextureMask_IsShadowOnly (0 ms)
+[ RUN      ] GXFifoTest.FirstZeroBpWrite_IsDecoded
+[       OK ] GXFifoTest.FirstZeroBpWrite_IsDecoded (0 ms)
+[ RUN      ] GXFifoTest.BlendMode_Blend_SrcAlpha
+[       OK ] GXFifoTest.BlendMode_Blend_SrcAlpha (0 ms)
+[ RUN      ] GXFifoTest.BlendMode_None
+[       OK ] GXFifoTest.BlendMode_None (0 ms)
+[ RUN      ] GXFifoTest.BlendMode_Subtract
+[       OK ] GXFifoTest.BlendMode_Subtract (0 ms)
+[ RUN      ] GXFifoTest.BlendMode_Logic
+[       OK ] GXFifoTest.BlendMode_Logic (0 ms)
+[ RUN      ] GXFifoTest.ColorUpdate_Disabled
+[       OK ] GXFifoTest.ColorUpdate_Disabled (0 ms)
+[ RUN      ] GXFifoTest.AlphaUpdate_Disabled
+[       OK ] GXFifoTest.AlphaUpdate_Disabled (0 ms)
+[ RUN      ] GXFifoTest.ZMode_LessNoUpdate
+[       OK ] GXFifoTest.ZMode_LessNoUpdate (0 ms)
+[ RUN      ] GXFifoTest.ZMode_AlwaysUpdate
+[       OK ] GXFifoTest.ZMode_AlwaysUpdate (0 ms)
+[ RUN      ] GXFifoTest.ZMode_Disabled
+[       OK ] GXFifoTest.ZMode_Disabled (0 ms)
+[ RUN      ] GXFifoTest.AlphaCompare_GreaterThan128
+[       OK ] GXFifoTest.AlphaCompare_GreaterThan128 (0 ms)
+[ RUN      ] GXFifoTest.AlphaCompare_OrGequal
+[       OK ] GXFifoTest.AlphaCompare_OrGequal (0 ms)
+[ RUN      ] GXFifoTest.DstAlpha_Enabled
+[       OK ] GXFifoTest.DstAlpha_Enabled (0 ms)
+[ RUN      ] GXFifoTest.DstAlpha_Disabled
+[       OK ] GXFifoTest.DstAlpha_Disabled (0 ms)
+[ RUN      ] GXFifoTest.PixelFmt_Rgb565Z16_Decode
+[       OK ] GXFifoTest.PixelFmt_Rgb565Z16_Decode (0 ms)
+[ RUN      ] GXFifoTest.PixelFmt_U8_Decode
+[       OK ] GXFifoTest.PixelFmt_U8_Decode (0 ms)
+[ RUN      ] GXFifoTest.TevColorIn_Stage0
+[       OK ] GXFifoTest.TevColorIn_Stage0 (0 ms)
+[ RUN      ] GXFifoTest.TevAlphaIn_Stage0
+[       OK ] GXFifoTest.TevAlphaIn_Stage0 (0 ms)
+[ RUN      ] GXFifoTest.TevAlphaIn_Stage5
+[       OK ] GXFifoTest.TevAlphaIn_Stage5 (0 ms)
+[ RUN      ] GXFifoTest.TevColorIn_Stage7
+[       OK ] GXFifoTest.TevColorIn_Stage7 (0 ms)
+[ RUN      ] GXFifoTest.TevOp_Modulate_Stage0
+[       OK ] GXFifoTest.TevOp_Modulate_Stage0 (0 ms)
+[ RUN      ] GXFifoTest.TevOp_Modulate_Stage1
+[       OK ] GXFifoTest.TevOp_Modulate_Stage1 (0 ms)
+[ RUN      ] GXFifoTest.TevOp_Replace
+[       OK ] GXFifoTest.TevOp_Replace (0 ms)
+[ RUN      ] GXFifoTest.TevOp_Decal
+[       OK ] GXFifoTest.TevOp_Decal (0 ms)
+[ RUN      ] GXFifoTest.TevOp_Blend
+[       OK ] GXFifoTest.TevOp_Blend (0 ms)
+[ RUN      ] GXFifoTest.TevOp_PassClr
+[       OK ] GXFifoTest.TevOp_PassClr (0 ms)
+[ RUN      ] GXFifoTest.TevColorOp_Sub_Scale2_Reg1
+[       OK ] GXFifoTest.TevColorOp_Sub_Scale2_Reg1 (0 ms)
+[ RUN      ] GXFifoTest.TevAlphaOp_Add_NoClamp_Reg2
+[       OK ] GXFifoTest.TevAlphaOp_Add_NoClamp_Reg2 (0 ms)
+[ RUN      ] GXFifoTest.TevColorOp_CompareR8GT
+[       OK ] GXFifoTest.TevColorOp_CompareR8GT (0 ms)
+[ RUN      ] GXFifoTest.TevColorOp_CompareGR16EQ
+[       OK ] GXFifoTest.TevColorOp_CompareGR16EQ (0 ms)
+[ RUN      ] GXFifoTest.TevAlphaOp_CompareRGB8GT
+[       OK ] GXFifoTest.TevAlphaOp_CompareRGB8GT (0 ms)
+[ RUN      ] GXFifoTest.TevColorOp_CompareBGR24GT
+[       OK ] GXFifoTest.TevColorOp_CompareBGR24GT (0 ms)
+[ RUN      ] GXFifoTest.TevColorOp_CompareRGB8EQ
+[       OK ] GXFifoTest.TevColorOp_CompareRGB8EQ (0 ms)
+[ RUN      ] GXFifoTest.TevAlphaOp_CompareA8EQ
+[       OK ] GXFifoTest.TevAlphaOp_CompareA8EQ (0 ms)
+[ RUN      ] GXFifoTest.TevColorS10_Positive
+[       OK ] GXFifoTest.TevColorS10_Positive (0 ms)
+[ RUN      ] GXFifoTest.TevColorS10_Negative
+[       OK ] GXFifoTest.TevColorS10_Negative (0 ms)
+[ RUN      ] GXFifoTest.TevKColorSel_Stage0_K0
+[       OK ] GXFifoTest.TevKColorSel_Stage0_K0 (0 ms)
+[ RUN      ] GXFifoTest.TevKColorSel_Stage1_K2_R
+[       OK ] GXFifoTest.TevKColorSel_Stage1_K2_R (0 ms)
+[ RUN      ] GXFifoTest.TevKAlphaSel_Stage0_K1_A
+[       OK ] GXFifoTest.TevKAlphaSel_Stage0_K1_A (0 ms)
+[ RUN      ] GXFifoTest.TevKAlphaSel_Stage3_K3_B
+[       OK ] GXFifoTest.TevKAlphaSel_Stage3_K3_B (0 ms)
+[ RUN      ] GXFifoTest.TevKColorSel_DoesNotCorruptSwapTable
+[       OK ] GXFifoTest.TevKColorSel_DoesNotCorruptSwapTable (0 ms)
+[ RUN      ] GXFifoTest.TevSwapMode_Stage0
+[       OK ] GXFifoTest.TevSwapMode_Stage0 (0 ms)
+[ RUN      ] GXFifoTest.TevSwapMode_Stage3
+[       OK ] GXFifoTest.TevSwapMode_Stage3 (0 ms)
+[ RUN      ] GXFifoTest.TevSwapModeTable_Swap1_AllRed
+[       OK ] GXFifoTest.TevSwapModeTable_Swap1_AllRed (0 ms)
+[ RUN      ] GXFifoTest.TevSwapModeTable_Swap2_Swizzle
+[       OK ] GXFifoTest.TevSwapModeTable_Swap2_Swizzle (0 ms)
+[ RUN      ] GXFifoTest.TevOrder_Stage0
+[       OK ] GXFifoTest.TevOrder_Stage0 (0 ms)
+[ RUN      ] GXFifoTest.TevOrder_Stage1_OddStage
+[       OK ] GXFifoTest.TevOrder_Stage1_OddStage (0 ms)
+[ RUN      ] GXFifoTest.TevOrder_Stage0_TexNull
+[       OK ] GXFifoTest.TevOrder_Stage0_TexNull (0 ms)
+[ RUN      ] GXFifoTest.TevKColor_K0
+[       OK ] GXFifoTest.TevKColor_K0 (0 ms)
+[ RUN      ] GXFifoTest.TevKColor_K1
+[       OK ] GXFifoTest.TevKColor_K1 (0 ms)
+[ RUN      ] GXFifoTest.TevKColor_K2
+[       OK ] GXFifoTest.TevKColor_K2 (0 ms)
+[ RUN      ] GXFifoTest.TevKColor_K3
+[       OK ] GXFifoTest.TevKColor_K3 (0 ms)
+[ RUN      ] GXFifoTest.TevColor_Reg0
+[       OK ] GXFifoTest.TevColor_Reg0 (0 ms)
+[ RUN      ] GXFifoTest.TevColor_Prev
+[       OK ] GXFifoTest.TevColor_Prev (0 ms)
+[ RUN      ] GXFifoTest.TevColor_Reg1
+[       OK ] GXFifoTest.TevColor_Reg1 (0 ms)
+[ RUN      ] GXFifoTest.TevColor_Reg2
+[       OK ] GXFifoTest.TevColor_Reg2 (0 ms)
+[ RUN      ] GXFifoTest.TevColorS10_Reg1
+[       OK ] GXFifoTest.TevColorS10_Reg1 (0 ms)
+[ RUN      ] GXFifoTest.TevColorS10_Reg2
+[       OK ] GXFifoTest.TevColorS10_Reg2 (0 ms)
+[ RUN      ] GXFifoTest.ClearVtxDesc_ClearsAll
+[       OK ] GXFifoTest.ClearVtxDesc_ClearsAll (0 ms)
+[ RUN      ] GXFifoTest.VtxDesc_PosAndNrm_Direct
+[       OK ] GXFifoTest.VtxDesc_PosAndNrm_Direct (0 ms)
+[ RUN      ] GXFifoTest.VtxDesc_Indexed
+[       OK ] GXFifoTest.VtxDesc_Indexed (0 ms)
+[ RUN      ] GXFifoTest.VtxDesc_MtxIdx
+[       OK ] GXFifoTest.VtxDesc_MtxIdx (0 ms)
+[ RUN      ] GXFifoTest.GetVtxDesc_UsesShadowState
+[       OK ] GXFifoTest.GetVtxDesc_UsesShadowState (0 ms)
+[ RUN      ] GXFifoTest.VtxAttrFmt_PosF32
+[       OK ] GXFifoTest.VtxAttrFmt_PosF32 (0 ms)
+[ RUN      ] GXFifoTest.VtxAttrFmt_NrmS16
+[       OK ] GXFifoTest.VtxAttrFmt_NrmS16 (0 ms)
+[ RUN      ] GXFifoTest.VtxAttrFmt_Tex0_S16_Frac8
+[       OK ] GXFifoTest.VtxAttrFmt_Tex0_S16_Frac8 (0 ms)
+[ RUN      ] GXFifoTest.VtxAttrFmt_Clr0_RGBA8
+[       OK ] GXFifoTest.VtxAttrFmt_Clr0_RGBA8 (0 ms)
+[ RUN      ] GXFifoTest.VtxAttrFmt_MultipleTexCoords
+[       OK ] GXFifoTest.VtxAttrFmt_MultipleTexCoords (0 ms)
+[ RUN      ] GXFifoTest.GetVtxAttrFmt_UsesShadowState
+[       OK ] GXFifoTest.GetVtxAttrFmt_UsesShadowState (0 ms)
+[ RUN      ] GXFifoTest.SetArray_Pos_EncodesAuroraArrayBaseAndStride
+[       OK ] GXFifoTest.SetArray_Pos_EncodesAuroraArrayBaseAndStride (0 ms)
+[ RUN      ] GXFifoTest.SetArray_Nbt_UsesNrmCommandSlotAndState
+[       OK ] GXFifoTest.SetArray_Nbt_UsesNrmCommandSlotAndState (0 ms)
+[ RUN      ] GXFifoTest.SetArray_LittleEndianFlag_UpdatesStateAndClearsCachedRange
+[       OK ] GXFifoTest.SetArray_LittleEndianFlag_UpdatesStateAndClearsCachedRange (0 ms)
+[ RUN      ] GXFifoTest.PipelineConfigBuiltOnlyWhenInputsDiffer
+[       OK ] GXFifoTest.PipelineConfigBuiltOnlyWhenInputsDiffer (0 ms)
+[ RUN      ] GXFifoTest.SetArray_CopiedOncePerFrame
+[       OK ] GXFifoTest.SetArray_CopiedOncePerFrame (0 ms)
+[ RUN      ] GXFifoTest.LoadTexObj_EncodesSdkBpBurstAndAuroraMetadata
+[       OK ] GXFifoTest.LoadTexObj_EncodesSdkBpBurstAndAuroraMetadata (0 ms)
+[ RUN      ] GXFifoTest.LoadTexObjPcFormat_PreservesFullFormatMetadata
+[       OK ] GXFifoTest.LoadTexObjPcFormat_PreservesFullFormatMetadata (0 ms)
+[ RUN      ] GXFifoTest.TexImage0BpWrite_ClearsExtendedTextureMetadata
+[       OK ] GXFifoTest.TexImage0BpWrite_ClearsExtendedTextureMetadata (0 ms)
+[ RUN      ] GXFifoTest.TexObjUninitializedDimensions_AreZero
+[       OK ] GXFifoTest.TexObjUninitializedDimensions_AreZero (0 ms)
+[ RUN      ] GXFifoTest.TexImage0BpWrite_PreservesMaximumDimensions
+[       OK ] GXFifoTest.TexImage0BpWrite_PreservesMaximumDimensions (0 ms)
+[ RUN      ] GXFifoTest.TexObjExplicitDimensions_DoNotWrapAtTenBitBoundary
+[       OK ] GXFifoTest.TexObjExplicitDimensions_DoNotWrapAtTenBitBoundary (0 ms)
+[ RUN      ] GXFifoTest.LoadTexObjCiAndTlut_PopulatesTextureAndTlutSlots
+[       OK ] GXFifoTest.LoadTexObjCiAndTlut_PopulatesTextureAndTlutSlots (0 ms)
+[ RUN      ] GXFifoTest.TlutExecute_ReappliesSameTargetAfterSourceChanges
+[       OK ] GXFifoTest.TlutExecute_ReappliesSameTargetAfterSourceChanges (0 ms)
+[ RUN      ] GXFifoTest.DestroyTexObj_EmitsAuroraDestroyCommandAndClearsIdentity
+[       OK ] GXFifoTest.DestroyTexObj_EmitsAuroraDestroyCommandAndClearsIdentity (0 ms)
+[ RUN      ] GXFifoTest.DestroyTexObj_MarksLoadedSlotNoCacheUntilReloaded
+[       OK ] GXFifoTest.DestroyTexObj_MarksLoadedSlotNoCacheUntilReloaded (0 ms)
+[ RUN      ] GXFifoTest.DestroyTlutObj_EmitsAuroraDestroyCommandAndClearsIdentity
+[       OK ] GXFifoTest.DestroyTlutObj_EmitsAuroraDestroyCommandAndClearsIdentity (0 ms)
+[ RUN      ] GXFifoTest.DestroyTlutObj_MarksLoadedSlotNoCacheUntilReloaded
+[       OK ] GXFifoTest.DestroyTlutObj_MarksLoadedSlotNoCacheUntilReloaded (0 ms)
+[ RUN      ] GXFifoTest.DestroyCopyTex_EmitsAuroraDestroyCommand
+[       OK ] GXFifoTest.DestroyCopyTex_EmitsAuroraDestroyCommand (0 ms)
+[ RUN      ] GXFifoTest.DestroyCopyTex_RetiresOnlyTheRequestedDestination
+[       OK ] GXFifoTest.DestroyCopyTex_RetiresOnlyTheRequestedDestination (0 ms)
+[ RUN      ] GXFifoTest.CullMode_Back
+[       OK ] GXFifoTest.CullMode_Back (0 ms)
+[ RUN      ] GXFifoTest.CullMode_Front
+[       OK ] GXFifoTest.CullMode_Front (0 ms)
+[ RUN      ] GXFifoTest.CullMode_None
+[       OK ] GXFifoTest.CullMode_None (0 ms)
+[ RUN      ] GXFifoTest.GetLinePointCullShadowState
+[       OK ] GXFifoTest.GetLinePointCullShadowState (0 ms)
+[ RUN      ] GXFifoTest.LinePointSize_Decode
+[       OK ] GXFifoTest.LinePointSize_Decode (0 ms)
+[ RUN      ] GXFifoTest.NumTevStages
+[       OK ] GXFifoTest.NumTevStages (0 ms)
+[ RUN      ] GXFifoTest.NumTexGens
+[       OK ] GXFifoTest.NumTexGens (0 ms)
+[ RUN      ] GXFifoTest.NumChans
+[       OK ] GXFifoTest.NumChans (0 ms)
+[ RUN      ] GXFifoTest.GenMode_ReappliesAfterMirroredXfWrites
+[       OK ] GXFifoTest.GenMode_ReappliesAfterMirroredXfWrites (0 ms)
+[ RUN      ] GXFifoTest.XfCounts_ReapplyAfterMirroredGenModeWrite
+[       OK ] GXFifoTest.XfCounts_ReapplyAfterMirroredGenModeWrite (0 ms)
+[ RUN      ] GXFifoTest.LoadPosMtxIndx_RoundTripWithFullIndexAndFollowingCommand
+[       OK ] GXFifoTest.LoadPosMtxIndx_RoundTripWithFullIndexAndFollowingCommand (0 ms)
+[ RUN      ] GXFifoTest.LoadPosMtxIndx_DecodesBigEndianArray
+[       OK ] GXFifoTest.LoadPosMtxIndx_DecodesBigEndianArray (0 ms)
+[ RUN      ] GXFifoTest.LoadPosMtxImm_Identity
+[       OK ] GXFifoTest.LoadPosMtxImm_Identity (0 ms)
+[ RUN      ] GXFifoTest.LoadPosMtxImm_Translation
+[       OK ] GXFifoTest.LoadPosMtxImm_Translation (0 ms)
+[ RUN      ] GXFifoTest.Writes_MarkOnlyTheirUniformPiece
+[       OK ] GXFifoTest.Writes_MarkOnlyTheirUniformPiece (0 ms)
+[ RUN      ] GXFifoTest.SharedRegisters_MarkTheirPieceOnlyForItsState
+[       OK ] GXFifoTest.SharedRegisters_MarkTheirPieceOnlyForItsState (0 ms)
+[ RUN      ] GXFifoTest.NormalTarget_PushesNormalMatrices
+[       OK ] GXFifoTest.NormalTarget_PushesNormalMatrices (0 ms)
+[ RUN      ] GXFifoTest.LoadNrmMtxImm_Identity
+[       OK ] GXFifoTest.LoadNrmMtxImm_Identity (0 ms)
+[ RUN      ] GXFifoTest.LoadNrmMtxImm_ArbitraryValues
+[       OK ] GXFifoTest.LoadNrmMtxImm_ArbitraryValues (0 ms)
+[ RUN      ] GXFifoTest.LoadNrmMtxImm_DifferentSlot
+[       OK ] GXFifoTest.LoadNrmMtxImm_DifferentSlot (0 ms)
+[ RUN      ] GXFifoTest.LoadNrmMtxImm_Isolation
+[       OK ] GXFifoTest.LoadNrmMtxImm_Isolation (0 ms)
+[ RUN      ] GXFifoTest.LoadNrmMtxImm_WithPosMtx
+[       OK ] GXFifoTest.LoadNrmMtxImm_WithPosMtx (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx3x4_Identity
+[       OK ] GXFifoTest.LoadTexMtx3x4_Identity (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx3x4_ArbitraryValues
+[       OK ] GXFifoTest.LoadTexMtx3x4_ArbitraryValues (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx3x4_DifferentSlot
+[       OK ] GXFifoTest.LoadTexMtx3x4_DifferentSlot (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx3x4_LastSlot
+[       OK ] GXFifoTest.LoadTexMtx3x4_LastSlot (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx3x4_Isolation
+[       OK ] GXFifoTest.LoadTexMtx3x4_Isolation (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx2x4_Identity
+[       OK ] GXFifoTest.LoadTexMtx2x4_Identity (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx2x4_ArbitraryValues
+[       OK ] GXFifoTest.LoadTexMtx2x4_ArbitraryValues (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx2x4_DifferentSlot
+[       OK ] GXFifoTest.LoadTexMtx2x4_DifferentSlot (0 ms)
+[ RUN      ] GXFifoTest.LoadTexMtx2x4_Isolation
+[       OK ] GXFifoTest.LoadTexMtx2x4_Isolation (0 ms)
+[ RUN      ] GXFifoTest.Projection_Perspective
+[       OK ] GXFifoTest.Projection_Perspective (0 ms)
+[ RUN      ] GXFifoTest.Projection_Orthographic
+[       OK ] GXFifoTest.Projection_Orthographic (0 ms)
+[ RUN      ] GXFifoTest.GetProjectionAndScissorShadowState
+[       OK ] GXFifoTest.GetProjectionAndScissorShadowState (0 ms)
+[ RUN      ] GXFifoTest.Scissor_EncodesBpAndDecodesLogicalState
+[       OK ] GXFifoTest.Scissor_EncodesBpAndDecodesLogicalState (0 ms)
+[ RUN      ] GXFifoTest.GetViewportShadowState
+[       OK ] GXFifoTest.GetViewportShadowState (0 ms)
+[ RUN      ] GXFifoTest.Viewport_DecodesLogicalViewportState
+[       OK ] GXFifoTest.Viewport_DecodesLogicalViewportState (0 ms)
+[ RUN      ] GXFifoTest.ViewportRender_EncodesAuroraOverride
+[       OK ] GXFifoTest.ViewportRender_EncodesAuroraOverride (0 ms)
+[ RUN      ] GXFifoTest.ScissorRender_EncodesAuroraOverride
+[       OK ] GXFifoTest.ScissorRender_EncodesAuroraOverride (0 ms)
+[ RUN      ] GXFifoTest.LoadLightObjImm_Light0_BasicColor
+[       OK ] GXFifoTest.LoadLightObjImm_Light0_BasicColor (0 ms)
+[ RUN      ] GXFifoTest.LoadLightObjImm_Light3_Attenuation
+[       OK ] GXFifoTest.LoadLightObjImm_Light3_Attenuation (0 ms)
+[ RUN      ] GXFifoTest.LoadLightObjImm_Light7_LastLight
+[       OK ] GXFifoTest.LoadLightObjImm_Light7_LastLight (0 ms)
+[ RUN      ] GXFifoTest.LoadLightObjImm_SpotLight
+[       OK ] GXFifoTest.LoadLightObjImm_SpotLight (0 ms)
+[ RUN      ] GXFifoTest.LoadLightObjImm_UnitTermsMarked
+[       OK ] GXFifoTest.LoadLightObjImm_UnitTermsMarked (0 ms)
+[ RUN      ] GXFifoTest.ChanCtrl_Color0_LightingEnabled
+[       OK ] GXFifoTest.ChanCtrl_Color0_LightingEnabled (0 ms)
+[ RUN      ] GXFifoTest.ChanCtrl_Alpha0_NoLighting
+[       OK ] GXFifoTest.ChanCtrl_Alpha0_NoLighting (0 ms)
+[ RUN      ] GXFifoTest.ChanCtrl_Color1_SpecularLighting
+[       OK ] GXFifoTest.ChanCtrl_Color1_SpecularLighting (0 ms)
+[ RUN      ] GXFifoTest.ChanCtrl_AttenuationUsesSdkBitEncoding
+[       OK ] GXFifoTest.ChanCtrl_AttenuationUsesSdkBitEncoding (0 ms)
+[ RUN      ] GXFifoTest.ChanCtrl_DecodesSdkAttenuationBits
+[       OK ] GXFifoTest.ChanCtrl_DecodesSdkAttenuationBits (0 ms)
+[ RUN      ] GXFifoTest.ChanCtrl_Color0A0_Compound
+[       OK ] GXFifoTest.ChanCtrl_Color0A0_Compound (0 ms)
+[ RUN      ] GXFifoTest.ChanCtrl_Color1A1_Compound
+[       OK ] GXFifoTest.ChanCtrl_Color1A1_Compound (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_Mtx2x4_Tex0
+[       OK ] GXFifoTest.TexCoordGen_Mtx2x4_Tex0 (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_Mtx3x4_Nrm
+[       OK ] GXFifoTest.TexCoordGen_Mtx3x4_Nrm (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_SRTG_Color0
+[       OK ] GXFifoTest.TexCoordGen_SRTG_Color0 (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_SRTG_Color1
+[       OK ] GXFifoTest.TexCoordGen_SRTG_Color1 (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_NonZeroMtx
+[       OK ] GXFifoTest.TexCoordGen_NonZeroMtx (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_MultipleCoords
+[       OK ] GXFifoTest.TexCoordGen_MultipleCoords (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_HighCoord_MatIdxB
+[       OK ] GXFifoTest.TexCoordGen_HighCoord_MatIdxB (0 ms)
+[ RUN      ] GXFifoTest.TexCoordGen_Identity
+[       OK ] GXFifoTest.TexCoordGen_Identity (0 ms)
+[ RUN      ] GXFifoTest.ChanAmbColor_Color0
+[       OK ] GXFifoTest.ChanAmbColor_Color0 (0 ms)
+[ RUN      ] GXFifoTest.ChanMatColor_Color0
+[       OK ] GXFifoTest.ChanMatColor_Color0 (0 ms)
+[ RUN      ] GXFifoTest.ChanAmbColor_Color1
+[       OK ] GXFifoTest.ChanAmbColor_Color1 (0 ms)
+[ RUN      ] GXFifoTest.ChanMatColor_Color1
+[       OK ] GXFifoTest.ChanMatColor_Color1 (0 ms)
+[ RUN      ] GXFifoTest.ChanAmbColor_Color0A0_Compound
+[       OK ] GXFifoTest.ChanAmbColor_Color0A0_Compound (0 ms)
+[ RUN      ] GXFifoTest.ChanMatColor_Color1A1_Compound
+[       OK ] GXFifoTest.ChanMatColor_Color1A1_Compound (0 ms)
+[ RUN      ] GXFifoTest.Fog_PerspLin_Typical
+[       OK ] GXFifoTest.Fog_PerspLin_Typical (0 ms)
+[ RUN      ] GXFifoTest.Fog_Degenerate_EqualDepths
+[       OK ] GXFifoTest.Fog_Degenerate_EqualDepths (0 ms)
+[ RUN      ] GXFifoTest.Fog_None
+[       OK ] GXFifoTest.Fog_None (0 ms)
+[ RUN      ] GXFifoTest.Fog_PerspRevExp2
+[       OK ] GXFifoTest.Fog_PerspRevExp2 (0 ms)
+[ RUN      ] GXFifoTest.Fog_OrthoLin_UsesProjectionBitAndLinearDepth
+[       OK ] GXFifoTest.Fog_OrthoLin_UsesProjectionBitAndLinearDepth (0 ms)
+[ RUN      ] GXFifoTest.FogRangeAdj_DecodesCenterAndCoefficientTable
+[       OK ] GXFifoTest.FogRangeAdj_DecodesCenterAndCoefficientTable (0 ms)
+[ RUN      ] GXFifoTest.IndTexMtx0_HalfScale
+[       OK ] GXFifoTest.IndTexMtx0_HalfScale (0 ms)
+[ RUN      ] GXFifoTest.IndTexMtx1_FractionalWithScale
+[       OK ] GXFifoTest.IndTexMtx1_FractionalWithScale (0 ms)
+[ RUN      ] GXFifoTest.IndTexMtx2_NegativeScale
+[       OK ] GXFifoTest.IndTexMtx2_NegativeScale (0 ms)
+[ RUN      ] GXFifoTest.IndTexMtx0_Isolation
+[       OK ] GXFifoTest.IndTexMtx0_Isolation (0 ms)
+[ RUN      ] GXFifoTest.TevIndTile_UsesTileSizeAndSpacing
+[       OK ] GXFifoTest.TevIndTile_UsesTileSizeAndSpacing (0 ms)
+[ RUN      ] GXFifoTest.TexCoordScale_Manual_Coord0
+[       OK ] GXFifoTest.TexCoordScale_Manual_Coord0 (0 ms)
+[ RUN      ] GXFifoTest.TexCoordScale_Manual_Coord3
+[       OK ] GXFifoTest.TexCoordScale_Manual_Coord3 (0 ms)
+[ RUN      ] GXFifoTest.TexCoordScale_BiasAndCylWrap
+[       OK ] GXFifoTest.TexCoordScale_BiasAndCylWrap (0 ms)
+[ RUN      ] GXFifoTest.TexCoordScale_TexOffsets
+[       OK ] GXFifoTest.TexCoordScale_TexOffsets (0 ms)
+[ RUN      ] GXFifoTest.TexCoordScale_TexOffsets_Disabled
+[       OK ] GXFifoTest.TexCoordScale_TexOffsets_Disabled (0 ms)
+[ RUN      ] GXFifoTest.TexCoordScale_Isolation
+[       OK ] GXFifoTest.TexCoordScale_Isolation (0 ms)
+[ RUN      ] GXFifoTest.TexCopyDst_ConsumesMipmapFlag
+[       OK ] GXFifoTest.TexCopyDst_ConsumesMipmapFlag (0 ms)
+[ RUN      ] GXFifoTest.CopyClear_ColorAndDepth
+[       OK ] GXFifoTest.CopyClear_ColorAndDepth (0 ms)
+[ RUN      ] GXFifoTest.CopyClear_BlackZeroDepth
+[       OK ] GXFifoTest.CopyClear_BlackZeroDepth (0 ms)
+[ RUN      ] GXFifoTest.CopyClear_MaxDepth
+[       OK ] GXFifoTest.CopyClear_MaxDepth (0 ms)
+[ RUN      ] GXFifoTest.PeekZ_FallsBackToZeroAndRequestsSnapshot
+[       OK ] GXFifoTest.PeekZ_FallsBackToZeroAndRequestsSnapshot (0 ms)
+[ RUN      ] GXFifoTest.PeekZ_ReturnsLatestCompletedSnapshot
+[       OK ] GXFifoTest.PeekZ_ReturnsLatestCompletedSnapshot (0 ms)
+[ RUN      ] GXFifoTest.PeekZ_OutOfRangeFallsBackToZero
+[       OK ] GXFifoTest.PeekZ_OutOfRangeFallsBackToZero (0 ms)
+[ RUN      ] GXFifoTest.Composite_BlendAndZMode
+[       OK ] GXFifoTest.Composite_BlendAndZMode (0 ms)
+[ RUN      ] GXFifoTest.LoadPTTexMtx_Identity
+[       OK ] GXFifoTest.LoadPTTexMtx_Identity (0 ms)
+[ RUN      ] GXFifoTest.LoadPTTexMtx_ArbitraryValues
+[       OK ] GXFifoTest.LoadPTTexMtx_ArbitraryValues (0 ms)
+[ RUN      ] GXFifoTest.LoadPTTexMtx_DifferentSlots
+[       OK ] GXFifoTest.LoadPTTexMtx_DifferentSlots (0 ms)
+[ RUN      ] GXFifoTest.LoadPTTexMtx_LastSlot
+[       OK ] GXFifoTest.LoadPTTexMtx_LastSlot (0 ms)
+[ RUN      ] GXFifoTest.LoadPTTexMtx_Isolation
+[       OK ] GXFifoTest.LoadPTTexMtx_Isolation (0 ms)
+[ RUN      ] GXFifoTest.Composite_TevSetup
+[       OK ] GXFifoTest.Composite_TevSetup (0 ms)
+[----------] 220 tests from GXFifoTest (258 ms total)
+
+[----------] 1 test from GXIndexPatterns
+[ RUN      ] GXIndexPatterns.EqualTheIndicesADrawBuilds
+[       OK ] GXIndexPatterns.EqualTheIndicesADrawBuilds (0 ms)
+[----------] 1 test from GXIndexPatterns (0 ms total)
+
+[----------] 5 tests from GXDlReader
+[ RUN      ] GXDlReader.WalksLeafStripDl
+[       OK ] GXDlReader.WalksLeafStripDl (0 ms)
+[ RUN      ] GXDlReader.UsesCanonicalAttributeOrder
+[       OK ] GXDlReader.UsesCanonicalAttributeOrder (0 ms)
+[ RUN      ] GXDlReader.FailsOnUnknownOpcode
+[2] aurora::gx::dl: Reader: unknown opcode (opcode 0x70 at offset 0)
+[       OK ] GXDlReader.FailsOnUnknownOpcode (0 ms)
+[ RUN      ] GXDlReader.FailsOnDrawOverrun
+[2] aurora::gx::dl: Reader: draw data overrun (opcode 0x98 at offset 0)
+[       OK ] GXDlReader.FailsOnDrawOverrun (0 ms)
+[ RUN      ] GXDlReader.StrideOnlyWalksAndSizes
+[       OK ] GXDlReader.StrideOnlyWalksAndSizes (0 ms)
+[----------] 5 tests from GXDlReader (1 ms total)
+
+[----------] 1 test from GXDlExpand
+[ RUN      ] GXDlExpand.StripFanQuadWinding
+[       OK ] GXDlExpand.StripFanQuadWinding (0 ms)
+[----------] 1 test from GXDlExpand (0 ms total)
+
+[----------] 5 tests from GXDlOptimize
+[ RUN      ] GXDlOptimize.MergesAdjacentStrips
+[       OK ] GXDlOptimize.MergesAdjacentStrips (0 ms)
+[ RUN      ] GXDlOptimize.PureTrianglesStayPlain
+[       OK ] GXDlOptimize.PureTrianglesStayPlain (0 ms)
+[ RUN      ] GXDlOptimize.StateCommandIsBarrier
+[       OK ] GXDlOptimize.StateCommandIsBarrier (0 ms)
+[ RUN      ] GXDlOptimize.FailsOnDirectAttrWithoutFmt
+[2] aurora::gx::dl: Reader: no layout for draw vertex format (opcode 0x90 at offset 0)
+[       OK ] GXDlOptimize.FailsOnDirectAttrWithoutFmt (0 ms)
+[ RUN      ] GXDlOptimize.DirectAttrWithFmt
+[       OK ] GXDlOptimize.DirectAttrWithFmt (0 ms)
+[----------] 5 tests from GXDlOptimize (1 ms total)
+
+[----------] 4 tests from GXAdjustForOverscanTest
+[ RUN      ] GXAdjustForOverscanTest.TrimsAnInterlacedDoubleStrikeModeWhole
+[       OK ] GXAdjustForOverscanTest.TrimsAnInterlacedDoubleStrikeModeWhole (0 ms)
+[ RUN      ] GXAdjustForOverscanTest.HalvesTheXfbTrimForAnInterlacedSingleStrikeBuffer
+[       OK ] GXAdjustForOverscanTest.HalvesTheXfbTrimForAnInterlacedSingleStrikeBuffer (0 ms)
+[ RUN      ] GXAdjustForOverscanTest.TrimsANonInterlacedModeAsTheSdkDoes
+[       OK ] GXAdjustForOverscanTest.TrimsANonInterlacedModeAsTheSdkDoes (0 ms)
+[ RUN      ] GXAdjustForOverscanTest.KeepsTheEfbHeightWithoutAnXfbHeight
+[       OK ] GXAdjustForOverscanTest.KeepsTheEfbHeightWithoutAnXfbHeight (0 ms)
+[----------] 4 tests from GXAdjustForOverscanTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 236 tests from 6 test suites ran. (266 ms total)
+[  PASSED  ] 236 tests.
+== gfx_recording_tests
+Running main() from /home/xenon/build/aurora-golden-dawn/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 18 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 15 tests from GfxRecordingTest
+[ RUN      ] GfxRecordingTest.CreateRestoreReturnsToEfb
+[       OK ] GfxRecordingTest.CreateRestoreReturnsToEfb (0 ms)
+[ RUN      ] GfxRecordingTest.EfbPassUsesDiscoveredSceneLayout
+[       OK ] GfxRecordingTest.EfbPassUsesDiscoveredSceneLayout (0 ms)
+[ RUN      ] GfxRecordingTest.LayoutKeyFollowsTheCurrentPass
+[       OK ] GfxRecordingTest.LayoutKeyFollowsTheCurrentPass (0 ms)
+[ RUN      ] GfxRecordingTest.CopiedOffscreenPassIsRetainedOnRestore
+[       OK ] GfxRecordingTest.CopiedOffscreenPassIsRetainedOnRestore (0 ms)
+[ RUN      ] GfxRecordingTest.ReplacementRetainsCopiedPassesAndDiscardsContinuations
+[       OK ] GfxRecordingTest.ReplacementRetainsCopiedPassesAndDiscardsContinuations (0 ms)
+[ RUN      ] GfxRecordingTest.RepeatedUncopiedCreatesDiscardEarlierPasses
+[       OK ] GfxRecordingTest.RepeatedUncopiedCreatesDiscardEarlierPasses (0 ms)
+[ RUN      ] GfxRecordingTest.PublicCreatePassRejectsExistingOffscreenPass
+[warning] [aurora::gfx] create_pass: an offscreen pass is already active (nesting is unsupported)
+[       OK ] GfxRecordingTest.PublicCreatePassRejectsExistingOffscreenPass (0 ms)
+[ RUN      ] GfxRecordingTest.FinalizedPassesAreSealedOrDeliberatelyDiscarded
+[       OK ] GfxRecordingTest.FinalizedPassesAreSealedOrDeliberatelyDiscarded (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenBudgetIncludesColorAndDepth
+[       OK ] GfxRecordingTest.OffscreenBudgetIncludesColorAndDepth (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenBudgetBoundsContinuousSizeChanges
+[       OK ] GfxRecordingTest.OffscreenBudgetBoundsContinuousSizeChanges (1 ms)
+[ RUN      ] GfxRecordingTest.OversizedOffscreenDoesNotDisplaceReusableSizes
+[       OK ] GfxRecordingTest.OversizedOffscreenDoesNotDisplaceReusableSizes (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenSweepKeepsHotSizesAndExpiresIdleOnes
+[       OK ] GfxRecordingTest.OffscreenSweepKeepsHotSizesAndExpiresIdleOnes (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenReuseSurvivesEfbResizeCycles
+[       OK ] GfxRecordingTest.OffscreenReuseSurvivesEfbResizeCycles (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenKeyIncludesColorFormat
+[       OK ] GfxRecordingTest.OffscreenKeyIncludesColorFormat (0 ms)
+[ RUN      ] GfxRecordingTest.ClearWithoutACopy
+[       OK ] GfxRecordingTest.ClearWithoutACopy (0 ms)
+[----------] 15 tests from GfxRecordingTest (6 ms total)
+
+[----------] 1 test from TextureSetHash
+[ RUN      ] TextureSetHash.AsTheStreamedFieldsGave
+[       OK ] TextureSetHash.AsTheStreamedFieldsGave (0 ms)
+[----------] 1 test from TextureSetHash (0 ms total)
+
+[----------] 2 tests from RenderTargetLayoutTest
+[ RUN      ] RenderTargetLayoutTest.KeyChangesWithPipelineCompatibility
+[       OK ] RenderTargetLayoutTest.KeyChangesWithPipelineCompatibility (0 ms)
+[ RUN      ] RenderTargetLayoutTest.RenderPassDerivesLayoutFromAttachmentState
+[       OK ] RenderTargetLayoutTest.RenderPassDerivesLayoutFromAttachmentState (0 ms)
+[----------] 2 tests from RenderTargetLayoutTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (9 ms total)
+[  PASSED  ] 18 tests.
+== lru_cache_tests
+Running main() from /home/xenon/build/aurora-golden-dawn/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from LruCacheTest
+[ RUN      ] LruCacheTest.BudgetOnlyCacheRetainsIdleEntriesAndStillUsesLruOrder
+[       OK ] LruCacheTest.BudgetOnlyCacheRetainsIdleEntriesAndStillUsesLruOrder (0 ms)
+[ RUN      ] LruCacheTest.ZeroIdleLimitExpiresAtNextSweep
+[       OK ] LruCacheTest.ZeroIdleLimitExpiresAtNextSweep (0 ms)
+[ RUN      ] LruCacheTest.OversizedEntryDoesNotFlushReusableWorkingSet
+[       OK ] LruCacheTest.OversizedEntryDoesNotFlushReusableWorkingSet (0 ms)
+[ RUN      ] LruCacheTest.ReleasingPinPreservesLastUseForExpiry
+[       OK ] LruCacheTest.ReleasingPinPreservesLastUseForExpiry (0 ms)
+[ RUN      ] LruCacheTest.PinnedValueRemainsStableThroughGrowthAndEviction
+[       OK ] LruCacheTest.PinnedValueRemainsStableThroughGrowthAndEviction (0 ms)
+[ RUN      ] LruCacheTest.EvictionReleasesOnlyCacheOwnership
+[       OK ] LruCacheTest.EvictionReleasesOnlyCacheOwnership (0 ms)
+[ RUN      ] LruCacheTest.EveryRemovalNotifiesResourceOwnerOnce
+[       OK ] LruCacheTest.EveryRemovalNotifiesResourceOwnerOnce (0 ms)
+[----------] 7 tests from LruCacheTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (3 ms total)
+[  PASSED  ] 7 tests.
