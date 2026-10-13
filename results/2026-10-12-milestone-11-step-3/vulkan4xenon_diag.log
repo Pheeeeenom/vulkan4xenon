@@ -1,0 +1,250 @@
+log: game:\vulkan4xenon_diag.log
+log: named after \Device\Harddisk0\Partition1\XSDK\vulkan4xenon_diag.xex
+sbrk: the heap may grow to 474 MB, the title's free memory
+vulkan4xenon diagnostic title: milestone 11, step 3
+display: 1280x720 scaled to the 1920x1080 output
+display: the line counter reached 720 after 26341 us
+display: Xbox 360 video output, 1280x720 at 60000 mHz
+PASS: setup: device and swapchain made
+D1 a0 in a pixel shader, index from an interpolant: on screen: 0, 100 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1, 100 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 64, 100 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 127, 100 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 128, 100 held 2B D1 C8, want 2B D1 C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 129, 100 held 2B D1 C8, want 2B D1 C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 640, 100 held 87 7D C8, want 87 7D C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1151, 100 held CC 3E 28, want CC 3E 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1152, 100 held E3 29 C8, want E3 29 C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1279, 100 held E3 29 C8, want E3 29 C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 0, 360 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1, 360 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 64, 360 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 127, 360 held 14 E6 28, want 14 E6 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 128, 360 held 2B D1 C8, want 2B D1 C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 129, 360 held 2B D1 C8, want 2B D1 C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 640, 360 held 87 7D C8, want 87 7D C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1151, 360 held CC 3E 28, want CC 3E 28
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1152, 360 held E3 29 C8, want E3 29 C8
+D1 a0 in a pixel shader, index from an interpolant: on screen: 1279, 360 held E3 29 C8, want E3 29 C8
+D1 a0 in a pixel shader, index from an interpolant: 10 frames, 0 missed; on screen 0 samples off
+PASS: D1 a0 in a pixel shader, index from an interpolant
+D1b the same, execs' addressing mode a0: on screen: 0, 0 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1, 0 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 64, 0 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 127, 0 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 128, 0 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 129, 0 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 640, 0 held 00 00 00, want 87 7D C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1151, 0 held 00 00 00, want CC 3E 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1152, 0 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1279, 0 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 0, 1 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1, 1 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 64, 1 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 127, 1 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 128, 1 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 129, 1 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 640, 1 held 00 00 00, want 87 7D C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1151, 1 held 00 00 00, want CC 3E 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1152, 1 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1279, 1 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 0, 100 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1, 100 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 64, 100 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 127, 100 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 128, 100 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 129, 100 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 640, 100 held 00 00 00, want 87 7D C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1151, 100 held 00 00 00, want CC 3E 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1152, 100 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1279, 100 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 0, 360 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1, 360 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 64, 360 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 127, 360 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 128, 360 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 129, 360 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 640, 360 held 00 00 00, want 87 7D C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1151, 360 held 00 00 00, want CC 3E 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1152, 360 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1279, 360 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 0, 719 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1, 719 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 64, 719 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 127, 719 held 00 00 00, want 14 E6 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 128, 719 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 129, 719 held 00 00 00, want 2B D1 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 640, 719 held 00 00 00, want 87 7D C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1151, 719 held 00 00 00, want CC 3E 28 (off)
+D1b the same, execs' addressing mode a0: on screen: 1152, 719 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: on screen: 1279, 719 held 00 00 00, want E3 29 C8 (off)
+D1b the same, execs' addressing mode a0: 10 frames, 10 missed; on screen 50 samples off
+FAIL: D1b the same, execs' addressing mode a0
+D2 gl_FragCoord as colour, parameters in r1: on screen: 64, 0 held 00 00 80, want 0D 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 127, 0 held 00 00 80, want 19 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 128, 0 held 00 00 80, want 1A 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 129, 0 held 00 00 80, want 1A 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 640, 0 held 00 00 80, want 80 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1151, 0 held 00 00 80, want E5 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1152, 0 held 00 00 80, want E6 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1279, 0 held 00 00 80, want FF 00 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 64, 1 held 00 01 80, want 0D 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 127, 1 held 00 01 80, want 19 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 128, 1 held 00 01 80, want 1A 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 129, 1 held 00 01 80, want 1A 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 640, 1 held 00 01 80, want 80 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1151, 1 held 00 01 80, want E5 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1152, 1 held 00 01 80, want E6 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1279, 1 held 00 01 80, want FF 01 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 0, 100 held 00 00 80, want 00 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1, 100 held 00 00 80, want 00 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 64, 100 held 00 00 80, want 0D 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 127, 100 held 00 00 80, want 19 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 128, 100 held 00 00 80, want 1A 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 129, 100 held 00 00 80, want 1A 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 640, 100 held 00 00 80, want 80 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1151, 100 held 00 00 80, want E5 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1152, 100 held 00 00 80, want E6 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1279, 100 held 00 00 80, want FF 24 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 0, 360 held 00 00 80, want 00 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1, 360 held 00 00 80, want 00 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 64, 360 held 00 00 80, want 0D 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 127, 360 held 00 00 80, want 19 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 128, 360 held 00 00 80, want 1A 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 129, 360 held 00 00 80, want 1A 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 640, 360 held 00 00 80, want 80 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1151, 360 held 00 00 80, want E5 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1152, 360 held 00 00 80, want E6 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1279, 360 held 00 00 80, want FF 80 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 0, 719 held 00 01 80, want 00 FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1, 719 held 00 01 80, want 00 FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 64, 719 held 00 01 80, want 0D FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 127, 719 held 00 01 80, want 19 FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 128, 719 held 00 01 80, want 1A FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 129, 719 held 00 01 80, want 1A FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 640, 719 held 00 01 80, want 80 FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1151, 719 held 00 01 80, want E5 FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1152, 719 held 00 01 80, want E6 FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: on screen: 1279, 719 held 00 01 80, want FF FF 80 (off)
+D2 gl_FragCoord as colour, parameters in r1: 10 frames, 10 missed; on screen 46 samples off
+FAIL: D2 gl_FragCoord as colour, parameters in r1
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 64, 0 held 00 00 20, want 0D 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 127, 0 held 00 00 20, want 19 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 128, 0 held 00 00 20, want 1A 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 129, 0 held 00 00 20, want 1A 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 640, 0 held 00 00 20, want 80 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1151, 0 held 00 00 20, want E5 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1152, 0 held 00 00 20, want E6 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1279, 0 held 00 00 20, want FF 00 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 64, 1 held 00 01 20, want 0D 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 127, 1 held 00 01 20, want 19 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 128, 1 held 00 01 20, want 1A 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 129, 1 held 00 01 20, want 1A 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 640, 1 held 00 01 20, want 80 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1151, 1 held 00 01 20, want E5 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1152, 1 held 00 01 20, want E6 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1279, 1 held 00 01 20, want FF 01 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 0, 100 held 00 00 20, want 00 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1, 100 held 00 00 20, want 00 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 64, 100 held 00 00 20, want 0D 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 127, 100 held 00 00 20, want 19 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 128, 100 held 00 00 20, want 1A 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 129, 100 held 00 00 20, want 1A 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 640, 100 held 00 00 20, want 80 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1151, 100 held 00 00 20, want E5 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1152, 100 held 00 00 20, want E6 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1279, 100 held 00 00 20, want FF 24 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 0, 360 held 00 00 20, want 00 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1, 360 held 00 00 20, want 00 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 64, 360 held 00 00 20, want 0D 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 127, 360 held 00 00 20, want 19 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 128, 360 held 00 00 20, want 1A 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 129, 360 held 00 00 20, want 1A 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 640, 360 held 00 00 20, want 80 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1151, 360 held 00 00 20, want E5 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1152, 360 held 00 00 20, want E6 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1279, 360 held 00 00 20, want FF 80 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 0, 719 held 00 01 20, want 00 FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1, 719 held 00 01 20, want 00 FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 64, 719 held 00 01 20, want 0D FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 127, 719 held 00 01 20, want 19 FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 128, 719 held 00 01 20, want 1A FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 129, 719 held 00 01 20, want 1A FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 640, 719 held 00 01 20, want 80 FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1151, 719 held 00 01 20, want E5 FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1152, 719 held 00 01 20, want E6 FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: on screen: 1279, 719 held 00 01 20, want FF FF 20 (off)
+D2b gl_FragCoord as colour, no interpolator in, parameters in r0: 10 frames, 10 missed; on screen 46 samples off
+FAIL: D2b gl_FragCoord as colour, no interpolator in, parameters in r0
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 64, 0 held 00 00 BF, want 0D 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 127, 0 held 00 00 BF, want 19 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 128, 0 held 00 00 BF, want 1A 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 129, 0 held 00 00 BF, want 1A 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 640, 0 held 00 00 BF, want 80 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1151, 0 held 00 00 BF, want E5 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1152, 0 held 00 00 BF, want E6 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1279, 0 held 00 00 BF, want FF 00 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 64, 1 held 00 01 BF, want 0D 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 127, 1 held 00 01 BF, want 19 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 128, 1 held 00 01 BF, want 1A 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 129, 1 held 00 01 BF, want 1A 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 640, 1 held 00 01 BF, want 80 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1151, 1 held 00 01 BF, want E5 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1152, 1 held 00 01 BF, want E6 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1279, 1 held 00 01 BF, want FF 01 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 0, 100 held 00 00 BF, want 00 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1, 100 held 00 00 BF, want 00 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 64, 100 held 00 00 BF, want 0D 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 127, 100 held 00 00 BF, want 19 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 128, 100 held 00 00 BF, want 1A 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 129, 100 held 00 00 BF, want 1A 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 640, 100 held 00 00 BF, want 80 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1151, 100 held 00 00 BF, want E5 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1152, 100 held 00 00 BF, want E6 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1279, 100 held 00 00 BF, want FF 24 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 0, 360 held 00 00 BF, want 00 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1, 360 held 00 00 BF, want 00 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 64, 360 held 00 00 BF, want 0D 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 127, 360 held 00 00 BF, want 19 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 128, 360 held 00 00 BF, want 1A 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 129, 360 held 00 00 BF, want 1A 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 640, 360 held 00 00 BF, want 80 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1151, 360 held 00 00 BF, want E5 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1152, 360 held 00 00 BF, want E6 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1279, 360 held 00 00 BF, want FF 80 BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 0, 719 held 00 01 BF, want 00 FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1, 719 held 00 01 BF, want 00 FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 64, 719 held 00 01 BF, want 0D FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 127, 719 held 00 01 BF, want 19 FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 128, 719 held 00 01 BF, want 1A FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 129, 719 held 00 01 BF, want 1A FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 640, 719 held 00 01 BF, want 80 FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1151, 719 held 00 01 BF, want E5 FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1152, 719 held 00 01 BF, want E6 FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: on screen: 1279, 719 held 00 01 BF, want FF FF BF (off)
+D3 gl_FragCoord as colour, vertex shader exporting interpolator 1: 10 frames, 10 missed; on screen 46 samples off
+FAIL: D3 gl_FragCoord as colour, vertex shader exporting interpolator 1
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 0, 100 held 00 24 40, want 00 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1, 100 held 00 24 40, want 00 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 64, 100 held 0D 24 40, want 0D 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 127, 100 held 19 24 40, want 19 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 128, 100 held 1A 24 40, want 1A 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 129, 100 held 1A 24 40, want 1A 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 640, 100 held 80 24 40, want 80 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1151, 100 held E5 24 40, want E5 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1152, 100 held E6 24 40, want E6 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1279, 100 held FF 24 40, want FF 24 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 0, 360 held 00 80 40, want 00 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1, 360 held 00 80 40, want 00 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 64, 360 held 0D 80 40, want 0D 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 127, 360 held 19 80 40, want 19 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 128, 360 held 1A 80 40, want 1A 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 129, 360 held 1A 80 40, want 1A 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 640, 360 held 80 80 40, want 80 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1151, 360 held E5 80 40, want E5 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1152, 360 held E6 80 40, want E6 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: on screen: 1279, 360 held FF 80 40, want FF 80 40
+D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set: 10 frames, 0 missed; on screen 0 samples off
+PASS: D4 gl_FragCoord as colour, SC_OUTPUT_SCREEN_XY set
+tests: 3 passed, 4 failed
+exit: status 4

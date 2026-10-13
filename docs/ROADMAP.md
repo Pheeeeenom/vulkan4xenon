@@ -1045,6 +1045,26 @@ target it creates; `tools/count_refusals.py` counts both (`counts-xenia.txt`, fr
   refused. The 10 seconds it loads in ran at 14.8 fps, against 19.2 at milestone 24 and 15.9 at step 1, both on 4
   threads: the count's 10-second windows take the boot screens' end and the loading in other parts each run.
 
+**Step 3 passed on hardware** on 2026-10-12, this repository at `a39ad55` with xost at `7a5e42e`
+(`results/2026-10-12-milestone-11-step-3/`; xsdk:docs/HARDWARE.md, "Reads at a0, and the pixel position"):
+- **xost reads a block's array at an index known only at run time** (`4d7c297`): `MOVA` sets `a0` from the index, the
+  element at `c[a0 + n]` is copied into a temp, and a constant added to the index goes in `n`, so a matrix's rows share
+  one `MOVA`. A pixel shader's `gl_FragCoord.xy` comes from the pixel parameters, the register past the
+  interpolators, plus 0.5; its `zw` are refused, and before, it lowered silently as the first interpolator. xost's
+  `tests/test_dynamic_index.py` runs each shader through a simulator, `MOVA` and `a0` included, and the oracle. Every
+  other test shader lowers as before, byte for byte, and so do Dusklight's 69 programs and this repository's other
+  shaders.
+- **vulkan4xenon_test passed 72 of 72** (`vulkan4xenon_test.log`), with two checks of its own (`test_run_time_index.c`):
+  four quads each placed and coloured by the matrix their vertices name, three rows a matrix, and, beside the scope,
+  the screen coloured in 128-pixel bands picked by `gl_FragCoord.x`, probed either side of band edges, as range fog
+  needs both and only the console shows the pixel parameters. Broken on purpose, both shaders ignoring their index,
+  the quads stacked in one corner and the bands took one colour, failing those 4 checks alone
+  (`vulkan4xenon_test_broken.log`).
+- **The first run failed the bands** (`vulkan4xenon_test-first.log`): every column read band 0. A diagnostic title
+  (`vulkan4xenon_diag.log`, its sources in `diagnostic/`) showed a pixel shader's reads at `a0` work, but the pixel
+  parameters' x reads 0 without `SQ_CONTEXT_MISC.SC_OUTPUT_SCREEN_XY`, which xost now sets with them (`7a5e42e`), and
+  that the execs must keep addressing mode 0 for reads at `a0`.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
