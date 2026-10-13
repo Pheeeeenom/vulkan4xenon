@@ -9,41 +9,49 @@
 
 enum {
 	FRAMES = 60,
+	IMAGES = 3,
 	TEXELS = 4,
 	TEXEL_BYTES = 4,
 	// The second image's rows are copied from a buffer with room for 8 texels a row.
 	PADDED_ROW_TEXELS = 8,
 	SECOND_IMAGE_OFFSET = 256,
-	STAGING_BYTES = SECOND_IMAGE_OFFSET + PADDED_ROW_TEXELS * TEXELS * TEXEL_BYTES,
+	THIRD_IMAGE_OFFSET = SECOND_IMAGE_OFFSET + PADDED_ROW_TEXELS * TEXELS * TEXEL_BYTES,
+	STAGING_BYTES = THIRD_IMAGE_OFFSET + TEXELS * TEXELS * TEXEL_BYTES,
 	VERTEX_FLOATS = 6,
 	STRIDE_BYTES = VERTEX_FLOATS * 4,
 	UV_OFFSET_BYTES = 16,
 	QUAD_VERTICES = 6,
 	FENCE_TIMEOUT_NS = 1000000000,
-	// The quads span x from 64 and 704, y from 72, each 512 by 576 pixels: 128 by 144 a texel.
+	// The quads span x from 64, 464 and 864, y from 72, each 352 by 576 pixels: 88 by 144 a texel.
 	LEFT_X = 64,
-	RIGHT_X = 704,
+	QUAD_STEP_X = 400,
 	TOP_Y = 72,
-	TEXEL_WIDTH = 128,
+	TEXEL_WIDTH = 88,
 	TEXEL_HEIGHT = 144,
-	PROBES = 2 * TEXELS * TEXELS + 1,
+	PROBES = IMAGES * TEXELS * TEXELS + 1,
 	TOLERANCE = 1,
 };
 
-// Clip space, then texture coordinates: the first image on the left, the second on the right.
-static const float quads[2 * QUAD_VERTICES][VERTEX_FLOATS] = {
+// Clip space, then texture coordinates: the images from left to right.
+static const float quads[IMAGES * QUAD_VERTICES][VERTEX_FLOATS] = {
 	{ -0.9f, -0.8f, 0.0f, 1.0f, 0.0f, 0.0f },
-	{ -0.1f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
+	{ -0.35f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
 	{ -0.9f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
-	{ -0.1f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
-	{ -0.1f, 0.8f, 0.0f, 1.0f, 1.0f, 1.0f },
+	{ -0.35f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
+	{ -0.35f, 0.8f, 0.0f, 1.0f, 1.0f, 1.0f },
 	{ -0.9f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
-	{ 0.1f, -0.8f, 0.0f, 1.0f, 0.0f, 0.0f },
+	{ -0.275f, -0.8f, 0.0f, 1.0f, 0.0f, 0.0f },
+	{ 0.275f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
+	{ -0.275f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
+	{ 0.275f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
+	{ 0.275f, 0.8f, 0.0f, 1.0f, 1.0f, 1.0f },
+	{ -0.275f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
+	{ 0.35f, -0.8f, 0.0f, 1.0f, 0.0f, 0.0f },
 	{ 0.9f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
-	{ 0.1f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
+	{ 0.35f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
 	{ 0.9f, -0.8f, 0.0f, 1.0f, 1.0f, 0.0f },
 	{ 0.9f, 0.8f, 0.0f, 1.0f, 1.0f, 1.0f },
-	{ 0.1f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
+	{ 0.35f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f },
 };
 
 static const VkVertexInputBindingDescription binding = { 0, STRIDE_BYTES, VK_VERTEX_INPUT_RATE_VERTEX };
@@ -56,7 +64,8 @@ static const VkVertexInputAttributeDescription attributes[] = {
 static const VkClearValue clear = { .color = { .float32 = { 24.0f / 255, 24.0f / 255, 24.0f / 255, 1.0f } } };
 static const Rgb clear_rgb = { 24, 24, 24 };
 
-static const VkFormat formats[2] = { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM };
+static const VkFormat formats[IMAGES] = { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R32_SFLOAT };
+static const char *const format_names[IMAGES] = { "R8G8B8A8", "B8G8R8A8", "R32_SFLOAT" };
 
 typedef struct {
 	VkRenderPass render_pass;
@@ -68,26 +77,42 @@ typedef struct {
 	VkDeviceMemory vertex_memory;
 	VkBuffer staging;
 	VkDeviceMemory staging_memory;
-	VkImage images[2];
-	VkDeviceMemory image_memory[2];
-	VkImageView views[2];
+	VkImage images[IMAGES];
+	VkDeviceMemory image_memory[IMAGES];
+	VkImageView views[IMAGES];
 	VkSampler sampler;
 	VkDescriptorPool pool;
-	VkDescriptorSet sets[2];
+	VkDescriptorSet sets[IMAGES];
 	VkCommandBuffer commands[HARNESS_MAX_IMAGES];
 	HarnessProbe probes[PROBES];
 	HarnessProbes check;
 } Scene;
 
-// Each texel a colour of its own; the second image's red and blue differ, so a swap of them shows.
+// The third image's floats: red in steps of 15 from 35, the first under 0 and the last over 1.
+static float red_float(uint32_t x, uint32_t y)
+{
+	const uint32_t index = y * TEXELS + x;
+	if (index == 0)
+		return -0.25f;
+	if (index == TEXELS * TEXELS - 1)
+		return 1.5f;
+	return (float)(20 + 15 * index) / 255.0f;
+}
+
+// Each texel a colour of its own; the second image's red and blue differ, so a swap of them shows. The third's is red
+// alone, clamped to 0 to 255 on the way to the target.
 static Rgb texel(uint32_t image, uint32_t x, uint32_t y)
 {
 	if (image == 0)
 		return (Rgb){ 40 + x * 60, 40 + y * 60, 200 - (x + y) * 20 };
-	return (Rgb){ 200 - x * 50, 50 + y * 50, 20 + (x + y) * 10 };
+	if (image == 1)
+		return (Rgb){ 200 - x * 50, 50 + y * 50, 20 + (x + y) * 10 };
+	const uint32_t index = y * TEXELS + x;
+	return (Rgb){ index == 0 ? 0 : index == TEXELS * TEXELS - 1 ? 255 : 20 + 15 * index, 0, 0 };
 }
 
-// The first image packed tight, the second in rows 8 texels apart, each texel's bytes in its format's order.
+// The first image packed tight, the second in rows 8 texels apart, each texel's bytes in its format's order; the
+// third's floats packed tight, as the CPU holds them.
 static void fill_staging(uint8_t *bytes)
 {
 	memset(bytes, 0, STAGING_BYTES);
@@ -99,6 +124,8 @@ static void fill_staging(uint8_t *bytes)
 			const Rgb second = texel(1, x, y);
 			uint8_t *const b = bytes + SECOND_IMAGE_OFFSET + (y * PADDED_ROW_TEXELS + x) * TEXEL_BYTES;
 			b[0] = (uint8_t)second.blue, b[1] = (uint8_t)second.green, b[2] = (uint8_t)second.red, b[3] = 0xFF;
+			const float third = red_float(x, y);
+			memcpy(bytes + THIRD_IMAGE_OFFSET + (y * TEXELS + x) * TEXEL_BYTES, &third, sizeof third);
 		}
 	}
 }
@@ -106,11 +133,11 @@ static void fill_staging(uint8_t *bytes)
 static void make_probes(Scene *scene)
 {
 	uint32_t count = 0;
-	for (uint32_t image = 0; image < 2; image++) {
+	for (uint32_t image = 0; image < IMAGES; image++) {
 		for (uint32_t y = 0; y < TEXELS; y++) {
 			for (uint32_t x = 0; x < TEXELS; x++)
-				scene->probes[count++] = (HarnessProbe){ image ? "B8G8R8A8 texel" : "R8G8B8A8 texel",
-					(image ? RIGHT_X : LEFT_X) + x * TEXEL_WIDTH + TEXEL_WIDTH / 2,
+				scene->probes[count++] = (HarnessProbe){ format_names[image],
+					LEFT_X + image * QUAD_STEP_X + x * TEXEL_WIDTH + TEXEL_WIDTH / 2,
 					TOP_Y + y * TEXEL_HEIGHT + TEXEL_HEIGHT / 2, texel(image, x, y), 0 };
 		}
 	}
@@ -168,27 +195,27 @@ static VkResult create_descriptors(const Harness *harness, Scene *scene)
 		.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 	};
 	VkResult result = vkCreateSampler(harness->device, &sampler_info, NULL, &scene->sampler);
-	const VkDescriptorPoolSize size = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 };
+	const VkDescriptorPoolSize size = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMAGES };
 	const VkDescriptorPoolCreateInfo pool_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-		.maxSets = 2,
+		.maxSets = IMAGES,
 		.poolSizeCount = 1,
 		.pPoolSizes = &size,
 	};
 	if (result == VK_SUCCESS)
 		result = vkCreateDescriptorPool(harness->device, &pool_info, NULL, &scene->pool);
-	const VkDescriptorSetLayout layouts[2] = { scene->set_layout, scene->set_layout };
+	const VkDescriptorSetLayout layouts[IMAGES] = { scene->set_layout, scene->set_layout, scene->set_layout };
 	const VkDescriptorSetAllocateInfo allocate_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 		.descriptorPool = scene->pool,
-		.descriptorSetCount = 2,
+		.descriptorSetCount = IMAGES,
 		.pSetLayouts = layouts,
 	};
 	if (result == VK_SUCCESS)
 		result = vkAllocateDescriptorSets(harness->device, &allocate_info, scene->sets);
 	if (result != VK_SUCCESS)
 		return result;
-	for (uint32_t i = 0; i < 2; i++) {
+	for (uint32_t i = 0; i < IMAGES; i++) {
 		const VkDescriptorImageInfo image = { scene->sampler, scene->views[i],
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 		const VkWriteDescriptorSet write = {
@@ -248,8 +275,8 @@ static bool build(const Harness *harness, Scene *scene)
 	uint8_t staging[STAGING_BYTES];
 	fill_staging(staging);
 	bool ok = harness_ok("pipeline", create_pipeline(harness, scene));
-	ok = ok && harness_ok("first image", create_image(harness, scene, 0));
-	ok = ok && harness_ok("second image", create_image(harness, scene, 1));
+	for (uint32_t i = 0; i < IMAGES; i++)
+		ok = ok && harness_ok(format_names[i], create_image(harness, scene, i));
 	ok = ok && harness_ok("descriptors", create_descriptors(harness, scene));
 	ok = ok &&
 		harness_ok("vertex buffer",
@@ -279,7 +306,7 @@ static void transition(VkCommandBuffer commands, VkImage image, VkImageLayout fr
 		NULL, 1, &barrier);
 }
 
-// One submission copies the staging buffer into both images, the second from its padded rows.
+// One submission copies the staging buffer into the images, the second from its padded rows.
 static bool upload(const Harness *harness, const Scene *scene)
 {
 	const VkCommandBufferAllocateInfo allocate_info = {
@@ -293,10 +320,11 @@ static bool upload(const Harness *harness, const Scene *scene)
 		return false;
 	const VkCommandBufferBeginInfo begin = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	(void)vkBeginCommandBuffer(commands, &begin);
-	for (uint32_t i = 0; i < 2; i++) {
+	static const uint32_t offsets[IMAGES] = { 0, SECOND_IMAGE_OFFSET, THIRD_IMAGE_OFFSET };
+	for (uint32_t i = 0; i < IMAGES; i++) {
 		const VkBufferImageCopy region = {
-			.bufferOffset = i ? SECOND_IMAGE_OFFSET : 0,
-			.bufferRowLength = i ? PADDED_ROW_TEXELS : 0,
+			.bufferOffset = offsets[i],
+			.bufferRowLength = i == 1 ? PADDED_ROW_TEXELS : 0,
 			.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 			.imageExtent = { TEXELS, TEXELS, 1 },
 		};
@@ -335,7 +363,7 @@ static VkResult record(const Harness *harness, Scene *scene)
 		vkCmdBeginRenderPass(commands, &pass, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scene->pipeline);
 		vkCmdBindVertexBuffers(commands, 0, 1, &scene->vertices, &offset);
-		for (uint32_t image = 0; image < 2; image++) {
+		for (uint32_t image = 0; image < IMAGES; image++) {
 			vkCmdBindDescriptorSets(
 				commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scene->layout, 0, 1, &scene->sets[image], 0, NULL);
 			vkCmdDraw(commands, QUAD_VERTICES, 1, image * QUAD_VERTICES, 0);
@@ -352,7 +380,7 @@ static void destroy(const Harness *harness, Scene *scene)
 	vkFreeCommandBuffers(device, harness->pool, harness->image_count, scene->commands);
 	vkDestroyDescriptorPool(device, scene->pool, NULL);
 	vkDestroySampler(device, scene->sampler, NULL);
-	for (uint32_t i = 0; i < 2; i++) {
+	for (uint32_t i = 0; i < IMAGES; i++) {
 		vkDestroyImageView(device, scene->views[i], NULL);
 		vkDestroyImage(device, scene->images[i], NULL);
 		vkFreeMemory(device, scene->image_memory[i], NULL);
@@ -372,15 +400,15 @@ void test_texture(const Harness *harness)
 	Scene scene = { .render_pass = VK_NULL_HANDLE };
 	make_probes(&scene);
 	const bool built = build(harness, &scene);
-	check("texture: two images, a sampler, descriptor sets and a pipeline made", built);
+	check("texture: three images, a sampler, descriptor sets and a pipeline made", built);
 	const bool uploaded = built && upload(harness, &scene);
-	check("texture: a buffer copied into both images", uploaded);
+	check("texture: a buffer copied into the three images", uploaded);
 	const bool recorded = uploaded && harness->swapchain && harness_ok("recording", record(harness, &scene));
 	uint32_t misses = 0;
 	const uint32_t frames =
 		recorded ? harness_frames(harness, scene.commands, FRAMES, harness_probes_hold, &scene.check, &misses) : 0;
 	check("texture: 60 frames drawn and presented", frames == FRAMES);
-	check("texture: every frame shows each texel, R8G8B8A8 on the left and B8G8R8A8 on the right",
+	check("texture: every frame shows each texel: R8G8B8A8, B8G8R8A8, then R32_SFLOAT's red clamped to 0 to 1",
 		frames == FRAMES && misses == 0);
 	check("texture: the image on screen shows them too", harness_screen(harness, harness_probes_hold, &scene.check));
 	destroy(harness, &scene);

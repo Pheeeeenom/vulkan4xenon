@@ -27,8 +27,7 @@ static VkResult check_subpass(const VkRenderPassCreateInfo *info)
 		(has_depth && (depth->attachment >= info->attachmentCount || depth->attachment == color)))
 		return v4x_host_unsupported("attachments a subpass doesn't use");
 	const VkAttachmentDescription *const target = &info->pAttachments[color];
-	uint32_t format = 0;
-	if (!v4x_image_format(target->format, &format) || target->samples != VK_SAMPLE_COUNT_1_BIT)
+	if (!v4x_attachment_format(target->format) || target->samples != VK_SAMPLE_COUNT_1_BIT)
 		return v4x_host_unsupported("colour attachments other than single-sampled R8G8B8A8_UNORM and B8G8R8A8_UNORM");
 	if (!has_depth)
 		return VK_SUCCESS;

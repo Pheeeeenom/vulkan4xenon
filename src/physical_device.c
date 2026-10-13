@@ -150,6 +150,10 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case VK_FORMAT_R32_SFLOAT:
+		// Sampled, as xsdk's R32F: nearest only, since filtering 32-bit floats hasn't been tried on the console.
+		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+		pFormatProperties->bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+		break;
 	case VK_FORMAT_R32G32_SFLOAT:
 	case VK_FORMAT_R32G32B32_SFLOAT:
 	case VK_FORMAT_R32G32B32A32_SFLOAT:
@@ -181,7 +185,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 	}
 	uint32_t xsdk_format;
 	if (!v4x_image_format(format, &xsdk_format) || type != VK_IMAGE_TYPE_2D || tiling != VK_IMAGE_TILING_OPTIMAL ||
-		(usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE) || flags) {
+		(usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE) || flags ||
+		((usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && !v4x_attachment_format(format))) {
 		*pImageFormatProperties = (VkImageFormatProperties){ 0 };
 		return VK_ERROR_FORMAT_NOT_SUPPORTED;
 	}

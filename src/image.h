@@ -17,5 +17,7 @@ enum {
 
 // The xsdk format an image of this Vulkan format is, if images of it are supported.
 bool v4x_image_format(VkFormat format, uint32_t *xsdk_format);
+// Whether images of this format can be colour attachments: R8G8B8A8_UNORM and B8G8R8A8_UNORM, which resolves write.
+bool v4x_attachment_format(VkFormat format);
 
 #endif

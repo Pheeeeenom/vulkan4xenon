@@ -23,9 +23,17 @@ bool v4x_image_format(VkFormat format, uint32_t *xsdk_format)
 	case VK_FORMAT_B8G8R8A8_UNORM:
 		*xsdk_format = XSDK_FORMAT_B8G8R8A8;
 		return true;
+	case VK_FORMAT_R32_SFLOAT:
+		*xsdk_format = XSDK_FORMAT_R32F;
+		return true;
 	default:
 		return false;
 	}
+}
+
+bool v4x_attachment_format(VkFormat format)
+{
+	return format == VK_FORMAT_R8G8B8A8_UNORM || format == VK_FORMAT_B8G8R8A8_UNORM;
 }
 
 static VkResult check_depth_create_info(const VkImageCreateInfo *info)
@@ -46,11 +54,14 @@ static VkResult check_create_info(const VkImageCreateInfo *info)
 	if (info->format == VK_FORMAT_D24_UNORM_S8_UINT)
 		return check_depth_create_info(info);
 	if (!v4x_image_format(info->format, &format) || info->samples != VK_SAMPLE_COUNT_1_BIT)
-		return v4x_host_unsupported("image formats other than R8G8B8A8_UNORM and B8G8R8A8_UNORM, single-sampled");
+		return v4x_host_unsupported(
+			"image formats other than R8G8B8A8_UNORM, B8G8R8A8_UNORM and R32_SFLOAT, single-sampled");
 	if (info->tiling != VK_IMAGE_TILING_OPTIMAL)
 		return v4x_host_unsupported("linear images");
 	if (info->usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE)
 		return v4x_host_unsupported("image usages other than sampling, copying in and colour attachments");
+	if ((info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && !v4x_attachment_format(info->format))
+		return v4x_host_unsupported("colour attachments other than R8G8B8A8_UNORM and B8G8R8A8_UNORM");
 	if ((info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) &&
 		(info->mipLevels != 1 || info->extent.width <= V4X_PACKED_SIDE || info->extent.height <= V4X_PACKED_SIDE))
 		return v4x_host_unsupported("colour attachments with mips, or 16 texels or less on a side");

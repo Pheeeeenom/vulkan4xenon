@@ -154,8 +154,9 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 
 - 2D, one layer, one sample, optimal tiling, used for sampling, copying in and as colour attachments; anything else
   returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1.
-- Colour attachment images have one level, and both sides over 16 texels: a smaller base level sits in the packed mip
-  tail, where a resolve can't write (xsdk:src/gpu_resolve.c). Others return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- Colour attachment images are `VK_FORMAT_R8G8B8A8_UNORM` or `VK_FORMAT_B8G8R8A8_UNORM`, with one level, and both
+  sides over 16 texels: a smaller base level sits in the packed mip tail, where a resolve can't write
+  (xsdk:src/gpu_resolve.c). Others return `VK_ERROR_FEATURE_NOT_PRESENT`.
 - Optimal tiling is Xenos's tiled layout, with mips as xsdk milestones 15 and 16 settled.
 - Memory requirements: the texture's size, 4 KB aligned, as a fetch constant holds its address in 4 KB units. Binding
   places the texels at the memory (`xsdk_texture_attach`).
@@ -239,7 +240,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 |---|---|
 | `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending |
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment |
-| `VK_FORMAT_R32_SFLOAT`, `R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
+| `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
+| `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
 
 Vulkan 1.0 requires many more formats and features; each missing one is a deviation.
 
