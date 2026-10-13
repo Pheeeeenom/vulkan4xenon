@@ -5,6 +5,9 @@ v4x_shader_bundle, which the layer looks the SPIR-V up in.
 
     build_shaders.py --xost ../Xbox-360-SDK/xenos-toolchain --output tests/shaders tests/shaders/triangle.vert ...
 
+--optimize has xost rewrite each program's instructions first (xost:xasm/optimize.py): fewer instructions, the same
+results.
+
 The layer's own shaders go in a bundle of their own, their symbols prefixed:
 
     build_shaders.py --xost ... --output src/blit_shaders --bundle v4x_blit_bundle --prefix v4x_ src/shaders/blit.*
@@ -46,7 +49,7 @@ def compile_spirv(glslang, source, directory):
     return output.read_bytes()
 
 
-def lower(xost, spirv_bytes, source):
+def lower(xost, spirv_bytes, source, optimize=False):
     """The container, xost's pooled literals, and where its blocks and samplers landed."""
     sys.path.insert(0, str(xost))
     from xasm.program import XSDK_REGISTERS
@@ -59,7 +62,7 @@ def lower(xost, spirv_bytes, source):
     resources += [("sampler", v.descriptor_set or 0, v.binding or 0, slot, 1) for v, slot in interface.samplers]
     # The layer runs on xsdk, whose set-up gives each kind of shader 64 registers (xsdk:src/gpu_setup.c); xost
     # refuses a shader past its kind's share, which would hang the GPU.
-    container, manifest = lower_ex(spirv.Module.parse(spirv_bytes), XSDK_REGISTERS)
+    container, manifest = lower_ex(spirv.Module.parse(spirv_bytes), XSDK_REGISTERS, optimize)
     literals = []
     for entry in manifest:
         if len(entry) != 2:
@@ -133,6 +136,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True, help="the C source and header to write, less suffix")
     parser.add_argument("--bundle", default=DEFAULT_BUNDLE, help=f"the bundle's name, by default {DEFAULT_BUNDLE}")
     parser.add_argument("--prefix", default="", help="put before each shader's C names")
+    parser.add_argument("--optimize", action="store_true", help="have xost rewrite each program's instructions first")
     parser.add_argument("sources", type=Path, nargs="+")
     args = parser.parse_args()
     glslang = args.glslang or args.xost / "tools" / "glslang" / "bin" / "glslang.exe"
@@ -144,7 +148,7 @@ def main():
     with tempfile.TemporaryDirectory(dir="build") as directory:
         for source in args.sources:
             spirv_bytes = compile_spirv(glslang, source, directory)
-            container, literals, resources = lower(args.xost.resolve(), spirv_bytes, source)
+            container, literals, resources = lower(args.xost.resolve(), spirv_bytes, source, args.optimize)
             shaders.append({"name": c_name(source, args.prefix), "spirv": spirv_bytes, "hash": fnv1a_64(spirv_bytes),
                             "container": container, "literals": literals, "resources": resources})
     write_outputs(args.output, shaders, args.sources, args.bundle)
