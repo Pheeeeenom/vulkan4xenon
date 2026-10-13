@@ -1149,6 +1149,12 @@ vkbench 14 of 14, with milestone 24's command stream and its times within noise.
   draws gone, 25 draws left, it ran at 28.0 fps, the GPU still at 20 ms a frame. The periods are different moments of
   a moving scene, so they compare neighbours, not the same frames. Reaching 30 fps is open.
 
+**After step 5, xsdk's milestone 26** (2026-10-13; `results/2026-10-13-milestone-26/`; xsdk:docs/HARDWARE.md, "Threads
+on all six hardware threads"): every thread had run on hardware thread 0, as the kernel keeps a thread on its
+creator's, and now each of Aurora's and the game's threads runs on the one its list gives. vulkan4xenon_test passed 72
+of 72 and vkbench 14 of 14, its frame times as at milestone 25. The title scene ran at 16.2 to 27.6 fps, from 16.9 to
+22.1: most frames still take more than the 33 ms of two vblanks.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
