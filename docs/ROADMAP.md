@@ -966,10 +966,19 @@ day. **In six steps,** each run on the console:
    and, if step 1 finds range fog, in pixel shaders with the fragment's position. Checked through xost's oracle, and
    on the console by vulkan4xenon_test: a vertex shader that picks each quad's matrix by a vertex attribute, broken on
    purpose with the index ignored.
-4. **Memory:** xsdk's small GPU allocations share pages (an xsdk milestone of its own): allocations under a page
-   come from shared 64 KiB pages, as shaders' microcode does, with an xsdk_test check that many of them fit where
-   they took a page each and draw right, broken on purpose by overlapping two. Aurora's texture content, copy and
-   offscreen caches take upstream's LRU bounds (`b922153`), ported by hand to the fork's backend-neutral types.
+4. **Memory:** shaders' microcode shares pages, xsdk's milestone 25 (xsdk:SCOPE.md): 256-byte blocks of shared
+   64 KiB pages, with an xsdk_test check that 200 small shaders fit a few pages where they took 200 and draw right,
+   broken on purpose by overlapping two. Aurora's texture content, copy and offscreen caches take upstream's LRU
+   bounds (`b922153`), ported by hand to the fork's backend-neutral types, the fork's byte cap on converted textures
+   their budget, checked by Aurora's host tests. The title scene runs on the console, its free memory compared.
+
+**Step 4 scoped with the user on 2026-10-12,** from a count in Xenia (xsdk:results/2026-10-12-gpu-allocations/):
+Dusklight's boot screens and a minute of its title scene made 87 GPU allocations, 73 under a page and 70 of those 24
+to 1,440 bytes, shaders' microcode, about 85 KB in 73 pages, 4.6 MB. Only microcode shares pages, decided with the
+user, as the other small allocations would save a few. Microcode had a page each, not shared pages as step 4 said
+first. `b922153` conflicts in 9 files, 18 places; it frees nothing in the title scene, whose 8 copy sizes and 2
+offscreen targets are each used every frame, but bounds the caches for gameplay and keeps a static copy texture that
+upstream cleared on a resize.
 5. **The generator and the pack:** fog, lighting, matrices picked per vertex and indirect texturing, and range fog if
    step 1 finds it, as gx/shader.cpp's WGSL writes them, in the GLSL xost compiles. Lighting's light masks are
    either kept in the key, each mask's lights unrolled, or left out of it by a backend limit, all eight lights
