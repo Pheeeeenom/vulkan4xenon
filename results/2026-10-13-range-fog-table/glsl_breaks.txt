@@ -1,0 +1,36 @@
+== broken on purpose: width
+  FAIL fog_lin_range
+  PASS fog_ortho_exp
+  PASS fog_revexp2
+  PASS indirect_bump
+  PASS indirect_dynamic_s
+  PASS indirect_mtx
+  PASS lit_none
+  PASS lit_spec_sign_alpha
+  PASS lit_spot_ambient_vtx
+  PASS lit_spot_clamp
+  PASS pnmtx_lit
+  FAIL scene
+  PASS texmtx_fixed
+  PASS texmtx_picked
+  FAIL fog_lin_range: range fog table sampled at [[5.109375, 0.171875]], want [2.5546875, 0.078125]
+  FAIL fog_lin_range: colour [0.6583907604217529, 0.6389272212982178, 0.6194635629653931, 0.75], want [0.46209757359217635, 0.5080650490614509, 0.5540325245307255, 0.75]
+  FAIL scene: colour [0.19038347899913788, 0.2579744756221771, 0.28681299090385437, 0.75], want [0.25171296778781527, 0.33743651457692025, 0.4060892676737074, 0.75]
+FAILED
+== broken on purpose: edge
+  FAIL fog_lin_range
+FAILED
+  PASS fog_ortho_exp
+  PASS fog_revexp2
+  PASS indirect_bump
+  PASS indirect_dynamic_s
+  PASS indirect_mtx
+  PASS lit_none
+  PASS lit_spec_sign_alpha
+  PASS lit_spot_ambient_vtx
+  PASS lit_spot_clamp
+  PASS pnmtx_lit
+  PASS scene
+  PASS texmtx_fixed
+  PASS texmtx_picked
+  FAIL fog_lin_range: range fog table sampled at [[2.5546875, 0.0625]], want [2.5546875, 0.078125]

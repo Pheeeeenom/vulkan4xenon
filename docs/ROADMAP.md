@@ -1189,6 +1189,39 @@ logo shot, and drew phases of it differently:
   pack's 145 programs, none missing, status 0, 8 MB free at the end. The title scene ran at 26.3, 28.7, 27.7, 30.0
   and 29.7 fps over its 10-second windows, from milestone 26's 16.2 to 27.6.
 
+**Then range fog read from a table** (2026-10-13; `results/2026-10-13-range-fog-table/`), the next step of the shader
+work agreed with the user. Range fog's factor depends only on the pixel's column, and the programs worked it out per
+pixel, about 20 ALU instructions and a square root. Drawn without it, the logo shot took 19.5 ms of GPU time a frame,
+from 21.9; the texture sizes' reciprocals, also worked out per pixel, cost nothing measurable, the optimiser pairing
+them with vector instructions.
+- **32-bit float images:** xsdk's milestone 28 added `XSDK_FORMAT_R32F` (xsdk:docs/HARDWARE.md, "32-bit float
+  textures"), and the layer samples `VK_FORMAT_R32_SFLOAT` images as it (`e0462aa`; docs/SUPPORT.md, Formats): optimal
+  tiling, nearest only, not colour attachments. vulkan4xenon_test's texture check draws one, its red from floats, one
+  under 0 and one over 1, and passed 72 of 72 (`vulkan4xenon_test.log`); broken on purpose, the format taken as
+  R8G8B8A8, only that check's two failed, its texels the floats' bytes (`vulkan4xenon_test_r32f_as_bytes.log`).
+  vkbench passed 14 of 14.
+- **The table** (Aurora `3a53fee`): the FIFO worker already builds the factor for each column into the storage pool,
+  as the WGSL reads it. The backend copies it into a 64x32 R32_SFLOAT texture, column x at texel (x % 64, x / 64), 8
+  KiB where a single row would take 32 rows of tiles, written by the CPU before any frame draws with it, so with no
+  copy and no wait for the GPU; finds tables seen before by their factors, keeping 8; and binds it at set 2 for
+  pipelines whose program has range fog. The generator samples it nearest, u repeating, at the middle of the column's
+  texel. vulkan4xenon_glsl_tests passed 33 of 33, and tools/check_glsl_math.py 14 of 14, its range fog cases now also
+  checking that the sample lands on the middle of its texel (`check_glsl_math.txt`); broken on purpose, the table's
+  width taken as 32, or the sample off the middle of its row, each failed (`glsl_breaks.txt`).
+- **The pack** (Dusklight `d44654aa97`): the title scene recorded again in Xenia gave the 25 range-fog fragment
+  programs anew, each the old one with the generator's change and nothing else (`recorded_pairs.txt`); the other 120
+  came out byte for byte as before. Optimised, the 25 take 896 ALU instructions, from 1,485, the heaviest 70 from 94
+  (`alu_pairs.txt`); xost's optimiser check passed on all 25 (`check_optimize.txt`).
+- **Drawn the same:** in Xenia the diagnostics build's logo shot came out pixel for pixel as step 1's, and with the
+  table zeroed on purpose 14.7% of it changed, the castle and the far hills (`captures.txt`,
+  `xenia_zero_table_diff.png`). On the console it differed from step 1's only in the logo's moving shine, as two of
+  step 1's runs do (`shot_diff.png`).
+- **On the console** (`dusklight_diag.log`, against `results/2026-10-13-shader-optimizer/dusklight_diag_after.log`):
+  the logo shot took 20.6 ms of GPU time a frame, from 21.9, and 19.6 from 21.4 in the phase that skips the few draws
+  picking matrices per vertex. The drawing build (`dusklight.log`, `title.png`; everything cleaned and built in full)
+  drew the title scene with nothing missing at 29.8, 28.9, 29.9, 29.8 and 30.0 fps once loaded, and exited with status
+  0, 8 MB free.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

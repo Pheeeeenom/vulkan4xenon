@@ -1,0 +1,8 @@
+Xenia, the diagnostics builds' still logo shot, step 1's (Dusklight c6ea25a) against the table's:
+shot start: 1280x720: mean difference [0.0, 0.0, 0.0], largest [0, 0, 0]; 0.00% of pixels past 8, 0.00% past 32
+shot end: 1280x720: mean difference [0.0, 0.0, 0.0], largest [0, 0, 0]; 0.00% of pixels past 8, 0.00% past 32
+The table's against the same build with the table zeroed on purpose (xenia_zero_table_diff.png):
+shot start: 1280x720: mean difference [5.01, 3.57, 3.26], largest [76, 50, 90]; 14.72% of pixels past 8, 7.84% past 32
+Console, the diagnostics build's shot against step 1's (shot_diff.png), then two runs of step 1's:
+1280x720: mean difference [0.01, 0.04, 0.04], largest [147, 152, 152]; 0.05% of pixels past 8, 0.04% past 32
+1280x720: mean difference [0.01, 0.02, 0.02], largest [147, 152, 152]; 0.04% of pixels past 8, 0.03% past 32

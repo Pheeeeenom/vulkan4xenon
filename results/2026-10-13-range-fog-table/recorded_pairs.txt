@@ -1,0 +1,26 @@
+003cadea2444bd24.frag -> b40238367bc2ae70.frag
+0b16188c3d8a1e65.frag -> f3825523049d31cf.frag
+2bbbef5f4253a0f7.frag -> 551fb86c6ef59def.frag
+31fdec8f7f15e32e.frag -> 75422301f0e22829.frag
+3e4983ea86508a83.frag -> e2cfed9f9f80cbf0.frag
+40258664f54eff95.frag -> 6dd3a70373df59bf.frag
+49839b1ba3ea8aa6.frag -> e7fe951996d1f40b.frag
+5a9175f79c829d53.frag -> 1510c05add37f2b3.frag
+5f73c3f87278eade.frag -> 8586b077d3e63bc1.frag
+78628cae9df63904.frag -> b4a8c01218dcffe9.frag
+7e9f42598fce9ecb.frag -> 0c5faf5ad1250944.frag
+988bff1fd0985620.frag -> 15a57b221b955025.frag
+9ac80e2772f75bde.frag -> a479ce42ba36b7d8.frag
+acc75fd89b14fc2b.frag -> b331aaa6bee56ee9.frag
+ae2451feb8af1930.frag -> 85c8b022385334bf.frag
+b30d53005ea3a132.frag -> 48cd8f549b507826.frag
+c2a358b9f326e7bb.frag -> ed3667059b5c9028.frag
+c50d723263cce4fb.frag -> 05716a5bd2aae204.frag
+d1c2e2f4f4b20141.frag -> 4ee5b3c093bea8ab.frag
+e8b0377e4153eda8.frag -> 60bcbd6f4104ab13.frag
+ea94a84345f622a1.frag -> 35fc826ad15e1872.frag
+eb3de024102cbb30.frag -> dee3af7655c47a63.frag
+edca40d5ba78318b.frag -> 093884ef391dfddc.frag
+f421a27138aea3b3.frag -> 66457dda201609ed.frag
+fa34625c5864840e.frag -> 695e15b366c72818.frag
+25 pairs, 0 without one

@@ -1,0 +1,102 @@
+Running main() from /home/xenon/build/aurora-host/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 33 tests from 10 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from AlphaCompareA8
+[ RUN      ] AlphaCompareA8.ComparesTheAlphaOperands
+[       OK ] AlphaCompareA8.ComparesTheAlphaOperands (0 ms)
+[----------] 1 test from AlphaCompareA8 (0 ms total)
+
+[----------] 2 tests from Lighting
+[ RUN      ] Lighting.SumsTheMasksLightsAlone
+[       OK ] Lighting.SumsTheMasksLightsAlone (0 ms)
+[ RUN      ] Lighting.TakesTheAmbientFromTheVertex
+[       OK ] Lighting.TakesTheAmbientFromTheVertex (0 ms)
+[----------] 2 tests from Lighting (0 ms total)
+
+[----------] 2 tests from MatricesPerVertex
+[ RUN      ] MatricesPerVertex.ReadThePositionAndNormalMatrixAtTheVertexsRow
+[       OK ] MatricesPerVertex.ReadThePositionAndNormalMatrixAtTheVertexsRow (0 ms)
+[ RUN      ] MatricesPerVertex.PickTheTexgensMatrix
+[       OK ] MatricesPerVertex.PickTheTexgensMatrix (0 ms)
+[----------] 2 tests from MatricesPerVertex (0 ms total)
+
+[----------] 1 test from FogOrder
+[ RUN      ] FogOrder.IsMixedBeforeTheWrap
+[       OK ] FogOrder.IsMixedBeforeTheWrap (0 ms)
+[----------] 1 test from FogOrder (0 ms total)
+
+[----------] 3 tests from Indirect
+[ RUN      ] Indirect.OffsetsTheStagesCoordinate
+[       OK ] Indirect.OffsetsTheStagesCoordinate (0 ms)
+[ RUN      ] Indirect.WrapsAndAddsToThePreviousStage
+[       OK ] Indirect.WrapsAndAddsToThePreviousStage (0 ms)
+[ RUN      ] Indirect.BumpsTheAlpha
+[       OK ] Indirect.BumpsTheAlpha (0 ms)
+[----------] 3 tests from Indirect (1 ms total)
+
+[----------] 1 test from SceneConfigs
+[ RUN      ] SceneConfigs.AreWritten
+[       OK ] SceneConfigs.AreWritten (0 ms)
+[----------] 1 test from SceneConfigs (0 ms total)
+
+[----------] 1 test from MathCases
+[ RUN      ] MathCases.AreWritten
+[       OK ] MathCases.AreWritten (59 ms)
+[----------] 1 test from MathCases (59 ms total)
+
+[----------] 6 tests from Ops/PackedAlphaCompare
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/0
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/0 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/1
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/1 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/2
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/2 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/3
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/3 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/4
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/4 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/5
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/5 (0 ms)
+[----------] 6 tests from Ops/PackedAlphaCompare (1 ms total)
+
+[----------] 9 tests from Fns/LightingFunctions
+[ RUN      ] Fns/LightingFunctions.AreWritten/0
+[       OK ] Fns/LightingFunctions.AreWritten/0 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/1
+[       OK ] Fns/LightingFunctions.AreWritten/1 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/2
+[       OK ] Fns/LightingFunctions.AreWritten/2 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/3
+[       OK ] Fns/LightingFunctions.AreWritten/3 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/4
+[       OK ] Fns/LightingFunctions.AreWritten/4 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/5
+[       OK ] Fns/LightingFunctions.AreWritten/5 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/6
+[       OK ] Fns/LightingFunctions.AreWritten/6 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/7
+[       OK ] Fns/LightingFunctions.AreWritten/7 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/8
+[       OK ] Fns/LightingFunctions.AreWritten/8 (0 ms)
+[----------] 9 tests from Fns/LightingFunctions (2 ms total)
+
+[----------] 7 tests from Types/Fog
+[ RUN      ] Types/Fog.IsWritten/0
+[       OK ] Types/Fog.IsWritten/0 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/1
+[       OK ] Types/Fog.IsWritten/1 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/2
+[       OK ] Types/Fog.IsWritten/2 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/3
+[       OK ] Types/Fog.IsWritten/3 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/4
+[       OK ] Types/Fog.IsWritten/4 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/5
+[       OK ] Types/Fog.IsWritten/5 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/6
+[       OK ] Types/Fog.IsWritten/6 (0 ms)
+[----------] 7 tests from Types/Fog (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 33 tests from 10 test suites ran. (73 ms total)
+[  PASSED  ] 33 tests.

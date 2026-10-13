@@ -1,0 +1,27 @@
+05716a5bd2aae204.frag: 53 -> 33 ALU, 16 -> 12 registers; ok
+093884ef391dfddc.frag: 48 -> 30 ALU, 14 -> 10 registers; ok
+0c5faf5ad1250944.frag: 48 -> 30 ALU, 14 -> 10 registers; ok
+1510c05add37f2b3.frag: 127 -> 70 ALU, 15 -> 12 registers; ok
+15a57b221b955025.frag: 46 -> 25 ALU, 12 -> 8 registers; ok
+35fc826ad15e1872.frag: 46 -> 25 ALU, 12 -> 8 registers; ok
+48cd8f549b507826.frag: 46 -> 28 ALU, 14 -> 10 registers; ok
+4ee5b3c093bea8ab.frag: 103 -> 64 ALU, 16 -> 12 registers; ok
+551fb86c6ef59def.frag: 48 -> 30 ALU, 14 -> 10 registers; ok
+60bcbd6f4104ab13.frag: 44 -> 27 ALU, 15 -> 11 registers; ok
+66457dda201609ed.frag: 64 -> 43 ALU, 16 -> 14 registers; ok
+695e15b366c72818.frag: 42 -> 25 ALU, 14 -> 10 registers; ok
+6dd3a70373df59bf.frag: 63 -> 40 ALU, 15 -> 12 registers; ok
+75422301f0e22829.frag: 78 -> 48 ALU, 15 -> 11 registers; ok
+8586b077d3e63bc1.frag: 48 -> 30 ALU, 14 -> 10 registers; ok
+85c8b022385334bf.frag: 71 -> 41 ALU, 14 -> 10 registers; ok
+a479ce42ba36b7d8.frag: 35 -> 18 ALU, 11 -> 7 registers; ok
+b331aaa6bee56ee9.frag: 85 -> 54 ALU, 15 -> 12 registers; ok
+b40238367bc2ae70.frag: 53 -> 36 ALU, 16 -> 13 registers; ok
+b4a8c01218dcffe9.frag: 47 -> 31 ALU, 15 -> 12 registers; ok
+dee3af7655c47a63.frag: 48 -> 30 ALU, 14 -> 10 registers; ok
+e2cfed9f9f80cbf0.frag: 89 -> 57 ALU, 16 -> 12 registers; ok
+e7fe951996d1f40b.frag: 42 -> 25 ALU, 14 -> 10 registers; ok
+ed3667059b5c9028.frag: 36 -> 21 ALU, 13 -> 9 registers; ok
+f3825523049d31cf.frag: 56 -> 35 ALU, 14 -> 10 registers; ok
+frag: 1466 -> 896 ALU instructions (38.9% fewer)
+25 shaders, 0 differ, 0 not simulated
