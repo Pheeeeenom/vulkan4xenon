@@ -1,0 +1,15 @@
+  PASS fog_lin_range
+  PASS fog_ortho_exp
+  PASS fog_revexp2
+  PASS indirect_bump
+  PASS indirect_dynamic_s
+  PASS indirect_mtx
+  PASS lit_none
+  PASS lit_spec_sign_alpha
+  PASS lit_spot_ambient_vtx
+  PASS lit_spot_clamp
+  PASS pnmtx_lit
+  PASS scene
+  PASS texmtx_fixed
+  PASS texmtx_picked
+OK: 14 cases

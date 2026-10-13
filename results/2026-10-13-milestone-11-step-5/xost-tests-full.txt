@@ -1,0 +1,191 @@
+PASS vs0: byte-identical (392 bytes)
+PASS ps_fb0: byte-identical (304 bytes)
+  PASS vk_dynamic_rows.vert: rows i to i + 2 and colour i / 3 at a0, for i 0, 3, 6 and 9 (632 B)
+  PASS vk_dynamic_matrices.vert: m[i] * position, a0 i times 4, for i 0 to 2 (424 B)
+  PASS vk_frag_coord.frag: pixel parameters in r1, each column's band at a0, front and back faces (352 B)
+  PASS vk_frag_coord_depth.frag: refused (gl_FragCoord.zw: the pixel parameters hold no depth (v1))
+cf_exec                1000 iterations  PASS
+cf_cond_exec           1000 iterations  PASS
+cf_cond_exec_pred      1000 iterations  PASS
+cf_loop_start          1000 iterations  PASS
+cf_loop_end            1000 iterations  PASS
+cf_cond_call           1000 iterations  PASS
+cf_return              1000 iterations  PASS
+cf_cond_jmp            1000 iterations  PASS
+cf_alloc               1000 iterations  PASS
+pack_cf_pair           1000 iterations  PASS
+vfetch_full            1000 iterations  PASS
+vfetch_mini            1000 iterations  PASS
+tfetch                 1000 iterations  PASS
+alu                    1000 iterations  PASS
+alu_scalar_const_reg   1000 iterations  PASS
+error-paths            11 checks         PASS
+
+All encoder fuzz tests passed.
+PASS vs0: exact text -> 180 bytes, identical
+PASS vs0: default output unchanged
+PASS ps_fb0: exact text -> 84 bytes, identical
+PASS ps_fb0: default output unchanged
+PASS cube_vs: exact text -> 180 bytes, identical
+PASS cube_vs: default output unchanged
+PASS cube_ps: exact text -> 72 bytes, identical
+PASS cube_ps: default output unchanged
+  PASS fs_mtest.frag: transpose(mat3) + determinant(mat3) -> [3.0, -7.25, 6.75, 27.562]
+  PASS fs_minv.frag: inverse(mat3) via adjugate / det -> [0.408, -0.633, 0.102]
+OK
+  PASS program loop CF: LOOP_START i0 skip->L4, LOOP_END body->L2 (280 B)
+  PASS oracle: decompiles to for(aL=0; aL<i0.x; aL++) r0+=c0
+  PASS counted loop LOOP_END stays unpredicated (brk=0, cond=0)
+  PASS encode srcN_const_rel -> aL-relative addressing (5 cases)
+  PASS break shader body accumulates c[0+aL] (aL-relative)
+  PASS break shader: setp_ge + predicated LOOP_END (brk=1, cond=1)
+  PASS predicate-setting exec is not predicate-clean
+  PASS counted loop execs all stay predicate-clean
+  PASS oracle accepts the predicated-break loop (344 B)
+OK
+  PASS vk_many_live.vert: the simulated sums are the reference's
+  PASS without the allocator it's refused: vertex shader needs 145 registers (r0..r144), over the 64 it may use; it would hang the GPU
+  PASS a corrupted allocation gives other sums
+  PASS vk_dependent_read.frag: the offsets are fetched first, and the image where they point
+  PASS loop: r1, read from before the loop, isn't written in it (writes [4, 5, 2])
+OK
+  PASS 16-register pixel shader, libxenon's split: 16 registers
+  PASS 18-register pixel shader, libxenon's split: refused
+  PASS 18-register pixel shader, xsdk's split: 18 registers
+  PASS 64-register pixel shader, libxenon's split: refused
+  PASS 64-register pixel shader, xsdk's split: 64 registers
+  PASS 64-register vertex shader, libxenon's split: 64 registers
+  PASS 64-register vertex shader, xsdk's split: 64 registers
+  PASS 40-register vertex shader, a 32-register vertex share: refused
+  PASS assembled pixel shader to r15, libxenon's split: 16 registers
+  PASS assembled pixel shader to r17, libxenon's split: refused
+  PASS assembled pixel shader to r17, xsdk's split: 18 registers
+  PASS a 12-register pixel shader builds the same under both splits
+  PASS vf: matches the corpus but for the fields the lowering sets
+  PASS dp4: matches the corpus but for the fields the lowering sets and the intended swizzles
+  PASS mov: matches the corpus but for the fields the lowering sets
+  PASS tf: matches the corpus but for the fields the lowering sets
+OK
+== 16-blob round-trip ==
+  PASS vs0.bin (168 B + 12 B zero pad in original)
+  PASS ps_fb0.bin (72 B + 12 B zero pad in original)
+  PASS cube_vs.bin (168 B + 12 B zero pad in original)
+  PASS cube_ps.bin (60 B + 12 B zero pad in original)
+  PASS xost_vs0.bin (84 B)
+  PASS xost_ps0.bin (24 B)
+  PASS xost_vs1.bin (120 B)
+  PASS xost_vs2.bin (144 B)
+  PASS xost_ps1.bin (48 B)
+  PASS comb_0_modulate.bin (48 B)
+  PASS comb_1_tex_prim.bin (60 B)
+  PASS comb_2_lerp_pe_t.bin (84 B)
+  PASS comb_3_decal.bin (48 B)
+  PASS comb_4_shade.bin (36 B)
+  PASS comb_5_inv_tex_p.bin (72 B)
+  PASS comb_6_multitex.bin (72 B)
+  PASS comb_7_lerp2_p.bin (96 B)
+  PASS comb_8_add_glow.bin (84 B)
+== conventional fuzz ==
+  PASS 200 combiner programs round-tripped
+== cond exec opcodes ==
+  PASS cexec/cexece, clean and unclean
+== source-mode smoke ==
+  PASS hand-authored .xasm -> container -> oracle
+  PASS vk_vertex_branch.vert: refused (vertex shader control flow (an if/else, a ?: glslang branches for, or a switch) isn't lowered)
+OK
+  PASS vk_triangle.vert: Vulkan SPIR-V lowers as the OpenGL one (228 B), oracle OK
+  PASS vk_triangle.frag: Vulkan SPIR-V lowers as the OpenGL one (148 B), oracle OK
+  PASS vk_blocks.vert: push c0, blocks c4-c8 and c12, literals from c16; mvp * position and the colour from raw std140 bytes
+  PASS vk_matrices.vert: projection * view * position and position * view over columns
+  PASS vk_samplers.frag: set 0 binding 2 -> tf0, set 1 binding 0 -> tf1, push offset 16 -> c1
+  PASS vk_position_only.vert: alloc interpolators, alloc position, exece, export count 0; oracle OK
+  PASS constant exports: oC0 from push constant c2, and o0 from uniform c0
+  PASS vk_three_inputs.vert: fetches into r2, r1 then r0, each by r0.x; oracle OK
+  PASS vk_block_literals.vert: push c0, uniform c4, literals from c8; the position from all three
+OK
+built harness.exe (MSVC /W4 /WX /O2)
+  bank[0] modulate: OK (220 B)
+  bank[1] tex_prim: OK (316 B)
+  bank[2] lerp_pe_t: OK (380 B)
+  bank[3] decal: OK (260 B)
+  bank[4] shade: OK (204 B)
+  bank[5] inv_tex_p: OK (328 B)
+  bank[6] multitex: OK (288 B)
+  bank[7] lerp2_p: OK (396 B)
+  bank[8] add_glow: OK (340 B)
+BANK parity: 9/9
+fuzz (main, A-B shape restricted): 300/300
+fuzz (incl. A==ZERO subtract shape): 60/60 (0 rejected identically on both sides)
+max container size observed: 532 B (XCOMB_MAX_CONTAINER = 1024)
+ALL GREEN: 9 bank + 360 fuzz cases byte-identical
+  PASS modulate.frag byte-identical to combiner (220 B)
+  PASS blend.frag: novel mix() -> correct lerp (sub+mad), oracle-validated (276 B)
+  PASS tint.frag: .rgb swizzle + vec4(rgb,a) construct -> masked exports (244 B)
+  PASS blend50.frag: literal 0.5 -> pooled const c0, manifest [(0, (0.5, 0.5, 0.5, 0.5))] (276 B)
+  PASS lit01.frag: 0/1 literals -> identity folds + export constants, empty manifest (268 B)
+  PASS normlen.frag: normalize (dp3+rsq) + length (dp3+sqrt) (248 B)
+  PASS mathfns.frag: normalize+length+pow(log2/exp2)+floor stress (528 B)
+  PASS explog.frag: exp/log natural + reflect(mad) + sin/cos (416 B)
+  PASS cf_if.frag: if(a>b) A else B -> cndgt select, branch-free (280 B)
+  PASS nested_if.frag: nested if/else -> chained cnd selects, branch-free (312 B)
+  PASS fs_branch_local.frag: if/else local -> select feeds post-merge math (244 B)
+  PASS fs_discard.frag: if(uv.x<0.5) discard -> kill_gt literal-vs-uv (276 B)
+  PASS fs_cubemap.frag: samplerCube -> cube/rcp/mad + tfetchCube .yxw (296 B)
+  PASS sw_swizzle.frag: non-identity swizzle .bgra (232 B)
+  PASS clamprange.frag: clamp(x,0.2,0.8) -> max/min + pooled literals (332 B)
+  PASS floorabs.frag: floor() + abs() as max(x,-x) (256 B)
+  PASS divide.frag: vec/vec division -> per-component rcp + mul (348 B)
+  PASS absign.frag: abs()=max(x,-x), sign()=sgt(x,-x)-sgt(-x,x) (376 B)
+  PASS tangent.frag: tan(x)=sin(x)*rcp(cos(x)) (244 B)
+  PASS rounding.frag: fract/trunc/ceil=-floor(-x)/round=floor(x+.5) (360 B)
+  PASS angles.frag: radians/degrees -> mul by pooled const (332 B)
+  PASS stepsmooth.frag: step (kSge) + smoothstep (clamp + hermite t*t*(3-2t)) (612 B)
+  PASS modcross.frag: cross (yzx/zxy mad) + mod (x - y*floor(x/y)) (436 B)
+  PASS shuffle2.frag: two-source vec assembly (t.xy + color.zw) (256 B)
+  PASS invtrig.frag: asin (A-S sqrt form) / acos=pi/2-asin / atan (odd poly) (1272 B)
+  PASS loop_accum.frag: for i<4: s+=uv.x -> 4x unrolled accumulate (260 B)
+  PASS loop_weight.frag: for i<4: s+=uv.x*float(i) -> induction folded (428 B)
+  PASS loop_while.frag: while i<4 (increment in body) -> 4x unroll (260 B)
+  PASS loop_nested.frag: nested for 3x3 -> 9x (innermost-first) (460 B)
+  PASS loop_stair.frag: 5x step() staircase + post-loop *0.2 (mem2reg RMW) (576 B)
+  PASS loop_uniform.frag: uniform bound -> real LOOP_START/END (244 B)
+  PASS loop_array.frag: for(i<n) sum += w[i] -> real loop with c[base+aL] (240 B)
+  PASS loop_break.frag: if(cond) break -> setp + predicated LOOP_END (312 B)
+  PASS loop_cond.frag: if(i<k) in loop -> per-iteration arm select (336 B)
+  PASS gray.frag: dot(rgb, luma) -> dp3 broadcast, vec4(lum,lum,lum,a) (288 B)
+  PASS sat.frag: clamp(x,0,1) -> add_sat fused, free (220 B)
+  PASS bright.frag: vec * scalar uniform (.xxxx) (284 B)
+  PASS intmix.frag: int arithmetic -> float literal manifest (192 B)
+  PASS intbucket.frag: ConvertFToS/IAdd/ConvertSToF float-backed path (364 B)
+  PASS fs_ternary.frag: ternary ?: -> f + (t-f)*cond select (300 B)
+  PASS fs_vrelation.frag: greaterThan + any(max)/all(min)/not + select (656 B)
+  PASS fs_refract.frag: refract(): Snell vector with total-internal-reflection mask (716 B)
+  PASS fs_intdiv.frag: runtime int / and % via rcp+trunc emulation (584 B)
+  PASS fs_texlod.frag: textureLod explicit LOD -> tfetch LOD bias (216 B)
+  PASS fs_texproj.frag: textureProj perspective divide (268 B)
+  PASS fs_texscale.frag: texture2D with a computed coordinate (328 B)
+  PASS fs_deriv.frag: getGradients fetch (412 B)
+  PASS fs_dsolid.frag: getGradients fetch (372 B)
+  PASS spincube.vert oracle = mvp dp4 transform + passthrough (344 B)
+  PASS chainmat.vert: u_viewproj * (u_model * pos) -> temp dp4 chain + passthrough (440 B)
+  PASS vs_mat3.vert: mat3 normal matrix (dp3 per row) + mat4 MVP (592 B)
+  PASS vs_mat2.vert: mat2 UV rotation (dp2add per row) + mat4 MVP (464 B)
+  PASS fs_mtest.frag: transpose + determinant(mat3) (488 B)
+  PASS fs_minv.frag: inverse(mat3) via adjugate/det (560 B)
+  PASS vs_vecmat.vert: vec4 * mat4 -> mul/mad row vector (356 B)
+  PASS vs_matmat.vert: mat4 * mat4 rows feed mat4 * vec4 (644 B)
+  PASS vtx_arith.vert: VS add/mul feed position + varying exports (464 B)
+  PASS vs_lighting.vert: VS literal manifest feeds normalize/dot/max lighting (532 B)
+  PASS vs_wave.vert: VS literal + sin path lowers with manifest (448 B)
+  PASS  vs stage
+  PASS  vs vfetch
+  PASS  vs interp_out
+  PASS  vs position
+  PASS  vs constant u_mvp -> c0..c3
+  PASS  fs stage
+  PASS  fs interp_in
+  PASS  fs sampler -> tf0
+  PASS  fs sampler Dim 2D
+  PASS  fs color_out -> oC0
+  PASS  cube sampler -> tf0
+  PASS  cube sampler Dim Cube

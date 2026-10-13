@@ -1,0 +1,8 @@
+== diffuse from the light's unnormalized vector: built, checker exit 1, failing ['lit_spot_ambient_vtx', 'lit_spot_ambient_vtx:', 'pnmtx_lit', 'pnmtx_lit:', 'scene', 'scene:']
+== the normal left unnormalized: built, checker exit 1, failing ['lit_spec_sign_alpha', 'lit_spec_sign_alpha:', 'lit_spot_ambient_vtx', 'lit_spot_ambient_vtx:', 'pnmtx_lit', 'pnmtx_lit:', 'scene', 'scene:']
+== fog's depth range the other way: built, checker exit 1, failing ['fog_lin_range', 'fog_lin_range:', 'fog_ortho_exp', 'fog_ortho_exp:', 'fog_revexp2', 'fog_revexp2:', 'scene', 'scene:']
+== range fog's factor left out: built, checker exit 1, failing ['fog_lin_range', 'fog_lin_range:', 'scene', 'scene:']
+== a picked texture matrix the other kind: built, checker exit 1, failing ['scene', 'scene:', 'texmtx_picked']
+== an 8-bit indirect bias of -127: built, checker exit 1, failing ['indirect_mtx', 'indirect_mtx:']
+== ITF_5's bump mask 0xF0: built, checker exit 1, failing ['indirect_bump', 'indirect_bump:']
+== restored: built, checker exit 0, failing []

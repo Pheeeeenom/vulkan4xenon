@@ -1,0 +1,9 @@
+== gx_fifo_tests
+[  PASSED  ] 236 tests.
+== gx_texture_cache_tests
+[  PASSED  ] 38 tests.
+== gfx_recording_tests
+[  PASSED  ] 18 tests.
+== lru_cache_tests
+[  PASSED  ] 7 tests.
+

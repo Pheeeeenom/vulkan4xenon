@@ -1,0 +1,130 @@
+diff --git a/src/dusk/xenon_run.cpp b/src/dusk/xenon_run.cpp
+index 3dc74c79f6..51266bdd00 100644
+--- a/src/dusk/xenon_run.cpp
++++ b/src/dusk/xenon_run.cpp
+@@ -9,6 +9,7 @@
+ #include "m_Do/m_Do_audio.h"
+ #include "m_Do/m_Do_ext.h"
+ 
++#include <aurora/aurora.h>
+ #include <aurora/gfx.h>
+ #include <malloc.h>
+ #include <xsdk/kernel.h>
+@@ -17,13 +18,27 @@
+ #include <chrono>
+ #include <string>
+ 
++#ifdef DUSK_XENON_DIAGNOSTICS
++// Aurora's diagnostics (AURORA_ENABLE_DIAGNOSTICS) and the step 5 patch's draw counts and skips by feature.
++extern "C" unsigned long long aurora_gpu_take_busy_ns();
++extern "C" unsigned long long aurora_render_take_busy_ns();
++extern "C" unsigned long long aurora_fifo_take_busy_ns();
++extern "C" unsigned long long aurora_vulkan4xenon_take_acquire_ns();
++extern "C" void aurora_vulkan4xenon_skip_features(unsigned int mask);
++extern "C" void aurora_vulkan4xenon_take_feature_draws(unsigned long long* draws, unsigned long long* vertices);
++#endif
++
+ namespace dusk::xenon_run {
+ namespace {
+ 
+ using Clock = std::chrono::steady_clock;
+ 
+ constexpr const char* TitleStage = "F_SP102";
++#ifdef DUSK_XENON_DIAGNOSTICS
++constexpr Clock::duration TitleTime = std::chrono::seconds(120);
++#else
+ constexpr Clock::duration TitleTime = std::chrono::seconds(60);
++#endif
+ constexpr Clock::duration FrameRatePeriod = std::chrono::seconds(10);
+ // MmQueryStatistics counts 4 KB pages (xenia:src/xenia/kernel/xboxkrnl/xboxkrnl_memory.cc:496).
+ constexpr u32 PagesPerMB = 1024 * 1024 / 4096;
+@@ -75,6 +90,12 @@ u32 periodFrames = 0;
+ bool inTitle = false;
+ Clock::time_point titleStart;
+ 
++// The title scene's frame this far in, beside the log (aurora_capture_frame): Xenia shows none of vulkan4xenon's
++// frames, as it has no display controller (xsdk's CLAUDE.md), so a capture is how a run there shows one.
++constexpr Clock::duration TitleCaptureTime = std::chrono::seconds(20);
++constexpr const char* TitleCapturePath = "game:\\dusklight_title.ppm";
++bool titleCaptured = false;
++
+ void sample_heaps() {
+     for (HeapPeak& heap : heaps) {
+         JKRHeap* const jkrHeap = heap.get();
+@@ -111,6 +132,49 @@ void log_memory() {
+         static_cast<u32>(heap.uordblks) >> 20);
+ }
+ 
++#ifdef DUSK_XENON_DIAGNOSTICS
++constexpr const char* FeatureNames[] = {"lit", "fog", "range fog", "indirect", "PNMTXIDX", "TEXnMTXIDX", "none"};
++constexpr unsigned int AllFeatures = 0x3F;
++// The draws each title scene period skips, by feature bit: all drawn first and last, each feature alone between.
++constexpr unsigned int TitleSkips[] = {0, 0, 1, 2 | 4, 8, 16 | 32, AllFeatures, 0, 0};
++u32 titlePeriods = 0;
++// Each title scene period's frame this far in, beside the log, dusklight_period<n>.ppm for TitleSkips[n].
++constexpr Clock::duration PeriodCaptureTime = std::chrono::seconds(5);
++Clock::time_point titlePeriodStart;
++bool titlePeriodCaptured = true;
++
++void log_diagnostics(u32 frames) {
++    const double perFrame = frames == 0 ? 0.0 : 1e-6 / frames;
++    DuskLog.info(
++        "Diagnostics: a frame's GPU {:.1f} ms, render worker {:.1f} ms (acquire {:.1f}), FIFO worker {:.1f} ms",
++        aurora_gpu_take_busy_ns() * perFrame, aurora_render_take_busy_ns() * perFrame,
++        aurora_vulkan4xenon_take_acquire_ns() * perFrame, aurora_fifo_take_busy_ns() * perFrame);
++    unsigned long long draws[7];
++    unsigned long long vertices[7];
++    aurora_vulkan4xenon_take_feature_draws(draws, vertices);
++    std::string line;
++    for (int i = 0; i < 7; ++i) {
++        line += fmt::format("{}{}: {:.0f} draws, {:.0f} vertices", i == 0 ? "" : "; ", FeatureNames[i],
++            frames == 0 ? 0.0 : double(draws[i]) / frames, frames == 0 ? 0.0 : double(vertices[i]) / frames);
++    }
++    DuskLog.info("Diagnostics: a frame's draws by feature: {}", line);
++    if (inTitle) {
++        const unsigned int skip =
++            TitleSkips[std::min<size_t>(titlePeriods++, std::size(TitleSkips) - 1)];
++        aurora_vulkan4xenon_skip_features(skip);
++        titlePeriodStart = Clock::now();
++        titlePeriodCaptured = false;
++        std::string names;
++        for (int i = 0; i < 6; ++i) {
++            if ((skip & (1u << i)) != 0) {
++                names += names.empty() ? FeatureNames[i] : fmt::format(", {}", FeatureNames[i]);
++            }
++        }
++        DuskLog.info("Diagnostics: the next period skips draws with: {}", names.empty() ? "nothing" : names);
++    }
++}
++#endif
++
+ }  // namespace
+ 
+ void after_frame() {
+@@ -132,12 +196,26 @@ void after_frame() {
+         }
+     }
+ 
++    if (inTitle && !titleCaptured && now - titleStart >= TitleCaptureTime) {
++        titleCaptured = true;
++        aurora_capture_frame(TitleCapturePath);
++    }
++#ifdef DUSK_XENON_DIAGNOSTICS
++    if (!titlePeriodCaptured && now - titlePeriodStart >= PeriodCaptureTime) {
++        titlePeriodCaptured = true;
++        aurora_capture_frame(fmt::format("game:\\dusklight_period{}.ppm", titlePeriods - 1).c_str());
++    }
++#endif
++
+     periodFrames++;
+     if (now - periodStart >= FrameRatePeriod) {
+         const double seconds = std::chrono::duration<double>(now - periodStart).count();
+         DuskLog.info(
+             "{} frames in {:.1f} s, {:.1f} fps", periodFrames, seconds, periodFrames / seconds);
+         log_memory();
++#ifdef DUSK_XENON_DIAGNOSTICS
++        log_diagnostics(periodFrames);
++#endif
+         periodStart = now;
+         periodFrames = 0;
+     }

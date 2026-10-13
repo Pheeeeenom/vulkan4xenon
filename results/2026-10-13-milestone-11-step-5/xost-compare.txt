@@ -1,0 +1,9 @@
+536 lowerings
+same 470, newly compiling 24, changed 0, broken 18, failing before and now 27
+broken: glsl_test_31a558407ee6cc64.vert.spv libxenon: error: LowerError: vertex shader control flow (an if/else, a ?: glslang branches for, or a switch) isn't lowered
+broken: glsl_test_31a558407ee6cc64.vert.spv xsdk: error: LowerError: vertex shader control flow (an if/else, a ?: glslang branches for, or a switch) isn't lowered
+broken: glsl_test_3212a1d9cb33ae23.vert.spv libxenon: error: LowerError: vertex shader control flow (an if/else, a ?: glslang branches for, or a switch) isn't lowered
+broken: glsl_test_3212a1d9cb33ae23.vert.spv xsdk: error: LowerError: vertex shader control flow (an if/else, a ?: glslang branches for, or a switch) isn't lowered
+broken: glsl_test_43a1aa354efdd0f5.vert.spv libxenon: error: LowerError: vertex shader control flow (an if/else, a ?: glslang branches for, or a switch) isn't lowered
+broken: glsl_test_43a1aa354efdd0f5.vert.spv xsdk: error: LowerError: vertex shader control flow (an if/else, a ?: glslang branches for, or a switch) isn't lowered
+12

@@ -1,0 +1,84 @@
+--- aurora-xenon/lib/vulkan4xenon/encoding.cpp	2026-10-13 00:07:44.650751100 -0400
++++ dusklight-xenon/extern/aurora/lib/vulkan4xenon/encoding.cpp	2026-10-12 23:44:58.171075300 -0400
+@@ -139,6 +139,40 @@
+ uint32_t g_cacheFrames = 0;
+ // The render worker's time in vkAcquireNextImageKHR, which waits for the display, since the benchmark last asked.
+ std::atomic<uint64_t> g_acquireNs = 0;
++
++// Milestone 11, step 5's console diagnostics: GX draws counted, and skipped, by the features step 5 drew. Bits:
++// lit, fog, range fog, indirect, PNMTXIDX, TEXnMTXIDX, none of them.
++constexpr size_t FeatureCount = 7;
++std::atomic<uint32_t> g_skipFeatures = 0;
++std::array<std::atomic<uint64_t>, FeatureCount> g_featureDraws{};
++std::array<std::atomic<uint64_t>, FeatureCount> g_featureVertices{};
++
++uint32_t draw_features(const gx::ShaderConfig& config) noexcept {
++  uint32_t features = 0;
++  for (const auto& channel : config.colorChannels) {
++    if (channel.lightingEnabled) {
++      features |= 1;
++    }
++  }
++  if (config.fogType != GX_FOG_NONE) {
++    features |= 2;
++  }
++  if (config.fogRangeEnabled) {
++    features |= 4;
++  }
++  if (config.numIndStages != 0) {
++    features |= 8;
++  }
++  if (config.attrs[GX_VA_PNMTXIDX].attrType != GX_NONE) {
++    features |= 16;
++  }
++  for (u32 attr = GX_VA_TEX0MTXIDX; attr <= GX_VA_TEX7MTXIDX; ++attr) {
++    if (config.attrs[attr].attrType != GX_NONE) {
++      features |= 32;
++    }
++  }
++  return features == 0 ? 64 : features;
++}
+ #endif
+ 
+ // A capture (aurora_capture_frame): the frame's EFB as a binary PPM, as the WebGPU backend writes its present source,
+@@ -574,6 +608,19 @@
+     return;
+   }
+   const auto& pipeline = *g_currentPipelineObject;
++#ifdef AURORA_DIAGNOSTICS
++  const uint32_t features = draw_features(pipeline.shaderConfig);
++  if ((features & g_skipFeatures.load(std::memory_order_relaxed)) != 0) {
++    return;
++  }
++  for (size_t i = 0; i < FeatureCount; ++i) {
++    if ((features & (1u << i)) != 0) {
++      g_featureDraws[i].fetch_add(1, std::memory_order_relaxed);
++      g_featureVertices[i].fetch_add(data.indexCount != 0 ? data.indexCount : data.vtxCount,
++                                     std::memory_order_relaxed);
++    }
++  }
++#endif
+   const VkDeviceSize offset = draw.offset;
+   if (g_lookedUpRef != data.bindGroups.textureBindGroup) {
+     g_lookedUpSet = texture_set(data.bindGroups.textureBindGroup);
+@@ -965,6 +1012,20 @@
+   return aurora::gfx::vulkan4xenon::g_acquireNs.exchange(0, std::memory_order_relaxed);
+ }
+ 
++// GX draws whose features (draw_features) meet the mask aren't drawn.
++extern "C" void aurora_vulkan4xenon_skip_features(unsigned int mask) {
++  aurora::gfx::vulkan4xenon::g_skipFeatures.store(mask, std::memory_order_relaxed);
++}
++
++// The draws and vertices drawn with each feature since the last call, 7 of each.
++extern "C" void aurora_vulkan4xenon_take_feature_draws(unsigned long long* draws, unsigned long long* vertices) {
++  using namespace aurora::gfx::vulkan4xenon;
++  for (size_t i = 0; i < FeatureCount; ++i) {
++    draws[i] = g_featureDraws[i].exchange(0, std::memory_order_relaxed);
++    vertices[i] = g_featureVertices[i].exchange(0, std::memory_order_relaxed);
++  }
++}
++
+ // The most a frame's decoded vertices took of the vertex cache, and its size.
+ extern "C" void aurora_vulkan4xenon_vertices(unsigned long long* peak, unsigned long long* size) {
+   *peak = aurora::gfx::vulkan4xenon::g_decodedPeak.load(std::memory_order_relaxed);

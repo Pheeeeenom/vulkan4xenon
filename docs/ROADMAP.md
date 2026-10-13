@@ -1102,6 +1102,53 @@ vkbench 14 of 14, with milestone 24's command stream and its times within noise.
   frames fewer after its slower load (14.5 fps against 19.6). The same `.xex` in Xenia refused all 62 and logged step
   1's Xenia errors (`dusklight-xenia.log`). The log came back whole.
 
+**Step 5 passed on hardware** on 2026-10-13, Dusklight `962860e` with Aurora `470e2de` and xost `a22f915`
+(`results/2026-10-13-milestone-11-step-5/`):
+- **The generator** (Aurora `46e7a2b`, with the view's depth range from `f58b2da`) writes fog with its range
+  adjustment, lighting with each mask's lights unrolled, the masks kept in the key as decided with the user, matrices
+  picked per vertex through `a0`, and indirect texturing, as gx/shader.cpp's WGSL writes them.
+  vulkan4xenon_glsl_tests passed 33 of 33. tools/check_glsl_math.py runs 14 named configurations' programs, compiled
+  as the pack is, on xost's simulator against its own reference of the WGSL: all 14 agreed (`check_glsl_math.txt`).
+  Broken on purpose seven ways, each break failed the cases it touches (`glsl_breaks.txt`).
+- **xost** (`3d46e0c`, `a22f915`): temporaries run past r63 until the allocator packs them, vertex programs are
+  allocated past 64 registers, dependent texture reads gather their coordinates first, and a vertex program's
+  branches are refused, where they had been miscompiled without a word. Its 15 test files pass, 164 checks
+  (`xost-tests.txt`). Of 536 lowerings, 470 came out as before, none that compiled changed, 24 more compile, and the
+  18 now refused are the earlier generator's vertex programs with a `?:`, which it no longer writes
+  (`xost-compare.txt`).
+- **The scene recorded again** in Xenia refused no configuration: the pack's 69 programs came out byte for byte as
+  before, and 71 more, 140 in all.
+- **The first console run** (`dusklight-first.log`) drew every configuration and exited with status 0, but ran the
+  title scene at 0.3 fps. Xenia shows none of the layer's frames, so Aurora `470e2de` has the backend write frame
+  captures, the EFB untiled into a PPM, and Dusklight writes the title scene's 20 seconds in. In Xenia
+  (`xenia-before-fixes.png`) the scene's models drew as flat triangles through the screen's centre, as they had on
+  the console all along: the user had only ever seen the boot screens draw right. Two of the PC port's byte-order
+  assumptions, step 6's to fix, were brought forward:
+  - **Arrays the host writes,** which games mark `le`: J3D's matrices
+    (dusklight:libs/JSystem/include/JSystem/J3DGraphBase/J3DSys.h:154) and its skinned vertices
+    (dusklight:libs/JSystem/src/J3DGraphBase/J3DShape.cpp:158), read swapped on the big-endian console. The command
+    processor reads them in the host's order now (Aurora `08900a8`; `xenia-geometry-fixed.png`).
+  - **Textures' big-endian words,** RGB565, RGB5A3, C14X2 and CMPR, swapped unconditionally, which drew the models'
+    textures as noise (Aurora `e34bef3`; `xenia-title.png`, `xenia-castle-gate.png`).
+
+  With both fixed the console ran at 17 to 22 fps, so the 0.3 fps was the broken geometry: triangles across much of
+  the screen, drawn with step 5's programs.
+- **The console run** (`dusklight.log`): the title scene drew correctly, as the user saw on the screen; status 0,
+  nothing refused, step 4's errors only. It ran at 16.9 to 22.1 fps once loaded, against step 4's 29.3 to 30.0 with
+  61 configurations undrawn, and ended with 10 MB free, from 14, with more textures drawn. Xenia ran the same `.xex`
+  at 30.0 fps (`dusklight-xenia.log`). Aurora's host tests passed on Dawn, gx_fifo 236, gx_texture_cache 38,
+  gfx_recording 18 and lru_cache 7, and on the null backend dvd 39, vulkan4xenon_glsl 33 and lru_cache 7; the
+  byte-order fixes change nothing on a little-endian host.
+- **Where the frame goes,** from a diagnostics build (`dusklight_diag.log`; its sources in `diagnostic/`, against
+  Aurora `470e2de` and Dusklight `32e17a7`). Every 10 seconds it logged each worker's time and the GPU's, the latter
+  from submit to fence and so with the layer's replay of the command buffer, and drew the next period without one
+  feature's draws. In the title's last, still shot, at 18.2 to 18.9 fps, a frame took the GPU 32 to 36 ms, the
+  render worker 32 to 34 ms, 5 of them waiting for the display, and the FIFO worker 10 ms. Without the lit draws,
+  nearly the whole 3D scene, the title scene ran at 28.5 fps. Without the indirect draws, 16 to 19 a frame with 1,000
+  to 1,300 vertices in the periods before, it ran at 28.1, the GPU's time down to 30 ms from 48. With every feature's
+  draws gone, 25 draws left, it ran at 28.0 fps, the GPU still at 20 ms a frame. The periods are different moments of
+  a moving scene, so they compare neighbours, not the same frames. Reaching 30 fps is open.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

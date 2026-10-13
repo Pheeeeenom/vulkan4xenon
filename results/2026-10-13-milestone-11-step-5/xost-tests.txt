@@ -1,0 +1,15 @@
+0 tests/test_container_regen.py
+0 tests/test_dynamic_index.py
+0 tests/test_encode_fuzz.py
+0 tests/test_exact_total.py
+0 tests/test_matrix.py
+0 tests/test_program_loop.py
+0 tests/test_register_alloc.py
+0 tests/test_register_budget.py
+0 tests/test_templates.py
+0 tests/test_textasm.py
+0 tests/test_vertex_branches.py
+0 tests/test_vulkan_spirv.py
+0 tests/test_xcomb_parity.py
+0 tests/test_xsc_lower.py
+0 tests/test_xsc_resolve.py
