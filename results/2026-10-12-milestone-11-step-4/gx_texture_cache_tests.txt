@@ -1,0 +1,85 @@
+Running main() from /home/xenon/build/aurora-base-dawn/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 38 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 38 tests from GxTextureCacheTest
+[ RUN      ] GxTextureCacheTest.CalculatesTiledAndLinearMipSourceSizes
+[       OK ] GxTextureCacheTest.CalculatesTiledAndLinearMipSourceSizes (2 ms)
+[ RUN      ] GxTextureCacheTest.ReusesIdenticalContentAtDifferentAddresses
+[       OK ] GxTextureCacheTest.ReusesIdenticalContentAtDifferentAddresses (0 ms)
+[ RUN      ] GxTextureCacheTest.ObjectHitDoesNotHashAgain
+[       OK ] GxTextureCacheTest.ObjectHitDoesNotHashAgain (0 ms)
+[ RUN      ] GxTextureCacheTest.ChangedContentAndMetadataMiss
+[       OK ] GxTextureCacheTest.ChangedContentAndMetadataMiss (0 ms)
+[ RUN      ] GxTextureCacheTest.DestroyedObjectStillReusesContent
+[       OK ] GxTextureCacheTest.DestroyedObjectStillReusesContent (0 ms)
+[ RUN      ] GxTextureCacheTest.PaletteContentIncludesTlutBytesAndMetadata
+[       OK ] GxTextureCacheTest.PaletteContentIncludesTlutBytesAndMetadata (0 ms)
+[ RUN      ] GxTextureCacheTest.StaticClearReresolvesBoundTextureButRetainsContent
+[       OK ] GxTextureCacheTest.StaticClearReresolvesBoundTextureButRetainsContent (0 ms)
+[ RUN      ] GxTextureCacheTest.ReplacementAppearsOnAlreadyBoundTexture
+[       OK ] GxTextureCacheTest.ReplacementAppearsOnAlreadyBoundTexture (0 ms)
+[ RUN      ] GxTextureCacheTest.PendingReplacementPublishEvictsItsVanillaObjectEntry
+[       OK ] GxTextureCacheTest.PendingReplacementPublishEvictsItsVanillaObjectEntry (0 ms)
+[ RUN      ] GxTextureCacheTest.PendingReplacementPublishRebindsLoadedSlot
+[       OK ] GxTextureCacheTest.PendingReplacementPublishRebindsLoadedSlot (0 ms)
+[ RUN      ] GxTextureCacheTest.SourceReplacementReusesContentHashPass
+[       OK ] GxTextureCacheTest.SourceReplacementReusesContentHashPass (0 ms)
+[ RUN      ] GxTextureCacheTest.TlutRefreshInvalidatesBoundPaletteTexture
+[       OK ] GxTextureCacheTest.TlutRefreshInvalidatesBoundPaletteTexture (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyRevisionRequeuesDynamicPaletteConversion
+[       OK ] GxTextureCacheTest.CopyRevisionRequeuesDynamicPaletteConversion (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyRecreationAtSameDestinationRebindsHandle
+[       OK ] GxTextureCacheTest.CopyRecreationAtSameDestinationRebindsHandle (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheReusesAlternatingSizesAcrossFrames
+[       OK ] GxTextureCacheTest.CopyCacheReusesAlternatingSizesAcrossFrames (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheKeysIncludeBothDimensionsFormatAndDestination
+[       OK ] GxTextureCacheTest.CopyCacheKeysIncludeBothDimensionsFormatAndDestination (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame
+[       OK ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheBudgetIsSharedAcrossDestinations
+[       OK ] GxTextureCacheTest.CopyCacheBudgetIsSharedAcrossDestinations (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheHitAlsoTrimsNewlySupersededLargeCopy
+[       OK ] GxTextureCacheTest.CopyCacheHitAlsoTrimsNewlySupersededLargeCopy (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheSweepExpiresVariantsButPreservesCurrentContents
+[       OK ] GxTextureCacheTest.CopyCacheSweepExpiresVariantsButPreservesCurrentContents (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheCanDisableReuseWithoutDiscardingCurrentCopies
+[       OK ] GxTextureCacheTest.CopyCacheCanDisableReuseWithoutDiscardingCurrentCopies (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheBoundsContinuousParticleSizeChurn
+[       OK ] GxTextureCacheTest.CopyCacheBoundsContinuousParticleSizeChurn (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheEvictionRetainsOutstandingOwners
+[       OK ] GxTextureCacheTest.CopyCacheEvictionRetainsOutstandingOwners (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheEvictionRetiresDependentPaletteConversions
+[       OK ] GxTextureCacheTest.CopyCacheEvictionRetiresDependentPaletteConversions (0 ms)
+[ RUN      ] GxTextureCacheTest.DestroyCopyRetiresEveryVariantAndOnlyThatDestination
+[       OK ] GxTextureCacheTest.DestroyCopyRetiresEveryVariantAndOnlyThatDestination (0 ms)
+[ RUN      ] GxTextureCacheTest.CopyCacheClearAndShutdownResetOwnershipAndAccounting
+[       OK ] GxTextureCacheTest.CopyCacheClearAndShutdownResetOwnershipAndAccounting (0 ms)
+[ RUN      ] GxTextureCacheTest.ObjectAgingKeepsContentEntry
+[       OK ] GxTextureCacheTest.ObjectAgingKeepsContentEntry (0 ms)
+[ RUN      ] GxTextureCacheTest.BoundObjectIsNotAgedOut
+[       OK ] GxTextureCacheTest.BoundObjectIsNotAgedOut (0 ms)
+[ RUN      ] GxTextureCacheTest.ContentCacheEvictsLeastRecentlyUsedEntry
+[       OK ] GxTextureCacheTest.ContentCacheEvictsLeastRecentlyUsedEntry (0 ms)
+[ RUN      ] GxTextureCacheTest.OversizedEntryIsReturnedButNotRetained
+[       OK ] GxTextureCacheTest.OversizedEntryIsReturnedButNotRetained (0 ms)
+[ RUN      ] GxTextureCacheTest.ContentEvictionPreservesObjectAndRecordedOwners
+[       OK ] GxTextureCacheTest.ContentEvictionPreservesObjectAndRecordedOwners (0 ms)
+[ RUN      ] GxTextureCacheTest.ShutdownRestoresContentCacheBudgetAndAccounting
+[       OK ] GxTextureCacheTest.ShutdownRestoresContentCacheBudgetAndAccounting (0 ms)
+[ RUN      ] GxTextureCacheTest.PreconvertedContentIsUsedAtFirstBind
+[       OK ] GxTextureCacheTest.PreconvertedContentIsUsedAtFirstBind (1 ms)
+[ RUN      ] GxTextureCacheTest.ContentRewrittenAfterPreconversionConvertsInline
+[       OK ] GxTextureCacheTest.ContentRewrittenAfterPreconversionConvertsInline (1 ms)
+[ RUN      ] GxTextureCacheTest.SourceIsCopiedWhenQueued
+[       OK ] GxTextureCacheTest.SourceIsCopiedWhenQueued (1 ms)
+[ RUN      ] GxTextureCacheTest.UploadedContentIsNotConvertedAgain
+[       OK ] GxTextureCacheTest.UploadedContentIsNotConvertedAgain (1 ms)
+[ RUN      ] GxTextureCacheTest.SameObjectIsQueuedOnce
+[       OK ] GxTextureCacheTest.SameObjectIsQueuedOnce (1 ms)
+[ RUN      ] GxTextureCacheTest.PaletteAndPcFormatsAreNotPreconverted
+[       OK ] GxTextureCacheTest.PaletteAndPcFormatsAreNotPreconverted (0 ms)
+[----------] 38 tests from GxTextureCacheTest (21 ms total)
+
+[----------] Global test environment tear-down
+[==========] 38 tests from 1 test suite ran. (22 ms total)
+[  PASSED  ] 38 tests.

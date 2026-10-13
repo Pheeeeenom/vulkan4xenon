@@ -1,0 +1,60 @@
+1
+=== LRU order ignored
+lru_cache_tests: [  FAILED  ] LruCacheTest.BudgetOnlyCacheRetainsIdleEntriesAndStillUsesLruOrder (0 ms)
+lru_cache_tests: [  PASSED  ] 6 tests.
+lru_cache_tests: [  FAILED  ] 1 test, listed below:
+lru_cache_tests: [  FAILED  ] LruCacheTest.BudgetOnlyCacheRetainsIdleEntriesAndStillUsesLruOrder
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.ContentCacheEvictsLeastRecentlyUsedEntry (0 ms)
+gx_texture_cache_tests: [  PASSED  ] 36 tests.
+gx_texture_cache_tests: [  FAILED  ] 2 tests, listed below:
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.ContentCacheEvictsLeastRecentlyUsedEntry
+gfx_recording_tests: [  FAILED  ] GfxRecordingTest.OffscreenBudgetIncludesColorAndDepth (0 ms)
+gfx_recording_tests: [  FAILED  ] GfxRecordingTest.OffscreenSweepKeepsHotSizesAndExpiresIdleOnes (0 ms)
+gfx_recording_tests: [  PASSED  ] 16 tests.
+gfx_recording_tests: [  FAILED  ] 2 tests, listed below:
+gfx_recording_tests: [  FAILED  ] GfxRecordingTest.OffscreenBudgetIncludesColorAndDepth
+gfx_recording_tests: [  FAILED  ] GfxRecordingTest.OffscreenSweepKeepsHotSizesAndExpiresIdleOnes
+1
+=== superseded copy left pinned
+lru_cache_tests: [  PASSED  ] 7 tests.
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheReusesAlternatingSizesAcrossFrames (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheKeysIncludeBothDimensionsFormatAndDestination (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBudgetIsSharedAcrossDestinations (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheHitAlsoTrimsNewlySupersededLargeCopy (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheSweepExpiresVariantsButPreservesCurrentContents (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheCanDisableReuseWithoutDiscardingCurrentCopies (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBoundsContinuousParticleSizeChurn (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheEvictionRetainsOutstandingOwners (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheEvictionRetiresDependentPaletteConversions (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.DestroyCopyRetiresEveryVariantAndOnlyThatDestination (0 ms)
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheClearAndShutdownResetOwnershipAndAccounting (0 ms)
+gx_texture_cache_tests: [  PASSED  ] 26 tests.
+gx_texture_cache_tests: [  FAILED  ] 12 tests, listed below:
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheReusesAlternatingSizesAcrossFrames
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheKeysIncludeBothDimensionsFormatAndDestination
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBudgetUsesLruOrderWithinOneFrame
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBudgetIsSharedAcrossDestinations
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheHitAlsoTrimsNewlySupersededLargeCopy
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheSweepExpiresVariantsButPreservesCurrentContents
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheCanDisableReuseWithoutDiscardingCurrentCopies
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheBoundsContinuousParticleSizeChurn
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheEvictionRetainsOutstandingOwners
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheEvictionRetiresDependentPaletteConversions
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.DestroyCopyRetiresEveryVariantAndOnlyThatDestination
+gx_texture_cache_tests: [  FAILED  ] GxTextureCacheTest.CopyCacheClearAndShutdownResetOwnershipAndAccounting
+gfx_recording_tests: [  PASSED  ] 18 tests.
+1
+=== offscreen key without formats
+lru_cache_tests: [  PASSED  ] 7 tests.
+gx_texture_cache_tests: [  PASSED  ] 38 tests.
+gfx_recording_tests: [  FAILED  ] GfxRecordingTest.OffscreenKeyIncludesColorFormat (0 ms)
+gfx_recording_tests: [  PASSED  ] 17 tests.
+gfx_recording_tests: [  FAILED  ] 1 test, listed below:
+gfx_recording_tests: [  FAILED  ] GfxRecordingTest.OffscreenKeyIncludesColorFormat
+=== restored
+lru_cache_tests: [  PASSED  ] 7 tests.
+gx_texture_cache_tests: [  PASSED  ] 38 tests.
+gfx_recording_tests: [  PASSED  ] 18 tests.

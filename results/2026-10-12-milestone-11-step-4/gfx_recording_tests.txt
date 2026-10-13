@@ -1,0 +1,52 @@
+Running main() from /home/xenon/build/aurora-base-dawn/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 18 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 15 tests from GfxRecordingTest
+[ RUN      ] GfxRecordingTest.CreateRestoreReturnsToEfb
+[       OK ] GfxRecordingTest.CreateRestoreReturnsToEfb (1 ms)
+[ RUN      ] GfxRecordingTest.EfbPassUsesDiscoveredSceneLayout
+[       OK ] GfxRecordingTest.EfbPassUsesDiscoveredSceneLayout (0 ms)
+[ RUN      ] GfxRecordingTest.LayoutKeyFollowsTheCurrentPass
+[       OK ] GfxRecordingTest.LayoutKeyFollowsTheCurrentPass (0 ms)
+[ RUN      ] GfxRecordingTest.CopiedOffscreenPassIsRetainedOnRestore
+[       OK ] GfxRecordingTest.CopiedOffscreenPassIsRetainedOnRestore (0 ms)
+[ RUN      ] GfxRecordingTest.ReplacementRetainsCopiedPassesAndDiscardsContinuations
+[       OK ] GfxRecordingTest.ReplacementRetainsCopiedPassesAndDiscardsContinuations (0 ms)
+[ RUN      ] GfxRecordingTest.RepeatedUncopiedCreatesDiscardEarlierPasses
+[       OK ] GfxRecordingTest.RepeatedUncopiedCreatesDiscardEarlierPasses (0 ms)
+[ RUN      ] GfxRecordingTest.PublicCreatePassRejectsExistingOffscreenPass
+[warning] [aurora::gfx] create_pass: an offscreen pass is already active (nesting is unsupported)
+[       OK ] GfxRecordingTest.PublicCreatePassRejectsExistingOffscreenPass (1 ms)
+[ RUN      ] GfxRecordingTest.FinalizedPassesAreSealedOrDeliberatelyDiscarded
+[       OK ] GfxRecordingTest.FinalizedPassesAreSealedOrDeliberatelyDiscarded (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenBudgetIncludesColorAndDepth
+[       OK ] GfxRecordingTest.OffscreenBudgetIncludesColorAndDepth (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenBudgetBoundsContinuousSizeChanges
+[       OK ] GfxRecordingTest.OffscreenBudgetBoundsContinuousSizeChanges (1 ms)
+[ RUN      ] GfxRecordingTest.OversizedOffscreenDoesNotDisplaceReusableSizes
+[       OK ] GfxRecordingTest.OversizedOffscreenDoesNotDisplaceReusableSizes (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenSweepKeepsHotSizesAndExpiresIdleOnes
+[       OK ] GfxRecordingTest.OffscreenSweepKeepsHotSizesAndExpiresIdleOnes (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenReuseSurvivesEfbResizeCycles
+[       OK ] GfxRecordingTest.OffscreenReuseSurvivesEfbResizeCycles (0 ms)
+[ RUN      ] GfxRecordingTest.OffscreenKeyIncludesColorFormat
+[       OK ] GfxRecordingTest.OffscreenKeyIncludesColorFormat (0 ms)
+[ RUN      ] GfxRecordingTest.ClearWithoutACopy
+[       OK ] GfxRecordingTest.ClearWithoutACopy (0 ms)
+[----------] 15 tests from GfxRecordingTest (9 ms total)
+
+[----------] 1 test from TextureSetHash
+[ RUN      ] TextureSetHash.AsTheStreamedFieldsGave
+[       OK ] TextureSetHash.AsTheStreamedFieldsGave (0 ms)
+[----------] 1 test from TextureSetHash (1 ms total)
+
+[----------] 2 tests from RenderTargetLayoutTest
+[ RUN      ] RenderTargetLayoutTest.KeyChangesWithPipelineCompatibility
+[       OK ] RenderTargetLayoutTest.KeyChangesWithPipelineCompatibility (0 ms)
+[ RUN      ] RenderTargetLayoutTest.RenderPassDerivesLayoutFromAttachmentState
+[       OK ] RenderTargetLayoutTest.RenderPassDerivesLayoutFromAttachmentState (0 ms)
+[----------] 2 tests from RenderTargetLayoutTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (12 ms total)
+[  PASSED  ] 18 tests.

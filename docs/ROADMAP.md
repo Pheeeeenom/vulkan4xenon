@@ -1080,6 +1080,28 @@ microcode takes 256-byte blocks of shared pages, where each shader took a page. 
 vkbench 14 of 14, with milestone 24's command stream and its times within noise. Dusklight's title scene ended with
 13 MB free, from 9 at step 2, the title holding 69 MB of physical pages from 73. Aurora's LRU caches are next.
 
+**Step 4 passed on hardware** on 2026-10-12, Dusklight `6b3d713` with Aurora `64066c4`
+(`results/2026-10-12-milestone-11-step-4/`; Dusklight's log names `3d1853a`, the commit at its last configure):
+- **Upstream's LRU caches** (`b922153`), ported by hand to the fork's backend-neutral types: the converted-texture,
+  copy and offscreen caches share Aurora's `LruCache`. Converted textures keep the fork's byte cap, 16 MiB in
+  Dusklight; copies and offscreen targets take upstream's 64 MiB, more than the console has free, so what bounds them
+  there is upstream's other limit: a copy size or offscreen target unused for 32 frames goes. Offscreen targets are
+  keyed by their formats too, as upstream's are, and the caches are no longer cleared on a window resize.
+- **Aurora's host tests,** on Dawn, which the cache tests need: lru_cache_tests 7 of 7, gx_texture_cache_tests 38 of
+  38 (upstream's 14 new), gfx_recording_tests 18 of 18 (upstream's 6 new, one varying the colour format alone, as the
+  fork's formats name one depth format); on the null backend, dvd_tests 39 of 39 and lru_cache_tests 7 of 7. Broken on
+  purpose three ways (`breaks.txt`), an LRU that doesn't reorder on use, a destination's superseded copy left outside
+  the budget and an offscreen key without its formats, they failed 5, 12 and 1 tests.
+- **gx_fifo_tests' two byte goldens** had failed since step 2's `2676de6`, upstream's `afa388d`, which masks a value to
+  its register field; step 2 ran only the DVD and GLSL tests. Aurora `dbc0cf8` records them again from the per-value
+  writes they came from, `bfaa5f3`, with the masking applied: built as it was, it gives the old goldens, all five
+  (`goldens-e3908bb.txt`). gx_fifo_tests passes 236 of 236, and with the masking undone fails those two alone.
+- **The console run** (`dusklight.log`): the title scene at 29.3 to 30.0 fps once loaded and 14 MB free at its end,
+  against 13 at milestone 25, the title holding 69 MB of physical pages as then; status 0, with milestone 25's errors.
+  It refused 61 configurations: the 62nd, `4b9dad0c2751e69f`, is drawn near the minute's end, and this run drew 45
+  frames fewer after its slower load (14.5 fps against 19.6). The same `.xex` in Xenia refused all 62 and logged step
+  1's Xenia errors (`dusklight-xenia.log`). The log came back whole.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

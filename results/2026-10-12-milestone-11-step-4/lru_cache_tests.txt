@@ -1,0 +1,23 @@
+Running main() from /home/xenon/build/aurora-base-dawn/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from LruCacheTest
+[ RUN      ] LruCacheTest.BudgetOnlyCacheRetainsIdleEntriesAndStillUsesLruOrder
+[       OK ] LruCacheTest.BudgetOnlyCacheRetainsIdleEntriesAndStillUsesLruOrder (0 ms)
+[ RUN      ] LruCacheTest.ZeroIdleLimitExpiresAtNextSweep
+[       OK ] LruCacheTest.ZeroIdleLimitExpiresAtNextSweep (0 ms)
+[ RUN      ] LruCacheTest.OversizedEntryDoesNotFlushReusableWorkingSet
+[       OK ] LruCacheTest.OversizedEntryDoesNotFlushReusableWorkingSet (0 ms)
+[ RUN      ] LruCacheTest.ReleasingPinPreservesLastUseForExpiry
+[       OK ] LruCacheTest.ReleasingPinPreservesLastUseForExpiry (0 ms)
+[ RUN      ] LruCacheTest.PinnedValueRemainsStableThroughGrowthAndEviction
+[       OK ] LruCacheTest.PinnedValueRemainsStableThroughGrowthAndEviction (0 ms)
+[ RUN      ] LruCacheTest.EvictionReleasesOnlyCacheOwnership
+[       OK ] LruCacheTest.EvictionReleasesOnlyCacheOwnership (0 ms)
+[ RUN      ] LruCacheTest.EveryRemovalNotifiesResourceOwnerOnce
+[       OK ] LruCacheTest.EveryRemovalNotifiesResourceOwnerOnce (0 ms)
+[----------] 7 tests from LruCacheTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (3 ms total)
+[  PASSED  ] 7 tests.

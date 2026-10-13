@@ -1,0 +1,26 @@
+# gx_fifo_bytes_test.cpp's goldens re-recorded: Aurora bfaa5f3 (e3908bb, the per-value writes, with the golden tests),
+# built on the host on Dawn as it was, then with afa388d's SET_REG_FIELD masking applied (~/build/aurora_goldens.sh).
+68:#define SET_REG_FIELD(line, reg, size, shift, val)                                                                     \
+69-  do {                                                                                                                 \
+70-    (reg) = ((u32)(reg) & ~(((1u << (size)) - 1) << (shift))) | ((u32)(val) << (shift));                               \
+71-  } while (0)
+=== as-was
+[golden] stream seed 0x00000001: 33339 bytes, hash 0x1B23FA80761264AD
+[golden] stream seed 0x9E3779B9: 32817 bytes, hash 0x9FC6EDD1533D8A49
+[golden] stream seed 0x2545F491: 33681 bytes, hash 0xF5354A51BEF679EE
+[golden] list seed 0x00000001: 17248 bytes, hash 0x83CF5EA687215146
+[golden] list seed 0x9E3779B9: 17152 bytes, hash 0xE2C0A5CDA2029A79
+[  PASSED  ] 2 tests.
+68:#define SET_REG_FIELD(line, reg, size, shift, val)                                                                     \
+69-  do {                                                                                                                 \
+70-    constexpr int kMask = ((1u << (size)) - 1) << (shift);                                                             \
+71-    (reg) = (u32(reg) & ~kMask) | ((u32(val) << (shift)) & kMask);                               \
+=== masked
+[golden] stream seed 0x00000001: 33339 bytes, hash 0x5F1973F3944030FA
+[golden] stream seed 0x9E3779B9: 32817 bytes, hash 0xE3737D4B1464A3B6
+[golden] stream seed 0x2545F491: 33681 bytes, hash 0x1C94F82CB30314E1
+[golden] list seed 0x00000001: 17248 bytes, hash 0x9A1BD2EE88F497D1
+[golden] list seed 0x9E3779B9: 17152 bytes, hash 0x076D6CE0100876A2
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+
