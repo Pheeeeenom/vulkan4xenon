@@ -1074,6 +1074,12 @@ target it creates; `tools/count_refusals.py` counts both (`counts-xenia.txt`, fr
   parameters' x reads 0 without `SQ_CONTEXT_MISC.SC_OUTPUT_SCREEN_XY`, which xost now sets with them (`7a5e42e`), and
   that the execs must keep addressing mode 0 for reads at `a0`.
 
+**Step 4's first part, xsdk's milestone 25, passed on hardware** on 2026-10-12, xsdk at `4bcc93f`
+(`results/2026-10-12-milestone-25/`; xsdk:docs/HARDWARE.md, "Shaders' microcode in shared pages"): shaders'
+microcode takes 256-byte blocks of shared pages, where each shader took a page. vulkan4xenon_test passed 72 of 72 and
+vkbench 14 of 14, with milestone 24's command stream and its times within noise. Dusklight's title scene ended with
+13 MB free, from 9 at step 2, the title holding 69 MB of physical pages from 73. Aurora's LRU caches are next.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
