@@ -1,0 +1,8 @@
+4a2fde48317fee5f.frag: 41 -> 32 ALU, 10 -> 9 registers; ok
+6e690d475f0af5fe.vert: 29 -> 25 ALU, 17 -> 17 registers; ok
+987a188c27a802e5.frag: 19 -> 14 ALU, 8 -> 6 registers; ok
+da2593920df168c8.vert: 22 -> 22 ALU, 13 -> 13 registers; ok
+e5c535debebde1ed.frag: 5 -> 4 ALU, 4 -> 4 registers; ok
+vert: 51 -> 47 ALU instructions (7.8% fewer)
+frag: 65 -> 50 ALU instructions (23.1% fewer)
+5 shaders, 0 differ, 0 not simulated

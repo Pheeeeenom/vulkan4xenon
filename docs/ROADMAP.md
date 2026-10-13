@@ -1155,6 +1155,40 @@ creator's, and now each of Aurora's and the game's threads runs on the one its l
 of 72 and vkbench 14 of 14, its frame times as at milestone 25. The title scene ran at 16.2 to 27.6 fps, from 16.9 to
 22.1: most frames still take more than the 33 ms of two vblanks.
 
+**Then the GPU's pixel shading, and xost's optimiser** (2026-10-13; `results/2026-10-13-shader-optimizer/`, the
+diagnostics' sources in `diagnostic/`). A diagnostics build timed the replay's parts and the GPU in the title's still
+logo shot, and drew phases of it differently:
+- **The replay's 19 ms was a wait.** Per frame, the 246 draws' pipelines, uniforms, push constants, textures, streams
+  and packets took 0.6 ms together; every uniform block loaded on the GPU. The rest was in `end_render_pass`, in one
+  wait for the GPU: a frame resolves 9 sizes, and xsdk keeps a resolve's rectangle for 8 (xsdk:src/gpu.c,
+  `rectangle_slot`), so reusing one waits for the GPU to finish the resolve that last used it
+  (`dusklight_diag_rectangles.log`). With 32 slots the wait went, the render worker dropping from 22 to 4.5 ms a frame,
+  and the frame rate didn't move (`dusklight_diag_32_rectangles.log`): the GPU is what holds it. xsdk keeps 8 for now.
+- **The GPU's time is pixel shading.** The logo shot took 25.9 ms of it a frame. Scissored to one pixel, every draw's
+  vertex work and the resolves still done, it took 7.9 ms; scissored to 3/4 of each side, 15.0 ms, and to 1/2, 11.0
+  (`dusklight_diag_scissor.log`, `dusklight_diag_before.log`). Lowering the resolution was ruled out with the user:
+  the work goes into the shaders.
+- **xost's programs carried waste.** The heaviest pixel program's 156 ALU instructions held 36 moves, 19 reciprocals
+  mostly of uniforms, scalar ops in instructions of their own, and multiplies and adds unfused (`pack_stats.txt`).
+  xost's optimiser (xost `fed0752`, xasm/optimize.py) rewrites a program's instructions before allocation: 3,232 of the
+  pack's pixel ALU instructions became 2,184 and 5,612 vertex ones 4,883; all 137 programs it can run matched before
+  and after, as instructions and as microcode, and the 3 with relative addressing are left as they were
+  (`check_optimize.txt`, `test_optimize.txt`). Some instructions now name two constants, 224 in the pack, which the
+  console takes. tools/build_shaders.py (`0e7889e`) and Aurora's tools/build_glsl_pack.py (Aurora `89b5c5f`) take
+  `--optimize`, and Dusklight's pack is built with it (Dusklight `c6ea25a`).
+- **On the console** the optimised pack drew the logo shot as before, but for the logo's moving shine, which differs
+  between two unoptimised runs too (`shot_before.png`, `shot_after.png`, `shot_diff.png`,
+  `shot_diff_two_unoptimised_runs.png`), and took 22.0 ms of GPU time a frame, from 25.9 (`dusklight_diag_after.log`).
+- **Five programs had been missing** since at least milestone 26, their draws skipped: the title's attract demo uses
+  them, about 230 s into the title scene, which the recording never reached. A recording build run that long on the
+  console recorded all five (`dusklight_record.log`, the log read as the title wrote it), and the pack holds 145.
+  That run then **ran out of memory** as the demo's movie stage loaded, `sbrk` refused with 0xC0000017 and 51 MB free,
+  and crashed; the drawing build has less free there, so the title screen left alone will crash when its demo starts.
+  That's open, apart from the shaders.
+- **The drawing build** (`dusklight.log`, `title.png`; xsdk, the layer and Dusklight cleaned and built in full): the
+  pack's 145 programs, none missing, status 0, 8 MB free at the end. The title scene ran at 26.3, 28.7, 27.7, 30.0
+  and 29.7 fps over its 10-second windows, from milestone 26's 16.2 to 27.6.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

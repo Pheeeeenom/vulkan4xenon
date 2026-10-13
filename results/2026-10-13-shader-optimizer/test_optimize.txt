@@ -1,0 +1,16 @@
+  PASS a move's readers read its source, and the move goes: 3 -> 2 ALU instructions, 2 expected
+  PASS a negated move from a constant folds into its reader: 3 -> 2 ALU instructions, 2 expected
+  PASS an absolute move from a temp folds, its reader keeping the absolute value: 3 -> 2 ALU instructions, 2 expected
+  PASS a move from a constant whose reader takes an absolute value stays: 3 -> 3 ALU instructions, 3 expected
+  PASS a vector assembled by two moves stays, as no one source holds it: 4 -> 4 ALU instructions, 4 expected
+  PASS a move whose source changes before its reader stays: 4 -> 4 ALU instructions, 4 expected
+  PASS a recomputed sum is the first one's: 4 -> 3 ALU instructions, 3 expected
+  PASS a sum of different values isn't merged: 4 -> 4 ALU instructions, 4 expected
+  PASS mul then add is a mad, the product's negation moving to a factor: 3 -> 2 ALU instructions, 2 expected
+  PASS a product read twice isn't fused: 4 -> 4 ALU instructions, 4 expected
+  PASS a scalar op joins an independent vector op: 4 -> 3 ALU instructions, 3 expected
+  PASS a scalar op reading the vector op's result doesn't join it: 4 -> 4 ALU instructions, 4 expected
+  PASS a third constant isn't folded into an instruction holding two: 3 -> 3 ALU instructions, 3 expected
+  PASS dead code goes: 3 -> 2 ALU instructions, 2 expected
+  PASS a wrong rewrite shows: trial 0: instructions' export 0.x -4.869931005801079 -> -3.8320294603491165
+OK
