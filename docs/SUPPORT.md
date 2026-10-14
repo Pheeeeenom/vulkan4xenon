@@ -72,6 +72,12 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - SPIR-V the bundle doesn't hold is compiled on the console the first time a module is made from it, through xost's
   compiler in xsdk (`xsdk_xsc_compile`), at xsdk's register split with the optimiser on, and kept till the device goes
   (xsdk:docs/scope/shader-compiling.md, step 3). The layer logs each shader it compiles and the time it took.
+- An app that names a folder with `v4x_set_shader_cache`, before it makes shader modules, has what the layer compiles
+  kept there, in a folder named after the compiler's version (`xsdk_xsc_version()`), one file a shader named after its
+  SPIR-V's hash and size. Each file is written beside its name and renamed into place, so a crash leaves none half
+  written. A later device reads a shader back rather than compile it; a file that doesn't match its name, or whose size
+  doesn't add up, is logged and the shader compiled again. `v4x_shader_counts` says how many the layer compiled and
+  read back. With no folder named, nothing is kept.
 - SPIR-V xost refuses returns `VK_ERROR_FEATURE_NOT_PRESENT`, logged with xost's reason, and so does a shader that
   wants a hardware loop's constants, which the layer doesn't set. `vkCreateShaderModule` doesn't list that result: a
   deviation.

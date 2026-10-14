@@ -21,6 +21,7 @@ int main(void)
 	Harness harness = { .instance = VK_NULL_HANDLE };
 	// XAM's surface, which the boot logo should replace.
 	const uint32_t shown_before_device = xsdk_display_shown_address();
+	test_shader_cache_start();
 	const bool made = harness_create_device(&harness) == VK_SUCCESS;
 	check("setup: instance, device, command pool and fence made", made);
 	if (made) {
@@ -39,6 +40,8 @@ int main(void)
 		test_uploads(&harness);
 	}
 	harness_destroy(&harness);
+	if (made)
+		test_shader_cache_finish();
 	xsdk_log_write("tests: %d passed, %d failed", passed_count, failed_count);
 	return failed_count;
 }

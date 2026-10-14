@@ -1304,9 +1304,19 @@ planes are expanded to RGBA8 first, four times the bytes.
 **Agreed with the user (2026-10-14):** programs a pack doesn't hold are compiled on the console the first time the
 game asks for them, and kept on the hard disk, so no one has to play the game drawn badly to fill a pack
 (xsdk:docs/scope/shader-compiling.md). glslang on the console and xost's compiler in C are done; this milestone is
-that scope's step 3, in five parts: xsdk's `rename` (done), the layer compiling SPIR-V its bundle doesn't hold, the
-layer keeping what it compiles in a folder the app names, Aurora's backend compiling GLSL its pack doesn't hold through
-glslang, and Dusklight built without its pack for the run that starts with nothing.
+that scope's step 3, in five parts: xsdk's `rename` (done), the layer compiling SPIR-V its bundle doesn't hold
+(done), the layer keeping what it compiles in a folder the app names (done), Aurora's backend compiling GLSL its pack
+doesn't hold through glslang, and Dusklight built without its pack for the run that starts with nothing.
+
+**Done so far, on the console:**
+- **Part 2** (`results/2026-10-14-milestone-13-part-2/`): vulkan4xenon_test draws the triangle, the per-vertex matrices
+  and the bands again from SPIR-V the bundle can't match, its generator word changed. 89 passed, 0 failed; the four
+  shaders compiled in 0.08 to 0.34 ms, and the triangle's image is the bundle's to the pixel.
+- **Part 3** (`results/2026-10-14-milestone-13-part-3/`): the test names a folder for the layer's cache, emptied
+  first. The four shaders compiled are kept in four files, and a second device, made after the first goes, reads the
+  triangle's two back, compiles none and draws the bundle's image. 94 passed, 0 failed. With the renames left out on
+  purpose, 92 passed and 2 failed: no file kept and the second device compiled both; with the reads left out, 93 passed
+  and 1 failed.
 
 ## 5. The Dusklight track
 

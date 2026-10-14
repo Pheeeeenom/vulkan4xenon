@@ -56,6 +56,17 @@ typedef struct {
 // nothing when the app links none.
 extern const V4xShaderBundle v4x_shader_bundle;
 
+// Keeps the shaders the layer compiles in this folder and reads them back from it; call before making any modules.
+void v4x_set_shader_cache(const char *directory);
+
+// Shaders the layer has compiled, and read back from its cache, since the title started.
+typedef struct {
+	uint32_t compiled;
+	uint32_t read;
+} V4xShaderCounts;
+
+V4xShaderCounts v4x_shader_counts(void);
+
 #ifdef __cplusplus
 }
 #endif

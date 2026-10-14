@@ -30,6 +30,8 @@ enum {
 
 static uint32_t compiled_vertex[TRIANGLE_VERT_SPIRV_BYTES / 4];
 static uint32_t compiled_fragment[TRIANGLE_FRAG_SPIRV_BYTES / 4];
+// The image the bundle's shaders put on screen, for the draws from shaders compiled or read back to match.
+static uint64_t bundled_image;
 
 // Clip space with Vulkan's y down: red at the top, green bottom left, blue bottom right.
 static const float triangle[3][VERTEX_FLOATS] = {
@@ -193,7 +195,7 @@ static bool fingerprint(uint32_t address, const char *what, void *context)
 
 // The layer compiles SPIR-V its bundle doesn't hold on the console (docs/ROADMAP.md, milestone 13), and the image
 // should be the bundle's shaders' to the pixel.
-static void check_compiled(const Harness *harness, uint64_t bundled_image)
+static void check_compiled(const Harness *harness, const char *source, const char *name)
 {
 	memcpy(compiled_vertex, triangle_vert_spirv, sizeof compiled_vertex);
 	memcpy(compiled_fragment, triangle_frag_spirv, sizeof compiled_fragment);
@@ -207,12 +209,10 @@ static void check_compiled(const Harness *harness, uint64_t bundled_image)
 		built ? harness_frames(harness, scene.commands, COMPILED_FRAMES, image_holds, &scene, &misses) : 0;
 	uint64_t compiled_image = 0;
 	const bool on_screen = frames == COMPILED_FRAMES && harness_screen(harness, fingerprint, &compiled_image);
-	xsdk_log_write(
-		"triangle: the image on screen %08X%08X from the bundle's shaders, %08X%08X from those compiled here",
+	xsdk_log_write("triangle: the image on screen %08X%08X from the bundle's shaders, %08X%08X from those %s",
 		(unsigned)(bundled_image >> 32), (unsigned)bundled_image, (unsigned)(compiled_image >> 32),
-		(unsigned)compiled_image);
-	check("triangle: shaders the bundle doesn't hold, compiled on the console, draw the bundle's image",
-		misses == 0 && on_screen && compiled_image == bundled_image);
+		(unsigned)compiled_image, source);
+	check(name, misses == 0 && on_screen && compiled_image == bundled_image);
 	destroy_scene(harness, &scene);
 }
 
@@ -236,8 +236,14 @@ void test_triangle(const Harness *harness)
 	check("triangle: the image on screen covers the triangle's area",
 		scene.drawn_on_screen + TRIANGLE_TOLERANCE_PIXELS >= TRIANGLE_PIXELS &&
 			scene.drawn_on_screen <= TRIANGLE_PIXELS + TRIANGLE_TOLERANCE_PIXELS);
-	uint64_t bundled_image = 0;
 	(void)harness_screen(harness, fingerprint, &bundled_image);
 	destroy_scene(harness, &scene);
-	check_compiled(harness, bundled_image);
+	check_compiled(harness, "compiled here",
+		"triangle: shaders the bundle doesn't hold, compiled on the console, draw the bundle's image");
+}
+
+void test_triangle_from_cache(const Harness *harness)
+{
+	check_compiled(harness, "read back",
+		"triangle: shaders read back from the layer's cache, on a second device, draw the bundle's image");
 }

@@ -11,6 +11,8 @@ void test_boot_logo(Harness *harness, uint32_t shown_before_device);
 void test_objects(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.
 void test_triangle(const Harness *harness);
+// The triangle again, its shaders read back from the layer's cache by a second device (milestone 13).
+void test_triangle_from_cache(const Harness *harness);
 // The triangle with 8-bit colours packed in a word, as Aurora decodes vertex colours (milestone 10).
 void test_packed_colour(const Harness *harness);
 // Images copied in from a buffer and sampled through descriptor sets (milestone 2).
@@ -31,5 +33,9 @@ void test_render_to_texture(const Harness *harness);
 void test_run_time_index(const Harness *harness);
 // Copies from cached memory, R8 and R8G8 through swizzled views, R8 filtered, and copies around a draw (milestone 12).
 void test_uploads(const Harness *harness);
+// Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
+void test_shader_cache_start(void);
+// The files the layer kept, and a second device reading the triangle's shaders back; called after the first goes.
+void test_shader_cache_finish(void);
 
 #endif

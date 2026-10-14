@@ -1,9 +1,13 @@
 #include "shader.h"
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <vulkan/vulkan.h>
 
@@ -23,7 +27,31 @@ enum {
 	MAX_RESOURCE_REGISTER = 0xFFFF,
 	NANOSECONDS_PER_MICROSECOND = 1000,
 	MICROSECONDS_PER_SECOND = 1000000,
+	CACHE_PATH_BYTES = 256,
+	// "V4XS", and the layout of what follows it, which changes as V4xShader's parts do.
+	CACHE_MAGIC = 0x56345853,
+	CACHE_LAYOUT = 1,
+	// No container xost writes is near this; a file that says so is damaged.
+	MAX_CACHED_BYTES = 1024 * 1024,
+	FOLDER_MODE = 0777,
 };
+
+// A kept shader's file: this, then the shader's container, literals and resources as its allocation holds them.
+typedef struct {
+	uint32_t magic;
+	uint32_t layout;
+	uint64_t spirv_hash;
+	uint32_t spirv_size_bytes;
+	uint32_t container_size_bytes;
+	uint32_t literal_count;
+	uint32_t resource_count;
+} CacheHeader;
+
+// Named before shader modules are made, and only read after.
+static char cache_directory[CACHE_PATH_BYTES];
+// Added to and read atomically, since each device's shaders_lock covers its own shaders only.
+static uint32_t compiled_count;
+static uint32_t read_count;
 
 // Weak, so an app that links no bundle still links: the address is then NULL. A weak definition instead gets folded.
 extern const V4xShaderBundle v4x_shader_bundle __attribute__((weak));
@@ -76,8 +104,7 @@ static uint8_t resource_kind(XsdkXscResourceKind kind)
 	return kind == XSDK_XSC_UNIFORM_BUFFER ? V4X_RESOURCE_UNIFORM_BUFFER : V4X_RESOURCE_SAMPLER;
 }
 
-// What the layer can't hand the GPU: a hardware loop's count or array, as tools/build_shaders.py refuses too, and
-// resources past V4xShaderResource's fields.
+// What the layer can't take: a hardware loop's constants, as tools/build_shaders.py refuses, or too wide a resource.
 static bool layer_takes(const XsdkXscShader *compiled)
 {
 	for (size_t i = 0; i < compiled->need_count; i++) {
@@ -93,43 +120,168 @@ static bool layer_takes(const XsdkXscShader *compiled)
 	return true;
 }
 
-// A compiled shader in one allocation: the V4xShader, then its container, literals and resources.
-static V4xShader *shader_from(
-	const VkAllocationCallbacks *allocator, const XsdkXscShader *compiled, uint64_t hash, uint32_t size_bytes)
+// The bytes after a shader's V4xShader in its allocation: its container, its literals, then its resources.
+static size_t tail_bytes(uint32_t container_bytes, uint32_t literal_count, uint32_t resource_count)
 {
-	const size_t container_words = (compiled->container_bytes + 3) / 4;
-	const size_t bytes = sizeof(V4xShader) + container_words * sizeof(uint32_t) +
-		compiled->need_count * sizeof(V4xShaderLiteral) + compiled->resource_count * sizeof(V4xShaderResource);
+	return (container_bytes + 3) / 4 * sizeof(uint32_t) + literal_count * sizeof(V4xShaderLiteral) +
+		resource_count * sizeof(V4xShaderResource);
+}
+
+// Where a shader's parts sit in its allocation, for whoever fills them.
+typedef struct {
+	uint32_t *container;
+	V4xShaderLiteral *literals;
+	V4xShaderResource *resources;
+} ShaderParts;
+
+// A shader in one allocation, its parts pointing into the tail, which the caller fills.
+static V4xShader *new_shader(const VkAllocationCallbacks *allocator, const CacheHeader *sizes, ShaderParts *parts)
+{
+	const size_t bytes =
+		sizeof(V4xShader) + tail_bytes(sizes->container_size_bytes, sizes->literal_count, sizes->resource_count);
 	V4xShader *const shader = v4x_host_alloc(allocator, bytes, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 	if (!shader)
 		return NULL;
-	uint32_t *const container = (uint32_t *)(shader + 1);
-	V4xShaderLiteral *const literals = (V4xShaderLiteral *)(container + container_words);
-	V4xShaderResource *const resources = (V4xShaderResource *)(literals + compiled->need_count);
-	memcpy(container, compiled->container, compiled->container_bytes);
+	parts->container = (uint32_t *)(shader + 1);
+	parts->literals = (V4xShaderLiteral *)(parts->container + (sizes->container_size_bytes + 3) / 4);
+	parts->resources = (V4xShaderResource *)(parts->literals + sizes->literal_count);
+	*shader = (V4xShader){ .spirv_hash = sizes->spirv_hash,
+		.spirv_size_bytes = sizes->spirv_size_bytes,
+		.container = parts->container,
+		.container_size_bytes = sizes->container_size_bytes,
+		.literals = parts->literals,
+		.literal_count = sizes->literal_count,
+		.resources = parts->resources,
+		.resource_count = sizes->resource_count };
+	return shader;
+}
+
+static CacheHeader header_of(const V4xShader *shader)
+{
+	return (CacheHeader){ CACHE_MAGIC, CACHE_LAYOUT, shader->spirv_hash, shader->spirv_size_bytes,
+		shader->container_size_bytes, shader->literal_count, shader->resource_count };
+}
+
+static V4xShader *shader_from(
+	const VkAllocationCallbacks *allocator, const XsdkXscShader *compiled, uint64_t hash, uint32_t size_bytes)
+{
+	const CacheHeader sizes = { CACHE_MAGIC, CACHE_LAYOUT, hash, size_bytes, (uint32_t)compiled->container_bytes,
+		(uint32_t)compiled->need_count, (uint32_t)compiled->resource_count };
+	ShaderParts parts;
+	V4xShader *const shader = new_shader(allocator, &sizes, &parts);
+	if (!shader)
+		return NULL;
+	memcpy(parts.container, compiled->container, compiled->container_bytes);
 	for (size_t i = 0; i < compiled->need_count; i++) {
 		const XsdkXscNeed *const need = &compiled->needs[i];
-		literals[i] = (V4xShaderLiteral){ need->reg,
+		parts.literals[i] = (V4xShaderLiteral){ need->reg,
 			{ (float)need->value[0], (float)need->value[1], (float)need->value[2], (float)need->value[3] } };
 	}
 	for (size_t i = 0; i < compiled->resource_count; i++) {
 		const XsdkXscResource *const r = &compiled->resources[i];
-		resources[i] = (V4xShaderResource){ resource_kind(r->kind), (uint8_t)r->set, (uint8_t)r->binding,
+		parts.resources[i] = (V4xShaderResource){ resource_kind(r->kind), (uint8_t)r->set, (uint8_t)r->binding,
 			(uint16_t)r->reg, (uint16_t)r->regs };
 	}
-	*shader = (V4xShader){ .spirv_hash = hash,
-		.spirv_size_bytes = size_bytes,
-		.container = container,
-		.container_size_bytes = (uint32_t)compiled->container_bytes,
-		.literals = literals,
-		.literal_count = (uint32_t)compiled->need_count,
-		.resources = resources,
-		.resource_count = (uint32_t)compiled->resource_count };
 	return shader;
 }
 
-// SPIR-V the bundle doesn't hold, through xost's compiler at xsdk's split with the optimiser on, as Dusklight's pack
-// is built (xsdk:docs/scope/shader-compiling.md, step 3).
+void v4x_set_shader_cache(const char *directory)
+{
+	cache_directory[0] = '\0';
+	if (!directory)
+		return;
+	if (strlen(directory) >= sizeof cache_directory) {
+		xsdk_log_write("vulkan4xenon: the shader cache's folder name is past %u bytes", (unsigned)CACHE_PATH_BYTES);
+		return;
+	}
+	strcpy(cache_directory, directory);
+}
+
+V4xShaderCounts v4x_shader_counts(void)
+{
+	return (V4xShaderCounts){ __atomic_load_n(&compiled_count, __ATOMIC_RELAXED),
+		__atomic_load_n(&read_count, __ATOMIC_RELAXED) };
+}
+
+// The folder this compiler's shaders are kept in, named after its version, so a changed one compiles afresh.
+static bool cache_folder(char path[CACHE_PATH_BYTES])
+{
+	const int length = snprintf(path, CACHE_PATH_BYTES, "%s/xsc-%s", cache_directory, xsdk_xsc_version());
+	return cache_directory[0] && length > 0 && length < (int)CACHE_PATH_BYTES;
+}
+
+static bool cache_file(uint64_t hash, uint32_t size_bytes, char path[CACHE_PATH_BYTES])
+{
+	char folder[CACHE_PATH_BYTES];
+	if (!cache_folder(folder))
+		return false;
+	const int length = snprintf(path, CACHE_PATH_BYTES, "%s/%08X%08X-%u.v4xs", folder, (unsigned)(hash >> 32),
+		(unsigned)hash, (unsigned)size_bytes);
+	return length > 0 && length < (int)CACHE_PATH_BYTES;
+}
+
+// The shader kept for this SPIR-V, or NULL where there's none, or one that doesn't check out.
+static V4xShader *read_cached(VkDevice device, uint64_t hash, uint32_t size_bytes)
+{
+	char path[CACHE_PATH_BYTES];
+	struct stat info;
+	if (!cache_file(hash, size_bytes, path) || stat(path, &info) != 0)
+		return NULL;
+	FILE *const file = fopen(path, "rb");
+	if (!file)
+		return NULL;
+	CacheHeader header;
+	const bool sound = fread(&header, sizeof header, 1, file) == 1 && header.magic == CACHE_MAGIC &&
+		header.layout == CACHE_LAYOUT && header.spirv_hash == hash && header.spirv_size_bytes == size_bytes &&
+		header.container_size_bytes < MAX_CACHED_BYTES && header.literal_count < MAX_CACHED_BYTES &&
+		header.resource_count < MAX_CACHED_BYTES;
+	const size_t tail =
+		sound ? tail_bytes(header.container_size_bytes, header.literal_count, header.resource_count) : 0;
+	ShaderParts parts;
+	V4xShader *shader = sound && (size_t)info.st_size == sizeof header + tail
+		? new_shader(v4x_host_device_allocator(device, NULL), &header, &parts)
+		: NULL;
+	if (shader && fread(parts.container, 1, tail, file) != tail) {
+		v4x_host_free(v4x_host_device_allocator(device, NULL), shader);
+		shader = NULL;
+	}
+	(void)fclose(file);
+	if (!shader)
+		xsdk_log_write("vulkan4xenon: %s doesn't hold the shader it's named for", path);
+	return shader;
+}
+
+static bool make_folder(const char *path)
+{
+	struct stat info;
+	return stat(path, &info) == 0 || mkdir(path, FOLDER_MODE) == 0 || errno == EEXIST;
+}
+
+// Written beside its name and renamed into place, so a crash leaves no file half written.
+static void keep_on_disk(const V4xShader *shader)
+{
+	char folder[CACHE_PATH_BYTES];
+	char path[CACHE_PATH_BYTES];
+	char written[CACHE_PATH_BYTES + sizeof ".new"];
+	if (!cache_folder(folder) || !cache_file(shader->spirv_hash, shader->spirv_size_bytes, path))
+		return;
+	(void)snprintf(written, sizeof written, "%s.new", path);
+	const CacheHeader header = header_of(shader);
+	const size_t tail = tail_bytes(header.container_size_bytes, header.literal_count, header.resource_count);
+	FILE *const file = make_folder(cache_directory) && make_folder(folder) ? fopen(written, "wb") : NULL;
+	bool kept = file && fwrite(&header, sizeof header, 1, file) == 1 && fwrite(shader + 1, 1, tail, file) == tail;
+	if (file && fclose(file) != 0)
+		kept = false;
+	kept = kept && rename(written, path) == 0;
+	if (kept)
+		return;
+	xsdk_log_write("vulkan4xenon: SPIR-V %08X%08X not kept in %s", (unsigned)(shader->spirv_hash >> 32),
+		(unsigned)shader->spirv_hash, folder);
+	if (file)
+		(void)unlink(written);
+}
+
+// Through xost's compiler at xsdk's register split with the optimiser on, as Dusklight's pack is built.
 static V4xShader *compile(VkDevice device, const uint32_t *code, uint32_t size_bytes, uint64_t hash)
 {
 	XsdkXscOptions options;
@@ -186,13 +338,31 @@ static bool keep(VkDevice device, V4xShader *shader)
 	return true;
 }
 
-// The shader compiled from this SPIR-V before, else compiled now and kept.
+// What the cache holds for this SPIR-V, else what it compiles to, kept on the disk.
+static V4xShader *cached_or_compiled(VkDevice device, const uint32_t *code, uint32_t size_bytes, uint64_t hash)
+{
+	V4xShader *shader = read_cached(device, hash, size_bytes);
+	if (shader) {
+		(void)__atomic_add_fetch(&read_count, 1, __ATOMIC_RELAXED);
+		xsdk_log_write(
+			"vulkan4xenon: SPIR-V %08X%08X read from the shader cache", (unsigned)(hash >> 32), (unsigned)hash);
+		return shader;
+	}
+	shader = compile(device, code, size_bytes, hash);
+	if (!shader)
+		return NULL;
+	(void)__atomic_add_fetch(&compiled_count, 1, __ATOMIC_RELAXED);
+	keep_on_disk(shader);
+	return shader;
+}
+
+// The shader this device made from this SPIR-V before, else one read or compiled now and kept.
 static const V4xShader *compiled_shader(VkDevice device, const uint32_t *code, uint32_t size_bytes, uint64_t hash)
 {
 	(void)pthread_mutex_lock(&device->shaders_lock);
 	const V4xShader *found = kept(device, hash, size_bytes);
 	if (!found) {
-		V4xShader *const shader = compile(device, code, size_bytes, hash);
+		V4xShader *const shader = cached_or_compiled(device, code, size_bytes, hash);
 		if (shader && !keep(device, shader))
 			v4x_host_free(v4x_host_device_allocator(device, NULL), shader);
 		else
