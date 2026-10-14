@@ -1299,6 +1299,14 @@ planes are expanded to RGBA8 first, four times the bytes.
 - **The logo shot** (the diagnostics build, `dusklight_diag.log`, `shot.png`): drawn as in the range fog step's run but
   for the logo's moving shine, 0.05% of its pixels (`shot_diff.png`), in 20.6 ms of GPU time a frame, as then.
 
+### Milestone 13: compiling shaders on the console
+
+**Agreed with the user (2026-10-14), in outline:** programs a pack doesn't hold are compiled on the console the first
+time the game asks for them, and kept on the hard disk, so no one has to play the game drawn badly to fill a pack
+(xsdk:docs/scope/shader-compiling.md). In three steps: glslang on the console, xost's compiler in C, then the layer
+compiling SPIR-V it holds no container for, which section 6 leaves out until then, and Aurora's backend compiling GLSL
+its pack doesn't hold.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
