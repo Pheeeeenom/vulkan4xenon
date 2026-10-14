@@ -1299,16 +1299,16 @@ planes are expanded to RGBA8 first, four times the bytes.
 - **The logo shot** (the diagnostics build, `dusklight_diag.log`, `shot.png`): drawn as in the range fog step's run but
   for the logo's moving shine, 0.05% of its pixels (`shot_diff.png`), in 20.6 ms of GPU time a frame, as then.
 
-### Milestone 13: compiling shaders on the console
+### Milestone 13: compiling shaders on the console (done)
 
 **Agreed with the user (2026-10-14):** programs a pack doesn't hold are compiled on the console the first time the
 game asks for them, and kept on the hard disk, so no one has to play the game drawn badly to fill a pack
 (xsdk:docs/scope/shader-compiling.md). glslang on the console and xost's compiler in C are done; this milestone is
 that scope's step 3, in five parts: xsdk's `rename` (done), the layer compiling SPIR-V its bundle doesn't hold
 (done), the layer keeping what it compiles in a folder the app names (done), Aurora's backend compiling GLSL its pack
-doesn't hold through glslang, and Dusklight built without its pack for the run that starts with nothing.
+doesn't hold through glslang (done), and Dusklight built without its pack for the run that starts with nothing (done).
 
-**Done so far, on the console:**
+**On the console:**
 - **Part 2** (`results/2026-10-14-milestone-13-part-2/`): vulkan4xenon_test draws the triangle, the per-vertex matrices
   and the bands again from SPIR-V the bundle can't match, its generator word changed. 89 passed, 0 failed; the four
   shaders compiled in 0.08 to 0.34 ms, and the triangle's image is the bundle's to the pixel.
@@ -1317,6 +1317,76 @@ doesn't hold through glslang, and Dusklight built without its pack for the run t
   triangle's two back, compiles none and draws the bundle's image. 94 passed, 0 failed. With the renames left out on
   purpose, 92 passed and 2 failed: no file kept and the second device compiled both; with the reads left out, 93 passed
   and 1 failed.
+- **Parts 4 and 5** (xsdk:docs/HARDWARE.md, "Shaders compiled as the game asks", its logs in
+  xsdk:results/2026-10-14-shader-compiling-step3/; Aurora `953d207`, Dusklight `828f1f561d`): Aurora's backend reads a
+  program the pack doesn't hold from the disk, else compiles its GLSL through glslang-xenon, and names the layer's
+  folder beside its own. Without its pack (`DUSK_XSDK_GLSL_PACK=OFF`), played by the user from nothing kept through the
+  title, the opening cutscenes and Ordon, Dusklight compiled 189 programs, each once: through glslang the first in
+  919 ms with glslang starting and the rest in 23.9 ms on average, through xost 17.0 ms on average. The second time
+  through compiled none and read 159 programs back. The 111 programs the title scene's runs kept are the pack's SPIR-V
+  and containers, byte for byte. With the pack nothing was compiled, and the title scene and logo shot ran as before.
+  vulkan4xenon_test passed 94 of 94 and vkbench 14 of 14.
+- **Found on the way:** Aurora named an atomic write's temporary file in 44 characters for the memory card's, where
+  FATX holds 42, so the card was never made on the console; Aurora `2ba57e8` names them in 21, and the second played
+  run made it. Ordon's minimap drew as noise, and memory ran out there in the first played run: milestones 14 and 15.
+
+### Milestone 14: the minimap, palette conversions of EFB copies (proposed)
+
+**Why.** The first play past the title on the console (2026-10-14, step 3's first run without the pack,
+xsdk:docs/scope/shader-compiling.md) showed Ordon's minimap as noise, flickering in and out. Twilight Princess draws
+its map into the EFB, copies it out as 8-bit indices, and draws the copy through a palette. Aurora turns such a copy
+into an RGBA8 texture, `GX Dynamic Palette Texture`, by a pass through the palette (aurora-xenon:lib/gx/texture.cpp,
+resolve_dynamic_palette_texture), and the vulkan4xenon backend skips that pass, logging "Palette conversions of EFB
+copies aren't supported" once (aurora-xenon:lib/vulkan4xenon/encoding.cpp, encode_pass). The texture is never written,
+and the GPU samples whatever its memory held. The game changes the map's palette often, and each change makes Aurora
+drop the texture and make another (texture.cpp, get_tlut_texture), on other memory, so the noise changes; once the
+console's memory ran out (milestone 15), 204 of them weren't made, and the map wasn't drawn on those frames.
+
+**Proposed, for the user's agreement:**
+1. **The programs.** Aurora's GLSL generator writes the conversion's fragment programs, one for 8-bit indices and one
+   for 4-bit, as the WebGPU backend's shaders do it (aurora-xenon:lib/gfx/tex_palette_conv.cpp): the copy's texel,
+   sampled nearest, scaled to its index, then the palette's entry at that index. They join the fixed programs a
+   recording writes (glsl::fixed_programs), so Dusklight's pack holds them, and the console compiles them otherwise
+   (milestone 13). WebGPU's third variant, 16-bit integer indices, comes from no EFB copy (texture.cpp makes only the
+   other two) and stays out.
+2. **The backend.** A pipeline layout with one set of two samplers, the copy and the palette; a pipeline for each
+   variant, drawing the full-screen triangle into the RGBA8 texture as the EFB copies' format conversions draw
+   (encoding.cpp, draw_texture); and encode_pass running a pass's conversions before the pass, where the WebGPU
+   backend runs them (aurora-xenon:lib/gfx/encoding.cpp, render).
+3. **Getting there.** The diagnostics build's warp to Ordon (milestone 15) shows the map without anyone at the pad,
+   and captures the frame.
+
+**Done when,** on the console:
+- Ordon's minimap draws as on the PC's Dawn build, steady, and the log has no "Palette conversions" line; broken on
+  purpose, the index read one entry off, the map's colours come out wrong;
+- vulkan4xenon_glsl_tests compile the new programs on the PC through glslang and xost, as the others;
+- Dusklight's title scene and logo shot run as before, and vulkan4xenon_test, vkbench and xsdk_test pass.
+
+**Left out:** palettes that don't come from EFB copies, which Aurora converts on the CPU; the 16-bit index variant.
+
+### Milestone 15: GPU memory in Ordon (proposed)
+
+**Why.** In the same run the console ran out of memory in Ordon (`dusklight_play.log`): free memory fell from 104 MB
+in the title scene to 0, as the title's physical pages, its GPU memory, grew from 53 MB to 143 MB, the last 74 MB in
+about 20 s of stages F_SP103 and F_SP104, while newlib's heap held at 280 MB. From then on GPU allocations failed.
+What fills it isn't known, as the log counts pages, not what they hold. Candidates from the code, none measured: the
+minimap's palette textures, 2.2 MB a pair, made anew at each palette change and freed only once the GPU is done with
+the old ones (texture.cpp; aurora-xenon:lib/vulkan4xenon/device.cpp, retire); a pool's blocks, which go back to the
+kernel only when empty (device.cpp, free_allocation), so a few live allocations can hold many; and Ordon's own
+textures and EFB copies. Milestone 13's glslang keeps 13.5 MB of newlib's heap for the run, which counts against the
+same memory.
+
+**Proposed, in two steps, for the user's agreement:**
+1. **Measure.** The diagnostics build logs GPU memory by what holds it, every 10 s beside the memory line: each pool's
+   blocks, bytes in use and largest free range; textures and buffers by label (EFB copies, converted and palette
+   textures, render targets, the vertex cache, the frame pools); and what waits to be freed. It gets to Ordon by
+   itself, warping to F_SP103 a minute into the title scene as Dusklight's `warp` command does
+   (dusklight-xenon:src/dusk/commands.cpp), and stays two minutes, so a run needs no one at the pad; if a warp from
+   the title doesn't hold, the user plays there instead. Only the diagnostics build warps. Done when a run in Ordon
+   accounts for the physical pages the memory line counts, to within a few MB.
+2. **Fix what the numbers show,** scoped with the user once they're in, without cutting resolution or texture quality.
+
+**Left out:** memory past Ordon, until a run gets there.
 
 ## 5. The Dusklight track
 
