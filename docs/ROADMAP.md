@@ -1330,7 +1330,7 @@ doesn't hold through glslang (done), and Dusklight built without its pack for th
   FATX holds 42, so the card was never made on the console; Aurora `2ba57e8` names them in 21, and the second played
   run made it. Ordon's minimap drew as noise, and memory ran out there in the first played run: milestones 14 and 15.
 
-### Milestone 14: the minimap, palette conversions of EFB copies (proposed)
+### Milestone 14: the minimap, palette conversions of EFB copies
 
 **Why.** The first play past the title on the console (2026-10-14, step 3's first run without the pack,
 xsdk:docs/scope/shader-compiling.md) showed Ordon's minimap as noise, flickering in and out. Twilight Princess draws
@@ -1342,7 +1342,7 @@ and the GPU samples whatever its memory held. The game changes the map's palette
 drop the texture and make another (texture.cpp, get_tlut_texture), on other memory, so the noise changes; once the
 console's memory ran out (milestone 15), 204 of them weren't made, and the map wasn't drawn on those frames.
 
-**Proposed, for the user's agreement:**
+**Agreed with the user (2026-10-14),** after milestone 15's measurement:
 1. **The programs.** Aurora's GLSL generator writes the conversion's fragment programs, one for 8-bit indices and one
    for 4-bit, as the WebGPU backend's shaders do it (aurora-xenon:lib/gfx/tex_palette_conv.cpp): the copy's texel,
    sampled nearest, scaled to its index, then the palette's entry at that index. They join the fixed programs a
@@ -1364,7 +1364,7 @@ console's memory ran out (milestone 15), 204 of them weren't made, and the map w
 
 **Left out:** palettes that don't come from EFB copies, which Aurora converts on the CPU; the 16-bit index variant.
 
-### Milestone 15: GPU memory in Ordon (proposed)
+### Milestone 15: GPU memory in Ordon
 
 **Why.** In the same run the console ran out of memory in Ordon (`dusklight_play.log`): free memory fell from 104 MB
 in the title scene to 0, as the title's physical pages, its GPU memory, grew from 53 MB to 143 MB, the last 74 MB in
@@ -1376,7 +1376,7 @@ kernel only when empty (device.cpp, free_allocation), so a few live allocations 
 textures and EFB copies. Milestone 13's glslang keeps 13.5 MB of newlib's heap for the run, which counts against the
 same memory.
 
-**Proposed, in two steps, for the user's agreement:**
+**Agreed with the user (2026-10-14), in two steps,** the first before milestone 14:
 1. **Measure.** The diagnostics build logs GPU memory by what holds it, every 10 s beside the memory line: each pool's
    blocks, bytes in use and largest free range; textures and buffers by label (EFB copies, converted and palette
    textures, render targets, the vertex cache, the frame pools); and what waits to be freed. It gets to Ordon by
@@ -1387,6 +1387,26 @@ same memory.
 2. **Fix what the numbers show,** scoped with the user once they're in, without cutting resolution or texture quality.
 
 **Left out:** memory past Ordon, until a run gets there.
+
+**Step 1 on the console** (2026-10-14; `results/2026-10-14-milestone-15-step-1/`). The diagnostics build, Dusklight
+with its pack and Aurora's diagnostics, counted every `xsdk_gpu_alloc` by caller through the linker's `--wrap`
+(`callers.txt`), and Aurora's GPU memory by label and pool. It warped a minute into the title scene to F_SP103's room
+1, outside Link's house, and stayed two minutes (`dusklight_mem.log`). It landed in a dialogue, so the minimap was
+hidden, though the game still drew it offscreen (`ordon.png`). The physical pages went from 53 MB in the title scene
+to 93 MB in Ordon, flat for the last 100 s, with 61 MB free. At the end they held:
+- **78.1 MB through `vkAllocateMemory`, Aurora's pools:** eight 8 MB blocks, with 12 to 20 MB free inside them, and
+  dedicated buffers: the vertex cache 8 MB, the frames' uniforms 4 MB and indices 2 MB. In the blocks: the minimap's
+  palette textures, `GX Dynamic Palette Texture`, 35 to 49 live at once, 16 to 23 MB, none ever written (milestone
+  14); the game's textures, 169 of them, 14.4 MB; 12 EFB copies, 6.3 MB; the EFB, 3.6 MB; offscreen targets, 2.4 MB.
+- **11.7 MB of xsdk's:** the two display buffers, 7.25 MB (xsdk:src/present.c, xsdk_present_open); the ring, writeback
+  and stream, 4.1 MB (xsdk:src/gpu.c); 0.3 MB of shader microcode pages.
+- **3 to 4 MB outside xsdk's GPU allocations,** the same from boot on.
+
+Aurora's texture uploads, 16 MB, sit in the cached memory type, which is newlib's heap, not physical pages. So the
+physical pages are accounted for to within the 3 to 4 MB there from boot, and step 1 is done. What the run doesn't
+show is the played run's 143 MB: here Link stood still in a dialogue. Aurora keeps a palette texture for each EFB
+copy it converts until 600 frames go by unused (aurora-xenon:lib/gx/texture.cpp, sweep_object_caches), so 35 to 49 at
+once means the copies behind the map keep changing, and a moving player may well change them faster.
 
 ## 5. The Dusklight track
 

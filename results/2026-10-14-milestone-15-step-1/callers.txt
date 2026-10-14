@@ -1,0 +1,7 @@
+xsdk_gpu_alloc's callers in the diagnostics build, by addr2line on its ELF:
+0x8394a024  vkAllocateMemory        vulkan4xenon/src/memory.c:38
+0x8411c870  xsdk_present_open       Xbox-360-SDK/src/present.c:114
+0x8411c91c  xsdk_present_open       Xbox-360-SDK/src/present.c:114
+0x8411b078  take_blocks             Xbox-360-SDK/src/microcode.c:87
+0x839512a4  write_rectangle         vulkan4xenon/src/blit.c:61
+Not counted: xsdk's gpu.c allocates its ring (32 KB, a 64 KB page), writeback (64 KB) and stream (4 MB) itself.
