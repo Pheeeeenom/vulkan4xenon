@@ -5,7 +5,7 @@ v4x_shader_bundle, which the layer looks the SPIR-V up in.
 
     build_shaders.py --xost ../Xbox-360-SDK/xenos-toolchain --output tests/shaders tests/shaders/triangle.vert ...
 
---optimize has xost rewrite each program's instructions first (xost:xasm/optimize.py): fewer instructions, the same
+--optimize has xost rewrite each program's instructions first (xsdk:src/xsc_optimize.c): fewer instructions, the same
 results.
 
 The layer's own shaders go in a bundle of their own, their symbols prefixed:

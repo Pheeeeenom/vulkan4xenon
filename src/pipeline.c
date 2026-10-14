@@ -62,7 +62,7 @@ static bool vertex_format(VkFormat format, uint32_t *xsdk_format)
 	}
 }
 
-// The usage xost gives an input at this location (xost:xsc/resolve.py:158-162).
+// The usage xost gives an input at this location (xsdk:src/xsc_resolve.c:344-346).
 static void location_usage(uint32_t location, XsdkVertexElement *element)
 {
 	if (location == 0)

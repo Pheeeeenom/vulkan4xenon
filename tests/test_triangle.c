@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "harness.h"
 #include "shaders.h"
@@ -17,7 +18,18 @@ enum {
 	CHANNEL_HIGH = 0xC0,
 	CHANNEL_LOW = 0x40,
 	MAX_MISSES_LOGGED = 4,
+	// The triangle again from shaders the bundle doesn't hold: their SPIR-V's generator word, its third, changed.
+	COMPILED_FRAMES = 30,
+	GENERATOR_WORD = 2,
+	GENERATOR_CHANGE = 0x00010000,
+	FNV_OFFSET_BASIS_HIGH = 0xCBF29CE4,
+	FNV_OFFSET_BASIS_LOW = 0x84222325,
+	FNV_PRIME_HIGH = 0x00000100,
+	FNV_PRIME_LOW = 0x000001B3,
 };
+
+static uint32_t compiled_vertex[TRIANGLE_VERT_SPIRV_BYTES / 4];
+static uint32_t compiled_fragment[TRIANGLE_FRAG_SPIRV_BYTES / 4];
 
 // Clip space with Vulkan's y down: red at the top, green bottom left, blue bottom right.
 static const float triangle[3][VERTEX_FLOATS] = {
@@ -103,15 +115,15 @@ static bool screen_holds(uint32_t address, const char *what, void *context)
 }
 
 // The pipeline doesn't need the swapchain, so Xenia, which has no display, still makes it.
-static bool build_pipeline(const Harness *harness, Scene *scene)
+static bool build_pipeline(const Harness *harness, Scene *scene, const uint32_t *vertex, const uint32_t *fragment)
 {
 	const VkPipelineLayoutCreateInfo layout_info = { .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	bool ok = harness_ok(
 		"vkCreatePipelineLayout", vkCreatePipelineLayout(harness->device, &layout_info, NULL, &scene->layout));
 	const HarnessPipeline spec = {
-		.vertex_spirv = triangle_vert_spirv,
+		.vertex_spirv = vertex,
 		.vertex_bytes = TRIANGLE_VERT_SPIRV_BYTES,
-		.fragment_spirv = triangle_frag_spirv,
+		.fragment_spirv = fragment,
 		.fragment_bytes = TRIANGLE_FRAG_SPIRV_BYTES,
 		.bindings = &binding,
 		.binding_count = 1,
@@ -161,10 +173,53 @@ static void destroy_scene(const Harness *harness, Scene *scene)
 	harness_destroy_render_pass(harness, scene->render_pass, scene->framebuffers);
 }
 
+// 64-bit FNV-1a over every pixel on screen, to tell two draws apart.
+static bool fingerprint(uint32_t address, const char *what, void *context)
+{
+	(void)what;
+	const uint64_t prime = (uint64_t)FNV_PRIME_HIGH << 32 | FNV_PRIME_LOW;
+	uint64_t hash = (uint64_t)FNV_OFFSET_BASIS_HIGH << 32 | FNV_OFFSET_BASIS_LOW;
+	for (uint32_t y = 0; y < HARNESS_HEIGHT; y++) {
+		for (uint32_t x = 0; x < HARNESS_WIDTH; x++) {
+			const Rgb pixel = harness_pixel(address, x, y);
+			hash = (hash ^ pixel.red) * prime;
+			hash = (hash ^ pixel.green) * prime;
+			hash = (hash ^ pixel.blue) * prime;
+		}
+	}
+	*(uint64_t *)context = hash;
+	return true;
+}
+
+// The layer compiles SPIR-V its bundle doesn't hold on the console (docs/ROADMAP.md, milestone 13), and the image
+// should be the bundle's shaders' to the pixel.
+static void check_compiled(const Harness *harness, uint64_t bundled_image)
+{
+	memcpy(compiled_vertex, triangle_vert_spirv, sizeof compiled_vertex);
+	memcpy(compiled_fragment, triangle_frag_spirv, sizeof compiled_fragment);
+	compiled_vertex[GENERATOR_WORD] ^= GENERATOR_CHANGE;
+	compiled_fragment[GENERATOR_WORD] ^= GENERATOR_CHANGE;
+	Scene scene = { .render_pass = VK_NULL_HANDLE };
+	const bool built = build_pipeline(harness, &scene, compiled_vertex, compiled_fragment) && harness->swapchain &&
+		harness_ok("recording", record(harness, &scene));
+	uint32_t misses = 0;
+	const uint32_t frames =
+		built ? harness_frames(harness, scene.commands, COMPILED_FRAMES, image_holds, &scene, &misses) : 0;
+	uint64_t compiled_image = 0;
+	const bool on_screen = frames == COMPILED_FRAMES && harness_screen(harness, fingerprint, &compiled_image);
+	xsdk_log_write(
+		"triangle: the image on screen %08X%08X from the bundle's shaders, %08X%08X from those compiled here",
+		(unsigned)(bundled_image >> 32), (unsigned)bundled_image, (unsigned)(compiled_image >> 32),
+		(unsigned)compiled_image);
+	check("triangle: shaders the bundle doesn't hold, compiled on the console, draw the bundle's image",
+		misses == 0 && on_screen && compiled_image == bundled_image);
+	destroy_scene(harness, &scene);
+}
+
 void test_triangle(const Harness *harness)
 {
 	Scene scene = { .render_pass = VK_NULL_HANDLE };
-	const bool pipeline = build_pipeline(harness, &scene);
+	const bool pipeline = build_pipeline(harness, &scene, triangle_vert_spirv, triangle_frag_spirv);
 	check("triangle: render pass, shader modules, pipeline and vertex buffer made", pipeline);
 	const bool built = pipeline && harness->swapchain && harness_ok("recording", record(harness, &scene));
 	check("triangle: framebuffers made and command buffers recorded", built);
@@ -181,5 +236,8 @@ void test_triangle(const Harness *harness)
 	check("triangle: the image on screen covers the triangle's area",
 		scene.drawn_on_screen + TRIANGLE_TOLERANCE_PIXELS >= TRIANGLE_PIXELS &&
 			scene.drawn_on_screen <= TRIANGLE_PIXELS + TRIANGLE_TOLERANCE_PIXELS);
+	uint64_t bundled_image = 0;
+	(void)harness_screen(harness, fingerprint, &bundled_image);
 	destroy_scene(harness, &scene);
+	check_compiled(harness, bundled_image);
 }

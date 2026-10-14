@@ -18,6 +18,9 @@ enum {
 	BAND_PIXELS = 128,
 	SCREEN_VERTICES = 6,
 	TOLERANCE = 1,
+	// The scenes again from shaders the bundle doesn't hold: their SPIR-V's generator word, its third, changed.
+	GENERATOR_WORD = 2,
+	GENERATOR_CHANGE = 0x00010000,
 };
 
 typedef struct {
@@ -40,6 +43,12 @@ typedef struct {
 typedef struct {
 	float colors[BANDS][4];
 } Bands;
+
+// The layer compiles these on the console, with their literals and blocks (docs/ROADMAP.md, milestone 13).
+static uint32_t compiled_matrix_index_vert[MATRIX_INDEX_VERT_SPIRV_BYTES / 4];
+static uint32_t compiled_band_frag[BAND_FRAG_SPIRV_BYTES / 4];
+// Whether the scenes are built from them.
+static bool compiled;
 
 static const float unit_quad[QUAD_VERTICES][2] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
 
@@ -206,7 +215,7 @@ static bool build_matrices(const Harness *harness, Scene *scene)
 	scene->vertex_count = QUADS * QUAD_VERTICES;
 	bool ok = build_uniforms(harness, scene, VK_SHADER_STAGE_VERTEX_BIT, &block, sizeof block);
 	const HarnessPipeline spec = {
-		.vertex_spirv = matrix_index_vert_spirv,
+		.vertex_spirv = compiled ? compiled_matrix_index_vert : matrix_index_vert_spirv,
 		.vertex_bytes = MATRIX_INDEX_VERT_SPIRV_BYTES,
 		.fragment_spirv = triangle_frag_spirv,
 		.fragment_bytes = TRIANGLE_FRAG_SPIRV_BYTES,
@@ -243,7 +252,7 @@ static bool build_bands(const Harness *harness, Scene *scene)
 	const HarnessPipeline spec = {
 		.vertex_spirv = triangle_vert_spirv,
 		.vertex_bytes = TRIANGLE_VERT_SPIRV_BYTES,
-		.fragment_spirv = band_frag_spirv,
+		.fragment_spirv = compiled ? compiled_band_frag : band_frag_spirv,
 		.fragment_bytes = BAND_FRAG_SPIRV_BYTES,
 		.bindings = &colour_binding,
 		.binding_count = 1,
@@ -316,6 +325,18 @@ static void run(const Harness *harness, const char *name, bool (*build)(const Ha
 
 void test_run_time_index(const Harness *harness)
 {
+	// The compiled shaders first: the bundle's write the same literals to the same registers, which stay.
+	memcpy(compiled_matrix_index_vert, matrix_index_vert_spirv, sizeof compiled_matrix_index_vert);
+	memcpy(compiled_band_frag, band_frag_spirv, sizeof compiled_band_frag);
+	compiled_matrix_index_vert[GENERATOR_WORD] ^= GENERATOR_CHANGE;
+	compiled_band_frag[GENERATOR_WORD] ^= GENERATOR_CHANGE;
+	compiled = true;
+	run(harness, "matrices, the shader compiled here", build_matrices,
+		"places each quad by the matrix its vertices name, in that matrix's colour");
+	run(harness, "pixel position, the shader compiled here", build_bands,
+		"colours each 128-pixel band by the pixel's column");
+	compiled = false;
+
 	run(harness, "matrices picked per vertex", build_matrices,
 		"places each quad by the matrix its vertices name, in that matrix's colour");
 	run(harness, "pixel position", build_bands, "colours each 128-pixel band by the pixel's column");

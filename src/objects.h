@@ -1,6 +1,7 @@
 #ifndef V4X_OBJECTS_H
 #define V4X_OBJECTS_H
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -106,6 +107,12 @@ struct VkDevice_T {
 	VkAllocationCallbacks allocator;
 	bool has_allocator;
 	struct VkQueue_T queue;
+	// Shaders compiled on the console (shader.c), kept till the device goes; shaders_lock guards them, as Vulkan lets
+	// modules be made on several threads.
+	pthread_mutex_t shaders_lock;
+	V4xShader **shaders;
+	uint32_t shader_count;
+	uint32_t shader_capacity;
 };
 
 typedef struct {

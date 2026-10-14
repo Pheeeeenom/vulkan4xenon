@@ -40,7 +40,7 @@ static VkResult load_shaders(Blit *blit, const V4xShader *vertex, const V4xShade
 		xsdk_log_write("vulkan4xenon: xsdk_shader_load failed for the blit: 0x%08X", (unsigned)status);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
-	// Locations 0 and 1 are the position and the colour usage to xost (xost:xsc/resolve.py:158-162).
+	// Locations 0 and 1 are the position and the colour usage to xost (xsdk:src/xsc_resolve.c:344-346).
 	const XsdkVertexElement elements[] = {
 		{ .usage = XSDK_USAGE_POSITION, .format = XSDK_VERTEX_FLOAT4, .stream = 0, .offset_bytes = 0 },
 		{ .usage = XSDK_USAGE_COLOR, .format = XSDK_VERTEX_FLOAT2, .stream = 0, .offset_bytes = UV_OFFSET_BYTES },

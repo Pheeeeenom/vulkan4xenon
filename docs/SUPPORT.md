@@ -69,12 +69,16 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - `vkCreateShaderModule` takes standard SPIR-V and looks it up in the app's `v4x_shader_bundle`, which
   `tools/build_shaders.py` writes: GLSL → `glslang -V` → xost → a Xenos container. The key is a 64-bit FNV-1a of the
   SPIR-V and its size (`include/vulkan4xenon.h`).
-- SPIR-V missing from the bundle returns `VK_ERROR_FEATURE_NOT_PRESENT`, which `vkCreateShaderModule` doesn't list.
-  That's a deviation: there's no compiler on the console.
+- SPIR-V the bundle doesn't hold is compiled on the console the first time a module is made from it, through xost's
+  compiler in xsdk (`xsdk_xsc_compile`), at xsdk's register split with the optimiser on, and kept till the device goes
+  (xsdk:docs/scope/shader-compiling.md, step 3). The layer logs each shader it compiles and the time it took.
+- SPIR-V xost refuses returns `VK_ERROR_FEATURE_NOT_PRESENT`, logged with xost's reason, and so does a shader that
+  wants a hardware loop's constants, which the layer doesn't set. `vkCreateShaderModule` doesn't list that result: a
+  deviation.
 - The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, data-dependent branches inside loops raise an
   error, and 16 registers a pixel shader.
 - Vertex input location n feeds the usage xost gives it: 0 position, 1 colour, 2 and up texture coordinates
-  (xost:xsc/resolve.py:158-162).
+  (xsdk:src/xsc_resolve.c:344-346).
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's
   uniforms.
 - Where a shader's resources land is xost's choice, recorded in the bundle as its `V4xShaderResource`s

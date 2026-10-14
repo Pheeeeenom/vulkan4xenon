@@ -69,7 +69,7 @@ static void check_refusals(const Harness *harness)
 	check("objects: an instance for Vulkan 1.1 is refused",
 		vkCreateInstance(&info, NULL, &instance) == VK_ERROR_INCOMPATIBLE_DRIVER);
 	VkShaderModule module;
-	check("objects: SPIR-V missing from the bundle is refused",
+	check("objects: SPIR-V the bundle doesn't hold and xost can't compile is refused",
 		harness_shader(harness, unknown_spirv, sizeof unknown_spirv, &module) == VK_ERROR_FEATURE_NOT_PRESENT);
 }
 

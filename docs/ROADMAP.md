@@ -1301,11 +1301,12 @@ planes are expanded to RGBA8 first, four times the bytes.
 
 ### Milestone 13: compiling shaders on the console
 
-**Agreed with the user (2026-10-14), in outline:** programs a pack doesn't hold are compiled on the console the first
-time the game asks for them, and kept on the hard disk, so no one has to play the game drawn badly to fill a pack
-(xsdk:docs/scope/shader-compiling.md). In three steps: glslang on the console, xost's compiler in C, then the layer
-compiling SPIR-V it holds no container for, which section 6 leaves out until then, and Aurora's backend compiling GLSL
-its pack doesn't hold.
+**Agreed with the user (2026-10-14):** programs a pack doesn't hold are compiled on the console the first time the
+game asks for them, and kept on the hard disk, so no one has to play the game drawn badly to fill a pack
+(xsdk:docs/scope/shader-compiling.md). glslang on the console and xost's compiler in C are done; this milestone is
+that scope's step 3, in five parts: xsdk's `rename` (done), the layer compiling SPIR-V its bundle doesn't hold, the
+layer keeping what it compiles in a folder the app names, Aurora's backend compiling GLSL its pack doesn't hold through
+glslang, and Dusklight built without its pack for the run that starts with nothing.
 
 ## 5. The Dusklight track
 
@@ -1410,7 +1411,7 @@ An outline, made precise one milestone at a time. Each starts only when agreed.
 
 - Compute, queries, secondary command buffers, more than one queue, multisampling, multiple subpasses and dynamic
   rendering.
-- Runtime SPIR-V compilation, and Vulkan 1.1 and up (single pieces of 1.1 as extensions, section 2).
+- Vulkan 1.1 and up (single pieces of 1.1 as extensions, section 2).
 - Geometry and tessellation shaders.
 - xsdk's TODO.md items, each until a milestone or Dusklight needs it.
 

@@ -6,6 +6,7 @@
 #include "host.h"
 #include "objects.h"
 #include "physical_device.h"
+#include "shader.h"
 #include "xsdk/gpu.h"
 #include "xsdk/log.h"
 #include "xsdk/splash.h"
@@ -54,9 +55,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, c
 	struct VkDevice_T *const device = v4x_host_alloc(allocator, sizeof *device, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 	if (!device)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
+	if (pthread_mutex_init(&device->shaders_lock, NULL) != 0) {
+		v4x_host_free(allocator, device);
+		return VK_ERROR_INITIALIZATION_FAILED;
+	}
 	const NTSTATUS status = xsdk_gpu_open();
 	if (!NT_SUCCESS(status)) {
 		xsdk_log_write("vulkan4xenon: xsdk_gpu_open failed: 0x%08X", (unsigned)status);
+		(void)pthread_mutex_destroy(&device->shaders_lock);
 		v4x_host_free(allocator, device);
 		return VK_ERROR_INITIALIZATION_FAILED;
 	}
@@ -70,6 +76,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, c
 		const NTSTATUS closed = xsdk_gpu_close();
 		if (!NT_SUCCESS(closed))
 			xsdk_log_write("vulkan4xenon: xsdk_gpu_close failed: 0x%08X", (unsigned)closed);
+		(void)pthread_mutex_destroy(&device->shaders_lock);
 		v4x_host_free(allocator, device);
 		return blit;
 	}
@@ -97,6 +104,7 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyDevice(VkDevice device, const VkAllocationCa
 	if (!NT_SUCCESS(status))
 		xsdk_log_write("vulkan4xenon: xsdk_gpu_close failed: 0x%08X", (unsigned)status);
 	device_exists = false;
+	v4x_shader_release(device);
 	v4x_host_free(v4x_host_device_allocator(device, pAllocator), device);
 }
 
