@@ -30,25 +30,35 @@ static void check_memory(const Harness *harness)
 {
 	VkPhysicalDeviceMemoryProperties memory;
 	vkGetPhysicalDeviceMemoryProperties(harness->physical_device, &memory);
-	const VkMemoryPropertyFlags wanted = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+	const VkMemoryPropertyFlags gpu = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	check("objects: one memory type, device-local, host-visible and coherent",
-		memory.memoryTypeCount == 1 && memory.memoryTypes[0].propertyFlags == wanted && memory.memoryHeapCount == 1);
-	const VkBufferCreateInfo info = {
-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		.size = BUFFER_BYTES,
-		.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-	};
-	VkBuffer buffer;
-	const bool made = harness_ok("vkCreateBuffer", vkCreateBuffer(harness->device, &info, NULL, &buffer));
-	VkMemoryRequirements requirements = { 0 };
-	if (made)
-		vkGetBufferMemoryRequirements(harness->device, buffer, &requirements);
+	const VkMemoryPropertyFlags cached =
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+	check("objects: two memory types in one heap, the GPU's device-local, then the CPU's cached",
+		memory.memoryTypeCount == 2 && memory.memoryTypes[0].propertyFlags == gpu &&
+			memory.memoryTypes[1].propertyFlags == cached && memory.memoryTypes[1].heapIndex == 0 &&
+			memory.memoryHeapCount == 1);
+	const VkBufferUsageFlags usages[2] = { VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_BUFFER_USAGE_TRANSFER_SRC_BIT };
+	VkMemoryRequirements requirements[2] = { { 0 } };
+	bool made = true;
+	for (uint32_t i = 0; i < 2; i++) {
+		const VkBufferCreateInfo info = {
+			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			.size = BUFFER_BYTES,
+			.usage = usages[i],
+		};
+		VkBuffer buffer;
+		const bool this_made = harness_ok("vkCreateBuffer", vkCreateBuffer(harness->device, &info, NULL, &buffer));
+		if (this_made) {
+			vkGetBufferMemoryRequirements(harness->device, buffer, &requirements[i]);
+			vkDestroyBuffer(harness->device, buffer, NULL);
+		}
+		made = made && this_made;
+	}
 	check("objects: a buffer's requirements round its size up to its alignment",
-		made && requirements.size == ROUNDED_BYTES && requirements.alignment == BUFFER_ALIGNMENT &&
-			requirements.memoryTypeBits == 1);
-	if (made)
-		vkDestroyBuffer(harness->device, buffer, NULL);
+		made && requirements[0].size == ROUNDED_BYTES && requirements[0].alignment == BUFFER_ALIGNMENT);
+	check("objects: the cached memory type is offered to a transfer-source buffer alone",
+		made && requirements[0].memoryTypeBits == 1 && requirements[1].memoryTypeBits == 3);
 }
 
 static void check_refusals(const Harness *harness)

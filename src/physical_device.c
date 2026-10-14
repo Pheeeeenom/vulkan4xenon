@@ -123,11 +123,16 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceMemoryProperties(
 	VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties *pMemoryProperties)
 {
 	(void)physicalDevice;
+	// The GPU's write-combined memory, then the CPU's cached memory, which only transfer-source buffers take; both from
+	// the one heap of the title's memory.
 	*pMemoryProperties = (VkPhysicalDeviceMemoryProperties){
-		.memoryTypeCount = 1,
+		.memoryTypeCount = 2,
 		.memoryTypes = { { VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-				VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			0 } },
+								 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+							 0 },
+			{ VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+					VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+				0 } },
 		.memoryHeapCount = 1,
 		.memoryHeaps = { { HEAP_BYTES, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT } },
 	};
@@ -148,6 +153,11 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 		break;
 	case VK_FORMAT_D24_UNORM_S8_UINT:
 		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		break;
+	case VK_FORMAT_R8_UNORM:
+	case VK_FORMAT_R8G8_UNORM:
+		pFormatProperties->optimalTilingFeatures =
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 		break;
 	case VK_FORMAT_R32_SFLOAT:
 		// Sampled, as xsdk's R32F: nearest only, since filtering 32-bit floats hasn't been tried on the console.

@@ -29,5 +29,7 @@ void test_raster(const Harness *harness);
 void test_render_to_texture(const Harness *harness);
 // Uniform arrays read at run-time indices: matrices picked per vertex, colours by pixel column (milestone 11).
 void test_run_time_index(const Harness *harness);
+// Copies from cached memory, R8 and R8G8 through swizzled views, R8 filtered, and copies around a draw (milestone 12).
+void test_uploads(const Harness *harness);
 
 #endif

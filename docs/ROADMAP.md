@@ -1241,9 +1241,39 @@ step 1 left open, three fixes agreed with the user:
   free; the root heap peaked at 140,176 KB of 147,439. The recording build (`dusklight_record.log`), which had run out
   of memory as the movie began, played it at 30 fps with 197 MB free, flat. Both exited with status 0.
 - **Open: the movie plays at 7.5 fps** in the drawing build, as the user saw on the screen and a second run logged
-  (`dusklight_rerun.log`), and the title's physical pages rise from 69 to about 145 MB while it plays. On the null backend it plays at 30, so the cost is the backend's:
-  each movie frame is three new textures, made and uploaded, and each upload waits for the GPU (docs/SUPPORT.md,
-  Commands).
+  (`dusklight_rerun.log`), and the title's physical pages rise from 69 to about 145 MB while it plays. On the null
+  backend it plays at 30, so the cost is the backend's: each movie frame is three new textures, made and uploaded, and
+  each upload waits for the GPU (docs/SUPPORT.md, Commands).
+
+### Milestone 12: texture uploads at the CPU's speed
+
+**Why.** A diagnostics build timed the attract demo's movie on the console (2026-10-13): a frame takes 133 ms, 114 of
+them in the replay's copies of its three textures, 1.6 MB, and 5 more waiting for the GPU before them; the GPU needs 3
+after the replay, and the game thread waits 115 ms a frame for a frame slot. The copies read Aurora's upload buffer,
+in write-combined memory the CPU reads uncached, and xsdk_texture_upload wrote a texel at a time. The movie's I8
+planes are expanded to RGBA8 first, four times the bytes.
+
+**Decided with the user (2026-10-13), all three, with xsdk's milestone 29:**
+1. **Copies read cached memory.** A second memory type, `HOST_VISIBLE`, `HOST_COHERENT` and `HOST_CACHED`, the CPU's
+   cached memory, which only buffers whose sole usage is `TRANSFER_SRC` take: copies run on the CPU, so the GPU never
+   reads it. xsdk_texture_upload writes runs of whole words (xsdk's milestone 29).
+2. **8-bit textures stay 8-bit.** `VK_FORMAT_R8_UNORM` and `VK_FORMAT_R8G8_UNORM` images, sampled, filtered linearly
+   and copied into, xsdk's R8 and R8G8; image views take a component mapping, which the fetch constant's swizzle
+   applies (xsdk_texture_swizzle). Aurora uploads I8 as R8, sampled as red in every channel.
+3. **A copy waits only for what used its image.** Each image keeps the submission that last drew with it, sampled it,
+   resolved into it or drew it back; each submission keeps the fence it ended with. A copy into an image no submission
+   used doesn't wait, one used by an earlier submission waits for that fence, and one used earlier in its own
+   submission waits as before.
+
+**Done when,** on the console:
+- vulkan4xenon_test draws R8 and R8G8 images through swizzled views, as intensity and as intensity and alpha, and an
+  R8 image filtered linearly between two texels; broken on purpose, a view's mapping ignored, the check fails;
+- vulkan4xenon_test copies into an image, draws with it, copies other texels into it and draws again in one command
+  buffer, each draw showing its own texels; broken on purpose, a copy never waiting, the check fails;
+- vulkan4xenon_test copies from a buffer in the cached memory type, and its objects check finds the type offered to
+  transfer-source buffers alone;
+- Dusklight's movie plays at its 30 fps, measured by the diagnostics build, and the title scene draws as before;
+- xsdk_test, vulkan4xenon_test and vkbench pass.
 
 ## 5. The Dusklight track
 

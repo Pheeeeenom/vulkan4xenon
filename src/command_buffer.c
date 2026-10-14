@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 
 #include "host.h"
+#include "image.h"
 #include "objects.h"
 
 // Commands go into a list that grows as a command buffer records; vkQueueSubmit replays them (queue.c).
@@ -371,7 +372,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer,
 		command->copy.source = buffer->memory->pointer + (buffer->offset_bytes + (uint32_t)region->bufferOffset) / 4;
 		command->copy.image = image;
 		command->copy.level = level;
-		command->copy.row_bytes = row_texels * 4;
+		command->copy.row_bytes = row_texels * v4x_texel_bytes(image->format);
 	}
 }
 

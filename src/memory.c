@@ -1,3 +1,5 @@
+#include <malloc.h>
+
 #include <vulkan/vulkan.h>
 
 #include "host.h"
@@ -9,13 +11,19 @@ enum {
 	// A vertex fetch constant needs a dword address (xsdk:src/gpu_draw.c), and the GPU loads uniform blocks from
 	// 64-byte aligned memory (xsdk:include/xsdk/gpu.h).
 	BUFFER_ALIGNMENT = 64,
-	MEMORY_TYPE_BITS = 1,
+	// Type 0 is the GPU's write-combined memory; type 1 the CPU's cached memory, for transfer sources alone
+	// (physical_device.c, vkGetPhysicalDeviceMemoryProperties).
+	MEMORY_TYPE_GPU = 0,
+	MEMORY_TYPE_CACHED = 1,
+	// Cache lines, so a copy's reads don't share a line with anything else.
+	CACHED_ALIGNMENT = 128,
 };
 
 VKAPI_ATTR VkResult VKAPI_CALL vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo *pAllocateInfo,
 	const VkAllocationCallbacks *pAllocator, VkDeviceMemory *pMemory)
 {
-	if (pAllocateInfo->memoryTypeIndex != 0)
+	const uint32_t type = pAllocateInfo->memoryTypeIndex;
+	if (type != MEMORY_TYPE_GPU && type != MEMORY_TYPE_CACHED)
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	if (pAllocateInfo->allocationSize > UINT32_MAX)
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -24,13 +32,16 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAllocateMemory(VkDevice device, const VkMemoryA
 	if (!memory)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 	memory->size_bytes = (uint32_t)pAllocateInfo->allocationSize;
-	memory->pointer = xsdk_gpu_alloc(memory->size_bytes);
+	memory->cached = type == MEMORY_TYPE_CACHED;
+	memory->pointer =
+		memory->cached ? memalign(CACHED_ALIGNMENT, memory->size_bytes) : xsdk_gpu_alloc(memory->size_bytes);
 	if (!memory->pointer) {
-		xsdk_log_write("vulkan4xenon: xsdk_gpu_alloc(%u) failed", (unsigned)memory->size_bytes);
+		xsdk_log_write("vulkan4xenon: %u bytes of %s memory not allocated", (unsigned)memory->size_bytes,
+			memory->cached ? "cached" : "GPU");
 		v4x_host_free(allocator, memory);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
-	memory->address = xsdk_gpu_address(memory->pointer);
+	memory->address = memory->cached ? 0 : xsdk_gpu_address(memory->pointer);
 	*pMemory = v4x_handle(memory);
 	return VK_SUCCESS;
 }
@@ -40,7 +51,10 @@ VKAPI_ATTR void VKAPI_CALL vkFreeMemory(VkDevice device, VkDeviceMemory memory, 
 	DeviceMemory *const object = v4x_object(memory);
 	if (!object)
 		return;
-	xsdk_gpu_free(object->pointer);
+	if (object->cached)
+		free((void *)(uintptr_t)object->pointer);
+	else
+		xsdk_gpu_free(object->pointer);
 	v4x_host_free(v4x_host_device_allocator(device, pAllocator), object);
 }
 
@@ -91,6 +105,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateBuffer(
 	if (!buffer)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 	buffer->size = pCreateInfo->size;
+	buffer->usage = pCreateInfo->usage;
 	*pBuffer = v4x_handle(buffer);
 	return VK_SUCCESS;
 }
@@ -108,7 +123,9 @@ VKAPI_ATTR void VKAPI_CALL vkGetBufferMemoryRequirements(
 	*pMemoryRequirements = (VkMemoryRequirements){
 		.size = (object->size + BUFFER_ALIGNMENT - 1) & ~(VkDeviceSize)(BUFFER_ALIGNMENT - 1),
 		.alignment = BUFFER_ALIGNMENT,
-		.memoryTypeBits = MEMORY_TYPE_BITS,
+		// Copies run on the CPU, so a buffer only ever copied from can be in memory the GPU doesn't read.
+		.memoryTypeBits =
+			1u << MEMORY_TYPE_GPU | (object->usage == VK_BUFFER_USAGE_TRANSFER_SRC_BIT ? 1u << MEMORY_TYPE_CACHED : 0),
 	};
 }
 
@@ -117,7 +134,13 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory(
 {
 	(void)device;
 	Buffer *const object = v4x_object(buffer);
-	object->memory = v4x_object(memory);
+	const DeviceMemory *const bound = v4x_object(memory);
+	// Invalid use: only transfer-source buffers take cached memory (vkGetBufferMemoryRequirements).
+	if (bound->cached && object->usage != VK_BUFFER_USAGE_TRANSFER_SRC_BIT) {
+		xsdk_log_write("vulkan4xenon: a buffer the GPU reads bound to cached memory");
+		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+	}
+	object->memory = bound;
 	object->offset_bytes = (uint32_t)memoryOffset;
 	return VK_SUCCESS;
 }

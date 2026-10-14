@@ -19,5 +19,7 @@ enum {
 bool v4x_image_format(VkFormat format, uint32_t *xsdk_format);
 // Whether images of this format can be colour attachments: R8G8B8A8_UNORM and B8G8R8A8_UNORM, which resolves write.
 bool v4x_attachment_format(VkFormat format);
+// The bytes in a texel of an image of this format, which copies take.
+uint32_t v4x_texel_bytes(VkFormat format);
 
 #endif

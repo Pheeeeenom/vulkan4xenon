@@ -48,9 +48,14 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 
 - One heap of 256 MB, device-local. That's a budget, half the console's 512 MB that the CPU and GPU share, not a
   measurement.
-- One memory type: device-local, host-visible and coherent. Each allocation is `xsdk_gpu_alloc`'s write-combined
-  physical memory, in 64 KB pages, so `minMemoryMapAlignment` is 64 KB.
-- Mapped memory is write-combined:
+- Two memory types, both in that heap:
+  - 0: device-local, host-visible and coherent. Each allocation is `xsdk_gpu_alloc`'s write-combined physical memory,
+    in 64 KB pages, so `minMemoryMapAlignment` is 64 KB.
+  - 1: host-visible, coherent and cached: the CPU's own memory, from newlib's heap, 128-byte aligned. The GPU never
+    reads it, so only buffers whose sole usage is `VK_BUFFER_USAGE_TRANSFER_SRC_BIT` list it in their
+    `memoryTypeBits`: copies run on the CPU, which reads it at the cache's speed (milestone 12). Another buffer, or an
+    image, bound to it makes the bind return `VK_ERROR_OUT_OF_DEVICE_MEMORY`.
+- Memory of type 0 is write-combined:
   - `memcpy` into it is safe, since the toolchain's `memcpy` stores bytes or aligned words;
   - a plain 8-byte store needs an 8-byte-aligned address, or it raises an alignment exception (xsdk:CLAUDE.md);
   - reading it back is slow, as it isn't cached.
@@ -162,7 +167,9 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   places the texels at the memory (`xsdk_texture_attach`).
 - Depth images: `VK_FORMAT_D24_UNORM_S8_UINT`, one level, used as a depth attachment only. Their memory requirement is
   one page, which nothing uses.
-- Image views: the whole of a 2D image in its format, no swizzle.
+- Image views: the whole of a 2D image in its format. A component mapping sets the fetch constant's swizzle
+  (`xsdk_texture_swizzle`), so a view samples any of the format's channels, 0 or 1 as each of red, green, blue and
+  alpha; a swizzled view of a depth image returns `VK_ERROR_FEATURE_NOT_PRESENT`.
 
 ## Samplers
 
@@ -193,9 +200,11 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   out, `vkEndCommandBuffer` returns `VK_ERROR_OUT_OF_HOST_MEMORY`.
 - `vkQueueSubmit` replays them on the caller's thread into xsdk's ring.
 - `vkCmdCopyBufferToImage` copies whole mip levels, from tightly packed rows or rows `bufferRowLength` texels long, at
-  4-byte-aligned offsets. It runs on the CPU at replay, after waiting for the GPU to finish what came before, since
-  nothing yet orders the GPU's reads of the image against the CPU's writes.
-- `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for the GPU.
+  4-byte-aligned offsets, in runs of whole words (`xsdk_texture_upload`). It runs on the CPU at replay, so it waits
+  for the GPU to be done with what used the image: the submission that last sampled it, resolved into it or drew it
+  back into eDRAM, for the fence that submission ended with; earlier in its own, for the GPU to finish what came
+  before. An image no submission used isn't waited for (milestone 12).
+- `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for what used their image.
 - `vkCmdDraw` and `vkCmdDrawIndexed`: one instance, `firstInstance` 0.
   - `firstVertex` and `vertexOffset` move each stream's address, since xsdk draws from vertex 0.
   - `firstIndex` moves the index buffer's address. Indices are 16 or 32 bits, with values up to 2^24 - 1.
@@ -241,6 +250,7 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 | `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending |
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment |
 | `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
+| `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering |
 | `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
 
 Vulkan 1.0 requires many more formats and features; each missing one is a deviation.

@@ -138,6 +138,7 @@ static void write_descriptor(Descriptor *descriptor, const VkWriteDescriptorSet 
 	if (write->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
 		const ImageView *const view = v4x_object(write->pImageInfo[i].imageView);
 		descriptor->image = view->image;
+		descriptor->texture = &view->texture;
 		descriptor->sampler = v4x_object(write->pImageInfo[i].sampler);
 		return;
 	}

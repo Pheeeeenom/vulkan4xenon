@@ -84,6 +84,11 @@ typedef struct {
 	XsdkDepthStencilState depth_stencil;
 } Blit;
 
+enum {
+	// The fences of this many submissions are kept, for copies into images they used.
+	V4X_SUBMIT_FENCES = 64,
+};
+
 struct VkQueue_T {
 	VkDevice device;
 	EdramPart color;
@@ -92,6 +97,9 @@ struct VkQueue_T {
 	float depth_clear;
 	uint32_t stencil_clear;
 	Blit blit;
+	// The submission being replayed, numbered from 1, and the fence each recent one ended with, at serial % the count.
+	uint32_t serial;
+	uint32_t submit_fences[V4X_SUBMIT_FENCES];
 };
 
 struct VkDevice_T {
@@ -104,10 +112,13 @@ typedef struct {
 	volatile uint32_t *pointer;
 	uint32_t address;
 	uint32_t size_bytes;
+	// The CPU's cached memory, which the GPU never reads: transfer-source buffers' alone (docs/SUPPORT.md).
+	bool cached;
 } DeviceMemory;
 
 typedef struct {
 	VkDeviceSize size;
+	VkBufferUsageFlags usage;
 	const DeviceMemory *memory;
 	uint32_t offset_bytes;
 } Buffer;
@@ -125,10 +136,15 @@ typedef struct Image {
 	// A depth attachment lives in eDRAM; its memory is never used.
 	bool is_depth;
 	XsdkTexture texture;
+	// The submission that last sampled it, resolved into it or drew it back into eDRAM, so a copy waits for that
+	// one alone; 0 for none.
+	uint32_t used_serial;
 } Image;
 
 typedef struct {
-	const Image *image;
+	Image *image;
+	// The image's texture as the view samples it, its components mapped.
+	XsdkTexture texture;
 } ImageView;
 
 typedef struct {
@@ -158,7 +174,9 @@ typedef struct {
 	volatile const uint32_t *buffer;
 	uint32_t buffer_address;
 	uint32_t range_bytes;
-	const Image *image;
+	Image *image;
+	// The view's texture.
+	const XsdkTexture *texture;
 	const Sampler *sampler;
 } Descriptor;
 
@@ -222,7 +240,7 @@ typedef struct {
 } RenderPass;
 
 typedef struct {
-	const Image *attachment;
+	Image *attachment;
 	const Image *depth;
 	uint32_t width;
 	uint32_t height;

@@ -29,12 +29,14 @@ typedef struct {
 } VertexBinding;
 
 typedef struct {
-	const Image *image;
+	const XsdkTexture *texture;
 	const Sampler *sampler;
 } PointedTexture;
 
 // What one replay has bound so far.
 typedef struct {
+	// The submission it belongs to (VkQueue_T's serial).
+	uint32_t serial;
 	const Pipeline *pipeline;
 	// The pipeline's registers must be set again: a resolve replaces the vertex shader, the viewport and the state.
 	bool pipeline_dirty;
@@ -145,15 +147,17 @@ static bool load_uniform_buffer(const Replay *replay, const V4xShaderResource *r
 	return true;
 }
 
-// Points a slot at the texture and sampler unless it already is.
+// Points a slot at the texture and sampler unless it already is. A replay points every slot afresh, so each submission
+// that samples an image marks it.
 static void point_texture(Replay *replay, uint32_t slot, const Descriptor *descriptor)
 {
 	assert(slot < TEXTURE_SLOTS);
 	PointedTexture *const pointed = &replay->pointed_textures[slot];
-	if (pointed->image == descriptor->image && pointed->sampler == descriptor->sampler)
+	if (pointed->texture == descriptor->texture && pointed->sampler == descriptor->sampler)
 		return;
-	xsdk_gpu_set_texture(slot, &descriptor->image->texture, &descriptor->sampler->state);
-	*pointed = (PointedTexture){ .image = descriptor->image, .sampler = descriptor->sampler };
+	xsdk_gpu_set_texture(slot, descriptor->texture, &descriptor->sampler->state);
+	descriptor->image->used_serial = replay->serial;
+	*pointed = (PointedTexture){ .texture = descriptor->texture, .sampler = descriptor->sampler };
 }
 
 static void apply_resources(const Pipeline *pipeline, Replay *replay)
@@ -178,12 +182,30 @@ static void apply_resources(const Pipeline *pipeline, Replay *replay)
 	}
 }
 
-// The CPU writes the image, so the GPU must be done with whatever came before (docs/ROADMAP.md, milestone 2).
+// The CPU writes the image, so the GPU must be done with what used it: nothing to wait for if no submission has; the
+// fence the last one that did ended with; a fence now if this one did (docs/ROADMAP.md, milestones 2 and 12).
+static void wait_for_image(VkQueue queue, const Image *image)
+{
+	if (!image->used_serial)
+		return;
+	uint32_t fence;
+	if (image->used_serial == queue->serial)
+		fence = xsdk_gpu_fence();
+	else if (queue->serial - image->used_serial < V4X_SUBMIT_FENCES)
+		fence = queue->submit_fences[image->used_serial % V4X_SUBMIT_FENCES];
+	else
+		// Older than the fences kept: the last submission's covers it.
+		fence = queue->submit_fences[(queue->serial - 1) % V4X_SUBMIT_FENCES];
+	if (xsdk_gpu_fence_done(fence))
+		return;
+	const NTSTATUS status = xsdk_gpu_wait(fence, IDLE_TIMEOUT_MS);
+	if (!NT_SUCCESS(status))
+		xsdk_log_write("vulkan4xenon: the GPU didn't finish with an image for a copy: 0x%08X", (unsigned)status);
+}
+
 static void copy_buffer_to_image(VkQueue queue, const Command *command)
 {
-	const NTSTATUS status = xsdk_gpu_wait(xsdk_gpu_fence(), IDLE_TIMEOUT_MS);
-	if (!NT_SUCCESS(status))
-		xsdk_log_write("vulkan4xenon: the GPU didn't go idle for a copy: 0x%08X", (unsigned)status);
+	wait_for_image(queue, command->copy.image);
 	xsdk_texture_upload(&command->copy.image->texture, command->copy.level,
 		(const void *)(uintptr_t)command->copy.source, command->copy.row_bytes);
 	xsdk_gpu_invalidate(command->copy.image->texture.address, command->copy.image->texture.size_bytes);
@@ -210,10 +232,11 @@ static void set_target(const Framebuffer *framebuffer)
 }
 
 // Copies eDRAM's colour into the attachment, then clears what's asked; the target must be set again after.
-static void resolve(const Image *attachment, bool clear_color, bool clear_depth, uint32_t argb)
+static void resolve(Image *attachment, uint32_t serial, bool clear_color, bool clear_depth, uint32_t argb)
 {
 	xsdk_gpu_set_resolve_clears(clear_color, clear_depth);
 	xsdk_gpu_resolve_texture(&attachment->texture, argb);
+	attachment->used_serial = serial;
 }
 
 static bool same_size(const EdramPart *part, const Framebuffer *framebuffer)
@@ -295,6 +318,7 @@ static void begin_render_pass(VkQueue queue, Replay *replay)
 		check_depth_kept(queue, framebuffer);
 	if (!color_ready(&queue->color, replay) && render_pass->load_op == VK_ATTACHMENT_LOAD_OP_LOAD) {
 		v4x_blit_draw(&queue->blit, &framebuffer->attachment->texture, framebuffer->width, framebuffer->height);
+		framebuffer->attachment->used_serial = replay->serial;
 		queue->color = holding(framebuffer->attachment);
 	}
 	const bool clear_color = !color_ready(&queue->color, replay);
@@ -302,7 +326,7 @@ static void begin_render_pass(VkQueue queue, Replay *replay)
 	if (clear_color || clear_depth) {
 		if (clear_depth)
 			set_depth_clear(queue, replay->clear_depth, replay->clear_stencil);
-		resolve(framebuffer->attachment, clear_color, clear_depth, replay->clear_argb);
+		resolve(framebuffer->attachment, replay->serial, clear_color, clear_depth, replay->clear_argb);
 		set_target(framebuffer);
 		if (clear_color)
 			queue->color = cleared_color(framebuffer, replay->clear_argb);
@@ -363,7 +387,7 @@ static void end_render_pass(VkQueue queue, Replay *replay, const Command *next)
 	const bool clear_depth = end_depth_clear(replay, next, &depth, &stencil);
 	if (clear_depth)
 		set_depth_clear(queue, depth, stencil);
-	resolve(framebuffer->attachment, clear_color, clear_depth, argb);
+	resolve(framebuffer->attachment, replay->serial, clear_color, clear_depth, argb);
 	queue->color = clear_color ? cleared_color(framebuffer, argb) : holding(framebuffer->attachment);
 	if (clear_depth)
 		queue->depth = cleared_depth(framebuffer, depth, stencil);
@@ -509,16 +533,19 @@ VKAPI_ATTR VkResult VKAPI_CALL vkQueueSubmit(
 	// Mapped memory is coherent, so the app may have written any of it; one invalidate covers it all, as xsdk's set-up
 	// covers memory (xsdk:src/gpu_setup.c).
 	xsdk_gpu_invalidate(0, ALL_MEMORY_BYTES);
+	queue->serial = queue->serial + 1 ? queue->serial + 1 : 1;
 	for (uint32_t i = 0; i < submitCount; i++) {
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
 			const VkCommandBuffer buffer = pSubmits[i].pCommandBuffers[j];
-			Replay replay = { .pipeline_dirty = true };
+			Replay replay = { .serial = queue->serial, .pipeline_dirty = true };
 			for (uint32_t c = 0; c < buffer->count; c++)
 				replay_command(queue, buffer, &replay, c);
 		}
 	}
 	// One queue replays in order, so semaphores need nothing; the fence submits the ring either way.
-	v4x_sync_submitted(v4x_object(fence), xsdk_gpu_fence());
+	const uint32_t submitted = xsdk_gpu_fence();
+	queue->submit_fences[queue->serial % V4X_SUBMIT_FENCES] = submitted;
+	v4x_sync_submitted(v4x_object(fence), submitted);
 	return VK_SUCCESS;
 }
 
