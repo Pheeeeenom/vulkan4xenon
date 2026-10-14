@@ -1245,7 +1245,7 @@ step 1 left open, three fixes agreed with the user:
   backend it plays at 30, so the cost is the backend's: each movie frame is three new textures, made and uploaded, and
   each upload waits for the GPU (docs/SUPPORT.md, Commands).
 
-### Milestone 12: texture uploads at the CPU's speed
+### Milestone 12: texture uploads at the CPU's speed (done)
 
 **Why.** A diagnostics build timed the attract demo's movie on the console (2026-10-13): a frame takes 133 ms, 114 of
 them in the replay's copies of its three textures, 1.6 MB, and 5 more waiting for the GPU before them; the GPU needs 3
@@ -1274,6 +1274,30 @@ planes are expanded to RGBA8 first, four times the bytes.
   transfer-source buffers alone;
 - Dusklight's movie plays at its 30 fps, measured by the diagnostics build, and the title scene draws as before;
 - xsdk_test, vulkan4xenon_test and vkbench pass.
+
+**On the console** (2026-10-13; `results/2026-10-13-milestone-12/`; xsdk's milestone 29, xsdk:docs/HARDWARE.md,
+"Uploads in runs, and channel swizzles"; Aurora `1844958`, Dusklight `9001ae09e6`):
+- **vulkan4xenon_test passed 80 of 80** (`vulkan4xenon_test.log`). R8 drew as intensity, and R8G8 through a view of
+  green, red, 1 and 0, so that both its channels show on screen, where alpha doesn't; the 2x1 R8 image filtered
+  linearly between its two texels; two copies into one image around a draw in one command buffer, each draw showing its
+  own texels; the copies came from a staging buffer in the cached memory type, which the objects check found offered to
+  transfer-source buffers alone.
+- **Broken on purpose,** a view's mapping ignored, the swizzled and filtered checks failed, the filtered image's view
+  being swizzled too (`vulkan4xenon_test_mapping_ignored.log`); a copy never waiting, only the copies check failed
+  (`vulkan4xenon_test_copies_never_wait.log`). Each break failed the check of the image on screen as well.
+- **Found on the way:** the first run's filtered image read neither of its texels
+  (`vulkan4xenon_test_2x1_as_wide.log`). xsdk had put a 2x1 texture's base where the console doesn't read it, fixed in
+  xsdk (xsdk:docs/HARDWARE.md, "A 2x1 texture's tail").
+- **vkbench** passed 14 of 14.
+- **The movie** (the diagnostics build, `dusklight_movie.log`, against `dusklight_movie_before.log`): 29.9 to 30.0 fps
+  over its four windows, from 7.5. A frame's uploads came to 224 to 266 KB, textures of 133 KB, from three of 532 KB,
+  the movie's I8 planes now 8-bit; the copies took 2.4 to 3.1 ms a frame, from 114, with no wait for the GPU, from
+  5.3 ms; the game thread no longer waited for a frame slot, from 115 ms. Drawn right (`movie.png`;
+  `movie_before.png`, a different moment).
+- **The title scene** (the drawing build, `dusklight.log`, `title.png`; xsdk, the layer and Dusklight cleaned and built
+  in full): 29.1 to 30.0 fps once loaded, with 118 MB free, and status 0 at the exit.
+- **The logo shot** (the diagnostics build, `dusklight_diag.log`, `shot.png`): drawn as in the range fog step's run but
+  for the logo's moving shine, 0.05% of its pixels (`shot_diff.png`), in 20.6 ms of GPU time a frame, as then.
 
 ## 5. The Dusklight track
 
