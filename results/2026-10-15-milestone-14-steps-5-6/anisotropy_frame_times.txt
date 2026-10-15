@@ -1,0 +1,54 @@
+Dusklight's GPU time a frame (aurora_gpu_take_busy_ns), each 10 s, with Aurora's most anisotropy at 16 (its default) and at 1.
+
+== aniso16
+489 frames in 10.0 s, 48.9 fps; GPU 2.62 ms a frame
+598 frames in 10.0 s, 59.8 fps; GPU 2.24 ms a frame
+597 frames in 10.0 s, 59.7 fps; GPU 2.28 ms a frame
+599 frames in 10.0 s, 59.9 fps; GPU 2.55 ms a frame
+597 frames in 10.0 s, 59.7 fps; GPU 2.27 ms a frame
+594 frames in 10.0 s, 59.3 fps; GPU 2.28 ms a frame
+507 frames in 10.0 s, 50.6 fps; GPU 2.12 ms a frame
+Stage: F_SP102
+207 frames in 10.0 s, 20.6 fps; GPU 15.89 ms a frame
+299 frames in 10.0 s, 29.8 fps; GPU 23.08 ms a frame
+285 frames in 10.0 s, 28.5 fps; GPU 25.90 ms a frame
+299 frames in 10.0 s, 29.8 fps; GPU 24.34 ms a frame
+300 frames in 10.0 s, 30.0 fps; GPU 18.98 ms a frame
+300 frames in 10.0 s, 30.0 fps; GPU 19.43 ms a frame
+Diagnostics: warping to F_SP103 point 0 room 0
+Stage: F_SP103
+64 frames in 15.0 s, 4.3 fps; GPU 13.07 ms a frame
+226 frames in 10.0 s, 22.6 fps; GPU 18.21 ms a frame
+262 frames in 10.0 s, 26.1 fps; GPU 18.33 ms a frame
+250 frames in 10.0 s, 25.0 fps; GPU 18.18 ms a frame
+263 frames in 10.0 s, 26.2 fps; GPU 18.19 ms a frame
+250 frames in 10.0 s, 24.9 fps; GPU 18.43 ms a frame
+255 frames in 10.0 s, 25.5 fps; GPU 18.38 ms a frame
+252 frames in 10.0 s, 25.2 fps; GPU 19.01 ms a frame
+
+== aniso1
+488 frames in 10.0 s, 48.7 fps; GPU 2.64 ms a frame
+599 frames in 10.0 s, 59.9 fps; GPU 2.32 ms a frame
+599 frames in 10.0 s, 59.8 fps; GPU 2.30 ms a frame
+598 frames in 10.0 s, 59.7 fps; GPU 2.27 ms a frame
+597 frames in 10.0 s, 59.7 fps; GPU 2.25 ms a frame
+599 frames in 10.0 s, 59.8 fps; GPU 2.26 ms a frame
+517 frames in 10.0 s, 51.6 fps; GPU 2.11 ms a frame
+Stage: F_SP102
+199 frames in 10.0 s, 19.9 fps; GPU 16.92 ms a frame
+298 frames in 10.0 s, 29.8 fps; GPU 23.30 ms a frame
+291 frames in 10.0 s, 29.0 fps; GPU 26.08 ms a frame
+298 frames in 10.0 s, 29.7 fps; GPU 24.16 ms a frame
+300 frames in 10.0 s, 30.0 fps; GPU 19.19 ms a frame
+298 frames in 10.0 s, 29.7 fps; GPU 19.78 ms a frame
+Diagnostics: warping to F_SP103 point 0 room 0
+Stage: F_SP103
+57 frames in 14.9 s, 3.8 fps; GPU 12.70 ms a frame
+227 frames in 10.0 s, 22.7 fps; GPU 17.91 ms a frame
+258 frames in 10.0 s, 25.8 fps; GPU 18.21 ms a frame
+250 frames in 10.0 s, 24.9 fps; GPU 18.16 ms a frame
+260 frames in 10.0 s, 26.0 fps; GPU 18.08 ms a frame
+245 frames in 10.0 s, 24.5 fps; GPU 18.47 ms a frame
+257 frames in 10.0 s, 25.7 fps; GPU 18.37 ms a frame
+254 frames in 10.0 s, 25.4 fps; GPU 18.78 ms a frame
+

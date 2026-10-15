@@ -1,0 +1,169 @@
+diff --git a/src/dusk/xenon_run.cpp b/src/dusk/xenon_run.cpp
+index 2991445842..d2c79508ca 100644
+--- a/src/dusk/xenon_run.cpp
++++ b/src/dusk/xenon_run.cpp
+@@ -17,6 +17,11 @@
+ #include <algorithm>
+ #include <chrono>
+ #include <string>
++#include <fmt/format.h>
++
++extern "C" unsigned long long aurora_gpu_take_busy_ns();
++extern "C" void aurora_diag_request_depth();
++extern "C" void aurora_diag_peek_grid(const char* when);
+ 
+ namespace dusk::xenon_run {
+ namespace {
+@@ -82,6 +87,12 @@ constexpr Clock::duration TitleCaptureTime = std::chrono::seconds(20);
+ constexpr const char* TitleCapturePath = "game:\\dusklight_title.ppm";
+ bool titleCaptured = false;
+ 
++constexpr const char* OrdonStage = "F_SP103";
++bool warped = false;
++bool inOrdon = false;
++uint32_t ordonCaptures = 0;
++Clock::time_point ordonStart;
++
+ void sample_heaps() {
+     for (HeapPeak& heap : heaps) {
+         JKRHeap* const jkrHeap = heap.get();
+@@ -137,6 +148,10 @@ void after_frame() {
+             inTitle = true;
+             titleStart = now;
+         }
++        if (warped && !inOrdon && stage == OrdonStage) {
++            inOrdon = true;
++            ordonStart = now;
++        }
+     }
+ 
+     if (inTitle && !titleCaptured && now - titleStart >= TitleCaptureTime) {
+@@ -147,14 +162,27 @@ void after_frame() {
+     periodFrames++;
+     if (now - periodStart >= FrameRatePeriod) {
+         const double seconds = std::chrono::duration<double>(now - periodStart).count();
+-        DuskLog.info(
+-            "{} frames in {:.1f} s, {:.1f} fps", periodFrames, seconds, periodFrames / seconds);
++        const double gpuMs = static_cast<double>(aurora_gpu_take_busy_ns()) / 1e6;
++        DuskLog.info("{} frames in {:.1f} s, {:.1f} fps; GPU {:.2f} ms a frame", periodFrames, seconds,
++            periodFrames / seconds, gpuMs / periodFrames);
+         log_memory();
+         periodStart = now;
+         periodFrames = 0;
+     }
+ 
+-    if (inTitle && now - titleStart >= TitleTime) {
++    if (inOrdon) {
++        aurora_diag_request_depth();
++    }
++    if (inOrdon && ordonCaptures < 3 && now - ordonStart >= std::chrono::seconds(20) * (ordonCaptures + 1)) {
++        ++ordonCaptures;
++        aurora_diag_peek_grid(fmt::format("at capture {}", ordonCaptures).c_str());
++        aurora_capture_frame(fmt::format("game:\\dusklight_ordon_{}.ppm", ordonCaptures).c_str());
++    }
++    if (inOrdon && now - ordonStart >= std::chrono::seconds(90)) {
++        DuskLog.info("Diagnostics: 90 s in {}", OrdonStage);
++        dusk::IsRunning = false;
++    }
++    if (inTitle && !warped && stage == TitleStage && now - titleStart >= TitleTime) {
+         DuskLog.info("A minute into the title scene. The heaps at their peaks:");
+         for (const HeapPeak& heap : heaps) {
+             DuskLog.info("  {}: {} KB of {} KB", heap.name, heap.peak / 1024, heap.size / 1024);
+@@ -164,7 +192,9 @@ void after_frame() {
+         for (const PoolPeak& pool : pools) {
+             DuskLog.info("  {}: {} KB", pool.name, (pool.peak + 1023) / 1024);
+         }
+-        dusk::IsRunning = false;
++        warped = true;
++        DuskLog.info("Diagnostics: warping to {} point 0 room 0", OrdonStage);
++        dComIfGp_setNextStage(OrdonStage, 0, 0, -1);
+     }
+ }
+ 
+diff --git a/src/m_Do/m_Do_graphic.cpp b/src/m_Do/m_Do_graphic.cpp
+index 47552b72aa..15c7b2e789 100644
+--- a/src/m_Do/m_Do_graphic.cpp
++++ b/src/m_Do/m_Do_graphic.cpp
+@@ -54,6 +54,7 @@
+ #include "dusk/imgui/ImGuiConsole.hpp"
+ #include "dusk/interp/frame_interpolation.h"
+ #include "dusk/logging.h"
++#include <chrono>
+ #include "dusk/settings.h"
+ #include "helpers/endian.h"
+ #include "helpers/gx_helper.h"
+@@ -1169,6 +1170,16 @@ static void drawDepth2(view_class* param_0, view_port_class* param_1, int param_
+             }
+             #endif
+ 
++            {
++                static auto nextDofLog = std::chrono::steady_clock::now();
++                if (std::chrono::steady_clock::now() >= nextDofLog) {
++                    nextDofLog = std::chrono::steady_clock::now() + std::chrono::seconds(5);
++                    DuskLog.info("Diagnostics: depth of field strength {} (-255 draws nothing), mode {}",
++                                 static_cast<int>(l_tevColor0.a),
++                                 static_cast<int>(dusk::getSettings().game.depthOfFieldMode.getValue()));
++                }
++            }
++            l_tevColor0.a = -200;
+ #if TARGET_PC
+             if (dusk::getSettings().game.depthOfFieldMode.getValue() == dusk::DepthOfFieldMode::Off)
+                 return;
+diff --git a/src/m_Do/m_Do_main.cpp b/src/m_Do/m_Do_main.cpp
+index 1a4cecc956..f550e464ee 100644
+--- a/src/m_Do/m_Do_main.cpp
++++ b/src/m_Do/m_Do_main.cpp
+@@ -35,6 +35,12 @@
+ #include "m_Do/m_Do_printf.h"
+ #include "m_Do/m_Do_ext2.h"
+ #include <cstring>
++#include <string>
++#include <cstdlib>
++#include <chrono>
++
++extern "C" void aurora_diag_request_depth();
++extern "C" void aurora_diag_peek_grid(const char* when);
+ 
+ #include "dusk/app_info.hpp"
+ #include "dusk/audio/DuskAudioSystem.h"
+@@ -337,6 +343,40 @@ void main01(void) {
+ 
+         aurora_end_frame();
+ 
++#ifndef __XSDK__
++        if (const char* captureDir = std::getenv("DUSK_PC_CAPTURE_DIR")) {
++            static std::chrono::steady_clock::time_point titleStart{}, ordonStart{};
++            static bool warped = false;
++            static int pcCaptures = 0;
++            const auto captureNow = std::chrono::steady_clock::now();
++            const char* const stageName = dComIfGp_getStartStageName();
++            if (!warped && std::strcmp(stageName, "F_SP102") == 0) {
++                static bool titleCaptured = false;
++                if (titleStart == std::chrono::steady_clock::time_point{}) {
++                    titleStart = captureNow;
++                } else if (!titleCaptured && captureNow - titleStart >= std::chrono::seconds(20)) {
++                    titleCaptured = true;
++                    aurora_capture_frame((std::string(captureDir) + "\\pc_title.ppm").c_str());
++                } else if (captureNow - titleStart >= std::chrono::seconds(60)) {
++                    warped = true;
++                    DuskLog.info("Diagnostics: warping to F_SP103 point 0 room 0");
++                    dComIfGp_setNextStage("F_SP103", 0, 0, -1);
++                }
++            }
++            if (warped && std::strcmp(stageName, "F_SP103") == 0) {
++                if (ordonStart == std::chrono::steady_clock::time_point{}) {
++                    ordonStart = captureNow;
++                }
++                aurora_diag_request_depth();
++                if (pcCaptures < 3 && captureNow - ordonStart >= std::chrono::seconds(20) * (pcCaptures + 1)) {
++                    ++pcCaptures;
++                    aurora_diag_peek_grid(("at capture " + std::to_string(pcCaptures)).c_str());
++                    const std::string path = std::string(captureDir) + "\\pc_ordon_" + std::to_string(pcCaptures) + ".ppm";
++                    aurora_capture_frame(path.c_str());
++                }
++            }
++        }
++#endif
+ #ifdef __XSDK__
+         dusk::xenon_run::after_frame();
+ #endif

@@ -1,0 +1,243 @@
+Running main() from /home/xenon/build/aurora-host/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 40 tests from 15 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from AlphaCompareA8
+[ RUN      ] AlphaCompareA8.ComparesTheAlphaOperands
+[info] [aurora::gfx::vulkan4xenon::record] recorded a48b96d69ff86daf.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded ce4bffbb0b973310.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 39662e66d545c874.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded f544e71db9210106.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded ece2618e566d8623.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 5264b90e6f50c901.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 017c19da20649fa0.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 64f76a18fb37dd48.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded ba930563b1db79f4.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded b624738d17bc5ca0.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 4f41862f49358139.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded c8673f02f09b439d.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded a122a58ca77e3270.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 2bc4ebf687f545b6.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded f526e9ffb3616812.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded b72c3e79097987b4.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded cbed2c9db6f723a5.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 8ecfa22174a91d18.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 61cdb76b69b6489b.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded e09e6878603dc742.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 2013a34320f17698.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 0c9a6858fbbe328e.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 6a05b1f88a016fb2.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded c91470b682614340.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 16a9a335fb71c29a.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded a2beec39ae2b951c.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 01c8b343f41ff9f4.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded c4bb20c5e14ce9d8.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 09bef7f9a3ac5df7.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded c165aaa5a5be8de5.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 0f8714b3c758a3b1.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 84e4d80e1fc6e615.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 05b63b9d751d5736.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded f6b5e1536572c9a5.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded be7931e3ec0bb85e.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded f2f1d4cd60de5251.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded d1441271ff15f72c.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 8b4ce5184129a25a.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 88a3de8e328f385a.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 1a65c70621060a0b.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded bee5bf419afb7f72.frag
+[       OK ] AlphaCompareA8.ComparesTheAlphaOperands (10 ms)
+[----------] 1 test from AlphaCompareA8 (10 ms total)
+
+[----------] 2 tests from Lighting
+[ RUN      ] Lighting.SumsTheMasksLightsAlone
+[info] [aurora::gfx::vulkan4xenon::record] recorded 8c2be0ec05c847a9.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded e5c535debebde1ed.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded e11f6dcb41be4670.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded fcbf0dfc761359f3.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 22c1505710b2f1a1.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 960bc98200afb567.vert
+[       OK ] Lighting.SumsTheMasksLightsAlone (1 ms)
+[ RUN      ] Lighting.TakesTheAmbientFromTheVertex
+[info] [aurora::gfx::vulkan4xenon::record] recorded 07f92170b4fbebf3.vert
+[       OK ] Lighting.TakesTheAmbientFromTheVertex (0 ms)
+[----------] 2 tests from Lighting (2 ms total)
+
+[----------] 2 tests from MatricesPerVertex
+[ RUN      ] MatricesPerVertex.ReadThePositionAndNormalMatrixAtTheVertexsRow
+[info] [aurora::gfx::vulkan4xenon::record] recorded 8f5600c4148c02c4.vert
+[       OK ] MatricesPerVertex.ReadThePositionAndNormalMatrixAtTheVertexsRow (0 ms)
+[ RUN      ] MatricesPerVertex.PickTheTexgensMatrix
+[info] [aurora::gfx::vulkan4xenon::record] recorded 49ec3ee18970a889.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 290519864341ecd9.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 5f87c9c4585eb6fa.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 85011fead02917aa.frag
+[       OK ] MatricesPerVertex.PickTheTexgensMatrix (0 ms)
+[----------] 2 tests from MatricesPerVertex (1 ms total)
+
+[----------] 1 test from FogOrder
+[ RUN      ] FogOrder.IsMixedBeforeTheWrap
+[info] [aurora::gfx::vulkan4xenon::record] recorded e3098cb0e6e8e314.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 716ccf5d9b0ab411.frag
+[       OK ] FogOrder.IsMixedBeforeTheWrap (0 ms)
+[----------] 1 test from FogOrder (0 ms total)
+
+[----------] 3 tests from Indirect
+[ RUN      ] Indirect.OffsetsTheStagesCoordinate
+[info] [aurora::gfx::vulkan4xenon::record] recorded 03c4962e5aedacf5.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 26dc5e1fb2a7ae55.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 9151c472a59b06a0.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 7a9d8435a0df10f6.frag
+[       OK ] Indirect.OffsetsTheStagesCoordinate (0 ms)
+[ RUN      ] Indirect.WrapsAndAddsToThePreviousStage
+[info] [aurora::gfx::vulkan4xenon::record] recorded 99a4a66e30525205.frag
+[       OK ] Indirect.WrapsAndAddsToThePreviousStage (0 ms)
+[ RUN      ] Indirect.BumpsTheAlpha
+[info] [aurora::gfx::vulkan4xenon::record] recorded 9337d396604985ef.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded a009cb259da8471c.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded cab17a4450fa6556.frag
+[       OK ] Indirect.BumpsTheAlpha (0 ms)
+[----------] 3 tests from Indirect (2 ms total)
+
+[----------] 1 test from SceneConfigs
+[ RUN      ] SceneConfigs.AreWritten
+[info] [aurora::gfx::vulkan4xenon::record] recorded aa3fb490da5f2d9d.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded a5e20501f6293bcb.frag
+[       OK ] SceneConfigs.AreWritten (0 ms)
+[----------] 1 test from SceneConfigs (1 ms total)
+
+[----------] 1 test from Lines
+[ RUN      ] Lines.AreQuadsAcrossEachSegment
+[info] [aurora::gfx::vulkan4xenon::record] recorded 54743fa9c9efa51b.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 35558bd06838621e.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 57ace9b606b29de0.vert
+[       OK ] Lines.AreQuadsAcrossEachSegment (0 ms)
+[----------] 1 test from Lines (1 ms total)
+
+[----------] 1 test from Points
+[ RUN      ] Points.AreSquaresAboutEachPoint
+[info] [aurora::gfx::vulkan4xenon::record] recorded b6e3a87dde85feaa.vert
+[       OK ] Points.AreSquaresAboutEachPoint (0 ms)
+[----------] 1 test from Points (0 ms total)
+
+[----------] 3 tests from Corners
+[ RUN      ] Corners.CountSixASegmentOrPoint
+[       OK ] Corners.CountSixASegmentOrPoint (0 ms)
+[ RUN      ] Corners.AreEachSegmentsEndsWithTheOtherEnd
+[       OK ] Corners.AreEachSegmentsEndsWithTheOtherEnd (0 ms)
+[ RUN      ] Corners.AreEachPointsFourCorners
+[       OK ] Corners.AreEachPointsFourCorners (0 ms)
+[----------] 3 tests from Corners (1 ms total)
+
+[----------] 1 test from MathCases
+[ RUN      ] MathCases.AreWritten
+[info] [aurora::gfx::vulkan4xenon::record] recorded 44243b576445d969.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 4e1b7665d31a6363.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 5124b4833027b214.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 2015abb6f9be5d7a.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 135a82edf3d72e7a.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 008daa819b785556.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 36d92ee5a97684b0.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 2f884c01fda7c83a.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded d0422bfe795f912f.frag
+[       OK ] MathCases.AreWritten (2 ms)
+[----------] 1 test from MathCases (2 ms total)
+
+[----------] 1 test from DepthPrograms
+[ RUN      ] DepthPrograms.TakeGXsZFromTheSampledDepth
+[       OK ] DepthPrograms.TakeGXsZFromTheSampledDepth (0 ms)
+[----------] 1 test from DepthPrograms (0 ms total)
+
+[----------] 1 test from PaletteConversion
+[ RUN      ] PaletteConversion.ScalesTheIndexByItsBitsAndReadsTheEntrysMiddle
+[       OK ] PaletteConversion.ScalesTheIndexByItsBitsAndReadsTheEntrysMiddle (0 ms)
+[----------] 1 test from PaletteConversion (0 ms total)
+
+[----------] 6 tests from Ops/PackedAlphaCompare
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/0
+[info] [aurora::gfx::vulkan4xenon::record] recorded bfa0c9768b3037af.frag
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/0 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/1
+[info] [aurora::gfx::vulkan4xenon::record] recorded 34b2197dd2aad566.frag
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/1 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/2
+[info] [aurora::gfx::vulkan4xenon::record] recorded ec06793f4ead5609.frag
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/2 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/3
+[info] [aurora::gfx::vulkan4xenon::record] recorded 4d4ded0c55e307f4.frag
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/3 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/4
+[info] [aurora::gfx::vulkan4xenon::record] recorded 5d839c1bbe5242b7.frag
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/4 (0 ms)
+[ RUN      ] Ops/PackedAlphaCompare.ComparesTheColourOperands/5
+[info] [aurora::gfx::vulkan4xenon::record] recorded dfd463e2eb84efa8.frag
+[       OK ] Ops/PackedAlphaCompare.ComparesTheColourOperands/5 (0 ms)
+[----------] 6 tests from Ops/PackedAlphaCompare (3 ms total)
+
+[----------] 9 tests from Fns/LightingFunctions
+[ RUN      ] Fns/LightingFunctions.AreWritten/0
+[info] [aurora::gfx::vulkan4xenon::record] recorded 66ec28dc85c2bc06.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded e99302559f302df4.vert
+[       OK ] Fns/LightingFunctions.AreWritten/0 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/1
+[info] [aurora::gfx::vulkan4xenon::record] recorded f217585af0e51d45.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 74958d5ebd05915a.vert
+[       OK ] Fns/LightingFunctions.AreWritten/1 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/2
+[info] [aurora::gfx::vulkan4xenon::record] recorded ce9aacede240a7f9.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 05a069792277c21b.vert
+[       OK ] Fns/LightingFunctions.AreWritten/2 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/3
+[info] [aurora::gfx::vulkan4xenon::record] recorded 2e60beb19a89f65a.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded b30d6b320c57319d.vert
+[       OK ] Fns/LightingFunctions.AreWritten/3 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/4
+[info] [aurora::gfx::vulkan4xenon::record] recorded d73f2365521f56c9.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded f4402a500c65d1d1.vert
+[       OK ] Fns/LightingFunctions.AreWritten/4 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/5
+[info] [aurora::gfx::vulkan4xenon::record] recorded 9b76862e2e0bef74.vert
+[       OK ] Fns/LightingFunctions.AreWritten/5 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/6
+[info] [aurora::gfx::vulkan4xenon::record] recorded 120ffde7dca4b23a.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 8d5ce6c44845d63c.vert
+[       OK ] Fns/LightingFunctions.AreWritten/6 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/7
+[info] [aurora::gfx::vulkan4xenon::record] recorded 366c700872345ee7.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded eabedef29d69a491.vert
+[       OK ] Fns/LightingFunctions.AreWritten/7 (0 ms)
+[ RUN      ] Fns/LightingFunctions.AreWritten/8
+[info] [aurora::gfx::vulkan4xenon::record] recorded b312dd7b5dfe2265.vert
+[info] [aurora::gfx::vulkan4xenon::record] recorded 427870aa870d246a.vert
+[       OK ] Fns/LightingFunctions.AreWritten/8 (0 ms)
+[----------] 9 tests from Fns/LightingFunctions (6 ms total)
+
+[----------] 7 tests from Types/Fog
+[ RUN      ] Types/Fog.IsWritten/0
+[info] [aurora::gfx::vulkan4xenon::record] recorded a148138e9d6e7e7f.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 34a2e9983f4f8c01.frag
+[       OK ] Types/Fog.IsWritten/0 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/1
+[info] [aurora::gfx::vulkan4xenon::record] recorded 15f2af3c3762c976.frag
+[       OK ] Types/Fog.IsWritten/1 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/2
+[info] [aurora::gfx::vulkan4xenon::record] recorded 9e142053003138c3.frag
+[       OK ] Types/Fog.IsWritten/2 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/3
+[info] [aurora::gfx::vulkan4xenon::record] recorded 2779574612667bd1.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 7e0ad5c3f306c65f.frag
+[       OK ] Types/Fog.IsWritten/3 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/4
+[info] [aurora::gfx::vulkan4xenon::record] recorded 2aa94864676df337.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded 4c201f262d567a20.frag
+[       OK ] Types/Fog.IsWritten/4 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/5
+[info] [aurora::gfx::vulkan4xenon::record] recorded 5f1f5cf72b4ab727.frag
+[       OK ] Types/Fog.IsWritten/5 (0 ms)
+[ RUN      ] Types/Fog.IsWritten/6
+[info] [aurora::gfx::vulkan4xenon::record] recorded 33971a5892558277.frag
+[info] [aurora::gfx::vulkan4xenon::record] recorded e505ae6273b72c9e.frag
+[       OK ] Types/Fog.IsWritten/6 (0 ms)
+[----------] 7 tests from Types/Fog (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 40 tests from 15 test suites ran. (47 ms total)
+[  PASSED  ] 40 tests.

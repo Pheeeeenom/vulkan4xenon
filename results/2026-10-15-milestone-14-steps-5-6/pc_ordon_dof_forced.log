@@ -1,0 +1,132 @@
+[INFO | dusk] Build: UNKNOWN-VERSION (rev e5632c4f1aea757210ec1499a1c147b738f47ccd, built Thu Oct 15 00:29:50 2026 -0400, type RelWithDebInfo)
+[INFO | dusk] Platform: win32
+[INFO | dusk::config] Loading config from 'C:\Users\Mena\AppData\Roaming\TwilitRealm\Dusklight\config.json'
+[INFO | aurora] Aurora initializing
+[INFO | aurora::system_info] CPU model: AMD Ryzen 9 9950X3D 16-Core Processor          
+[INFO | aurora::system_info] Memory: 193924 MiB
+[INFO | aurora::system_info] Architecture: x86_64
+[INFO | aurora::system_info] OS: Microsoft Windows 10.0 build 26200
+[INFO | aurora::system_info] Detected GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+[INFO | aurora::system_info] Detected GPU: AMD Radeon(TM) Graphics
+[INFO | aurora::system_info] Detected GPU: Microsoft Basic Render Driver
+[INFO | aurora::gpu] Creating WebGPU instance
+[INFO | aurora::gpu] Attempting to initialize D3D12
+[INFO | aurora::gpu] Requesting adapter
+  Feature level: Compatibility
+  Power preference: HighPerformance
+  Backend: D3D12
+  Compatible surface: true
+[INFO | aurora::gpu] Graphics adapter information
+  API: D3D12
+  Device: NVIDIA RTX PRO 6000 Blackwell Workstation Edition (DiscreteGPU)
+  Driver: D3D12 driver version 32.0.16.1692
+[INFO | aurora::gpu] Using limits:
+  maxTextureDimension1D: 16384
+  maxTextureDimension2D: 16384
+  maxTextureDimension3D: 2048
+  maxTextureArrayLayers: 2048
+  maxStorageBuffersPerShaderStage: 2
+  minUniformBufferOffsetAlignment: 256
+  minStorageBufferOffsetAlignment: 256
+  maxImmediateSize: 64
+[INFO | aurora::gpu] Enabling features: 
+  CoreFeaturesAndLimits
+  TextureCompressionBC
+  DualSourceBlending
+  TextureComponentSwizzle
+[INFO | aurora::gpu] Using surface format BGRA8Unorm, present mode Fifo
+[INFO | aurora::gfx::pipeline_cache] Pipeline compilation: 8 at a time
+[INFO | aurora::gfx::pipeline_cache] No bundled initial pipeline cache found at 'Z:\dusklight-pc\build\initial_pipeline_cache.db'
+[INFO | aurora] Using framebuffer size 1216x896 scale 1
+[INFO | aurora::gpu::cache] Pruned 5 stale Dawn cache entries
+[INFO | aurora::texture] Loaded 0 texture replacement registrations from C:\Users\Mena\AppData\Roaming\TwilitRealm\Dusklight\texture_replacements
+[INFO | dusk] Texture replacement directory loaded: 0 registration(s)
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans' [regular] from 'res\FiraSans-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans' [bold] from 'res\FiraSans-Bold.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans Condensed' [regular] from 'res\FiraSansCondensed-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans Condensed' [bold] from 'res\FiraSansCondensed-Bold.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Alegreya SC' [regular] from 'res\AlegreyaSC-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Alegreya SC' [bold] from 'res\AlegreyaSC-Bold.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Material Symbols Rounded' [regular] from 'res\MaterialSymbolsRounded-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Noto Mono' [regular] from 'res\NotoMono-Regular.ttf'.
+[INFO | dusk] Loading DVD image from command line: Z:\Xbox-360-SDK\local\m11-xenia-record\dusklight.iso
+[INFO | dusk::config] Saving config to 'C:\Users\Mena\AppData\Roaming\TwilitRealm\Dusklight\config.json'
+[INFO | dusk] Disc verification status: unknown (path: Z:\Xbox-360-SDK\local\m11-xenia-record\dusklight.iso)
+[INFO | dusk] Loaded game disc is GZ2E01
+[INFO | dusk] Initializing mods...
+[INFO | dusk::mods::manifest] no symbol manifest embedded; by-name resolution unavailable
+[INFO | dusk::mods::loader] no mods found
+[INFO | dusk::osReport] Starting main01 (Game Loop)...
+[INFO | aurora::card] CARD API Initialized BUILT <Oct 14 2026 19:41:07>
+[INFO | aurora::card] Loaded GC Card Image: C:\Users\Mena\AppData\Roaming\TwilitRealm\Dusklight\USA\Card A
+[INFO | dusk] COPYDATE=[2006/11/06 18:16
+]
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora::gx] Diagnostics: GXPeekZ (304, 224): none
+[INFO | aurora::gx] Diagnostics: GXPeekZ (314, 244): none
+[INFO | aurora::gx] Diagnostics: GXPeekZ (294, 204): none
+[INFO | aurora::gx] Diagnostics: GXPeekZ (324, 214): none
+[INFO | aurora::gx] Diagnostics: GXPeekZ (284, 234): none
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora::gx] Diagnostics: GXPeekZ (169, 115): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (179, 135): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (159, 95): FFFFFF
+[WARNING | aurora::gx::fifo] 65538 bytes written between publishes, more than a 65536 byte chunk: given a chunk of their own
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora] Wrote frame capture to Z:\dusklight-pc\run10\pc_title.ppm
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora::gx] Diagnostics: GXPeekZ (121, 1): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (120, 3): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (119, 4): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (119, 6): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (118, 8): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (117, 9): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (116, 11): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (86, 1): FFFFFF
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora::gx] Diagnostics: GXPeekZ (594, 45): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (604, 65): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (584, 25): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (574, 55): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (596, 45): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (606, 65): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (586, 25): FFFFFF
+[INFO | aurora::gx] Diagnostics: GXPeekZ (576, 55): FFFFFF
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: warping to F_SP103 point 0 room 0
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora::gx] Diagnostics: peeks at capture 1 at y 60, x 60 180 304 420 540: FFAB7A FFF18C FFF4D4 FFF07C FFADC8
+[INFO | aurora::gx] Diagnostics: peeks at capture 1 at y 170, x 60 180 304 420 540: FFAE84 FFC2D8 FFC9B0 FFCECA FF9E42
+[INFO | aurora::gx] Diagnostics: peeks at capture 1 at y 280, x 60 180 304 420 540: FF5EB6 FF650A FF6AF2 FF6F70 FF7416
+[INFO | aurora::gx] Diagnostics: peeks at capture 1 at y 400, x 60 180 304 420 540: FEF338 FEF7DE FEFCAC FF0128 FF05CE
+[INFO | aurora] Wrote frame capture to Z:\dusklight-pc\run10\pc_ordon_1.ppm
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora::gx] Diagnostics: peeks at capture 2 at y 60, x 60 180 304 420 540: FFAB6C FFF186 FFF4CC FFF07E FFAD82
+[INFO | aurora::gx] Diagnostics: peeks at capture 2 at y 170, x 60 180 304 420 540: FFAE84 FFC2D2 FEFABA FFCEB0 FF9E48
+[INFO | aurora::gx] Diagnostics: peeks at capture 2 at y 280, x 60 180 304 420 540: FF5F72 FF65BA FF6B9E FF7014 FF74B0
+[INFO | aurora::gx] Diagnostics: peeks at capture 2 at y 400, x 60 180 304 420 540: FEF4D8 FEF974 FEFE38 FF02AC FF0748
+[INFO | aurora] Wrote frame capture to Z:\dusklight-pc\run10\pc_ordon_2.ppm
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | aurora::gx] Diagnostics: peeks at capture 3 at y 60, x 60 180 304 420 540: FFAB64 FFF182 FFF4C6 FFF080 FFAD5A
+[INFO | aurora::gx] Diagnostics: peeks at capture 3 at y 170, x 60 180 304 420 540: FFAE84 FFC2D2 FFC99C FFCEA4 FF9E4C
+[INFO | aurora::gx] Diagnostics: peeks at capture 3 at y 280, x 60 180 304 420 540: FF5FDE FF6620 FF6C04 FF7074 FF750A
+[INFO | aurora::gx] Diagnostics: peeks at capture 3 at y 400, x 60 180 304 420 540: FEF5C2 FEFA5A FEFF18 FF0388 FF0820
+[INFO | aurora] Wrote frame capture to Z:\dusklight-pc\run10\pc_ordon_3.ppm
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2
+[INFO | dusk] Diagnostics: depth of field strength -255 (-255 draws nothing), mode 2

@@ -1386,8 +1386,9 @@ neither xsdk nor the layer can do yet (xsdk:TODO.md, "Depth resolves"; docs/SUPP
    - xsdk resolves depth into a texture, as a resolve with `RB_COPY_CONTROL`'s source 4 does
      (xenia:src/xenia/gpu/registers.h:856; xenos.h:925-933), checked by xsdk_test against depth it drew, and what a
      fetch of the resolved texture returns measured on the console and recorded in docs/HARDWARE.md.
-   - The layer stores a depth attachment into its image when the image is made to be sampled, samples it, and copies
-     it into a buffer the CPU reads (`vkCmdCopyImageToBuffer`), checked by vulkan4xenon_test against known depths.
+   - The layer resolves a depth attachment into its image when the image is made to be sampled and a pass stores it
+     and leaves it to be read, samples it, and leaves its words in the image's memory for the CPU, checked by
+     vulkan4xenon_test against known depths.
    - Aurora's backend makes the `GX_TF_Z8` and `GX_TF_Z16` copies as the WebGPU backend's conversions do
      (aurora-xenon:lib/gfx/tex_copy_conv.cpp, FragZ8 and FragZ16), and answers `GXPeekZ` from a snapshot of the
      frame's depth, as gfx/depth_peek.cpp does.
@@ -1400,6 +1401,28 @@ neither xsdk nor the layer can do yet (xsdk:TODO.md, "Depth resolves"; docs/SUPP
    passes a sampler's `maxAnisotropy` to xsdk's; the backend asks for Aurora's setting. vulkan4xenon_test checks it as
    xsdk_test does, stripes squeezed 8 to 1 keeping their contrast, and Dusklight's frame time in the title scene and
    Ordon is measured with it and without, for the user to settle the default.
+
+**Changed on the way (2026-10-15),** steps 5 and 6 built together, as the user asked:
+- **No copy into a buffer.** The layer's copies run on the CPU at replay and wait for the GPU (docs/SUPPORT.md,
+  Commands), so one for each snapshot would stall the frame. The snapshot is drawn on the GPU instead, as
+  gfx/depth_peek.cpp's compute pass makes it: GX's z of the depth under each texel of the GX framebuffer, packed into
+  the red, green and blue of an RGBA8 image. Of two such slots, one is drawn only once the other's frame is done, and
+  `GXPeekZ` reads its few words from the newest done, uncached memory a word at a time.
+- **The resolve keys on the final layout, not the store op.** Aurora's passes store the EFB's depth for the next pass
+  to load; resolving each would add a resolve the size of the colour's to every pass. So a pass resolves a sampled
+  depth image only when it leaves it in a layout a shader samples in, and one that keeps it as an attachment leaves
+  it in eDRAM alone (docs/SUPPORT.md, Render passes). Aurora's backend lays the EFB's depth out so: the pass before a
+  depth copy, and the frame's last when a snapshot is due, leave it to be read, and the rest keep it.
+- **A pass with depth of its own took the EFB's.** Milestone 4 placed every depth ending at the top of eDRAM, so
+  Dusklight's bloom, a 960x360 pass with its own depth, took the 276 tiles holding the EFB depth's rows from 432 down,
+  every frame from the title scene on; the passes after it loaded cleared depth there, and GXPeekZ read it, the lower
+  half of the GX framebuffer far (`FFFFFF`) on the console and in Xenia alike. The layer now keeps up to four depths
+  in eDRAM, a new one placed under one it holds when both fit above the pass's colour (docs/SUPPORT.md, Render
+  passes); vulkan4xenon_test's sampled depth draws a smaller pass with depth of its own between the pass that draws
+  the image's depth and the one that loads it.
+- **xost lowers no component taken out of a vector into arithmetic,** only into a vector built of them
+  (xsdk:src/xsc_lower.c, value_operand), so the depth programs work in vectors, `texture(...).rrrr`, and pick
+  components only to build what they write.
 
 **What else the backend refuses, and why it stays out.** Everything the backend refuses was checked against the game's
 code and against every model, 2D screen and texture on its disc (a scan of its 2,095 archives: 3,626 J3D models with
@@ -1424,7 +1447,9 @@ Two gaps outside GX were found on the way, each agreed (2026-10-14) as a milesto
   width left out, its lines vanish, their quads having no area;
 - with step 5: the log has no "Depth copies" or "GXPeekZ" line, Ordon's depth of field matches the PC's at the same
   warp, and the peeks the diagnostics build logs match the PC's; broken on purpose, the copy reading colour, the blur
-  comes out wrong;
+  comes out wrong. vulkan4xenon_test finds each texel's depth above its stencil in the memory of a sampled depth image
+  a pass left to be read, to its last texel, samples its depth in red, and finds the memory left alone by a pass that
+  keeps it as an attachment; broken on purpose, resolving on the store op alone, that last check fails;
 - with step 6: vulkan4xenon_test's stripes keep their contrast with anisotropy, and grey without it, and the frame
   times with and without are reported;
 - vulkan4xenon_glsl_tests compile the new programs on the PC through glslang and xost, as the others;
@@ -1460,6 +1485,41 @@ the title scene ran at 28 to 30 fps and the logo shot took 17.6 ms of GPU time a
 same byte for byte; xsdk_test passed 300 of 300, vulkan4xenon_test 100 of 100 (with `test_thin_textures`, four strips
 16 to 256 by 1, written while the noise was chased) and vkbench 14 of 14 (xsdk:results/2026-10-15-serialized-fetches/).
 `disc_scan.txt` is the disc's scan behind "What else the backend refuses". Steps 5 and 6 are next.
+
+**Steps 5 and 6 on the console** (2026-10-15; `results/2026-10-15-milestone-14-steps-5-6/`). The log has no "Depth
+copies" or "GXPeekZ" line any more (`dusklight_aniso16.log`).
+- **vulkan4xenon_test** passed 112 of 112 (`vulkan4xenon_test.log`). A sampled depth image's memory held each point's
+  depth above its stencil word for word, to its last texel, with a smaller pass's depth drawn between the pass that
+  drew it and the one that loaded it; its fetch returned the depth in red; and a pass keeping it as an attachment left
+  its memory alone. The stripes kept a contrast of 1000 per mille with anisotropy 16 and greyed to 0 without. Broken on
+  purpose in one build (`vulkan4xenon_test_breaks.log`), each break failed its own checks: every depth placed at the
+  top again, the smaller pass's words (`0CCCCD5A`) in the image's last rows; the resolve keyed on the store op, the
+  kept pass's memory overwritten; anisotropy left out of xsdk's sampler, the stripes greyed.
+- **The depth of field** draws only while the player targets or an event focuses (dusklight-xenon:
+  src/m_Do/m_Do_graphic.cpp, drawDepth2), so the diagnostics build forced it on at -200, within targeting's range, on
+  the console and the PC alike (`diagnostic/`). The far houses blur and Link and the ground before him stay sharp on
+  both (`depth_of_field_console_pc.png`): the top fifth's mean step in green fell from 5.17 to 3.21 on the console and
+  6.52 to 3.55 on the PC, and the lower fifths didn't change (`diagnostic/sharpness.py`). Broken on purpose, the copy
+  reading the pass's colour, the houses stayed sharp, 5.17 (`depth_of_field_break.png`).
+- **GXPeekZ's** answers at a 5 by 4 grid over the GX framebuffer, 20, 40 and 60 s into Ordon, matched the PC's to
+  within the frames' different framing, 1280x720 on the console and the PC's 1216x896 window: the grid's bottom row
+  `FEEFB3 FEF642 FEFD14 FF036C FF09FB` on the console, `FEF338 FEF7DE FEFCAC FF0128 FF05CE` on the PC (`peeks.txt`).
+  Before the placement fix (Changed on the way) the grid's lower half read `FFFFFF` on the console and in Xenia alike.
+- **Anisotropy** changed nothing in Dusklight's frame times (`anisotropy_frame_times.txt`): the GPU took 18.18 to
+  19.01 ms a frame in Ordon with Aurora's default of 16, and 18.08 to 18.78 with 1. Twilight Princess asks for none:
+  no texture on its disc sets its own (step 4's `disc_scan.txt`), and Aurora only scales what a game asks for (aurora:
+  lib/gfx/texture.cpp, anisotropy). Its default stays at 16, for games that ask.
+- **The logo shot** took 17.9 ms of GPU time a frame, 0.3 ms more than before, for the depth copy the game makes every
+  frame and the depth resolve before it: a copy more (11.0 to 12.0), a draw more and two resolves more. Its end frame
+  was the same byte for byte (`dusklight_logo.log`).
+- **On the PC,** vulkan4xenon_glsl_tests passed 40 of 40 (`vulkan4xenon_glsl_tests.txt`); tools/check_glsl_math.py
+  passed its 20 cases (`check_glsl_math.txt`), three new for the depth copies and the snapshot, against WebGPU's
+  gx_z24 in f32, which fail with the depth not reversed or a byte taken wrong (`check_glsl_math_breaks.txt`).
+  Dusklight's pack holds the three new programs, 150 in all (`pack_dusklight.txt`); the 147 before are unchanged.
+- **Elsewhere:** vkbench passed 14 of 14 (`vkbench.log`), its timings within about 1% of the run before. xsdk_test is
+  recorded in xsdk:results/2026-10-15-depth-resolves/: it passed 305 of 305, its replay and pacing tests now reading
+  their stats at the last flip, as a vblank after it had counted as missed in 2 of 3 runs (xsdk:docs/HARDWARE.md,
+  "Depth resolves").
 
 ### Milestone 15: GPU memory in Ordon
 

@@ -1,0 +1,1068 @@
+log: game:\dusklight_diag.log
+log: named after \Device\Harddisk0\Partition1\dusklight\dusklight_diag.xex
+sbrk: the heap may grow to 438 MB, the title's free memory
+dusklight: started, with the game linked and its static constructors run
+display: 1280x720 scaled to the 1920x1080 output
+display: the line counter reached 720 after 20282 us
+dusklight: 512 MB in all, 3 MB the kernel's; the title has 438 MB free
+dusklight: title pages: 9248 image, 96 heap, 256 stack, 920 physical, 80 virtual, 2 pool
+dusklight: the heap holds 260 KB, 253 KB of it in use
+mkdir: NtCreateFile(game:\TwilitRealm) failed: 0xC0000035
+mkdir: NtCreateFile(game:\TwilitRealm\Dusklight) failed: 0xC0000035
+mkdir: NtCreateFile(game:\TwilitRealm) failed: 0xC0000035
+[INFO | dusk] Build: UNKNOWN-VERSION (rev e5632c4f1aea757210ec1499a1c147b738f47ccd, built Thu Oct 15 00:29:50 2026 -0400, type RelWithDebInfo)
+[INFO | dusk] Platform: generic
+[INFO | dusk::config] Loading config from 'game:\TwilitRealm\Dusklight\/config.json'
+open: NtCreateFile(game:\TwilitRealm\Dusklight\config.json) failed: 0xC0000034
+[INFO | dusk::config] Config file did not exist, staying with defaults
+[INFO | aurora] Aurora initializing
+[INFO | aurora::system_info] CPU model: Unknown
+[INFO | aurora::system_info] Memory: 0 MiB
+[INFO | aurora::system_info] Architecture: Unknown
+[INFO | aurora::system_info] OS: Unknown
+display: 1280x720 scaled to the 1920x1080 output
+display: the line counter reached 720 after 29998 us
+[INFO | aurora::vulkan4xenon] CMPR textures as RGBA8: vulkan4xenon has no BC1
+[INFO | aurora::thread] Aurora GPU waiter on hardware thread 1
+[INFO | aurora::vulkan4xenon] Shader pack: 150 programs
+[INFO | aurora::vulkan4xenon] Programs the pack doesn't hold are kept in game:\TwilitRealm\Dusklight\/shaders/glslang-16.3.0
+[INFO | aurora::vulkan4xenon] vulkan4xenon backend: 1280x720 EFB
+[INFO | aurora::thread] Main thread on hardware thread 0
+[INFO | aurora::gfx::pipeline_cache] Pipeline compilation: 2 at a time
+[INFO | aurora::thread] Aurora render worker on hardware thread 2
+[ERROR | aurora::gfx::pipeline_cache] Failed to open pipeline cache database: out of memory
+[INFO | aurora::thread] Pipeline compilation thread on hardware thread 3
+[INFO | aurora::thread] Pipeline compilation thread on hardware thread 3
+[INFO | aurora] Using framebuffer size 1280x720 scale 1
+[INFO | aurora::thread] Aurora FIFO processor on hardware thread 4
+[WARNING | aurora::window] Failed to set window title: Video subsystem has not been initialized
+[WARNING | aurora::gfx::texture_replacement] Texture packs and dumps are supported only by the Dawn backend
+[INFO | dusk] Texture replacement directory loaded: 0 registration(s)
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans' [regular] from 'res/FiraSans-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans' [bold] from 'res/FiraSans-Bold.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans Condensed' [regular] from 'res/FiraSansCondensed-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Fira Sans Condensed' [bold] from 'res/FiraSansCondensed-Bold.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Alegreya SC' [regular] from 'res/AlegreyaSC-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Alegreya SC' [bold] from 'res/AlegreyaSC-Bold.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Material Symbols Rounded' [regular] from 'res/MaterialSymbolsRounded-Regular.ttf'.
+[INFO | aurora::rmlui] Loaded font face 'Noto Mono' [regular] from 'res/NotoMono-Regular.ttf'.
+[INFO | dusk] Loading DVD image: game:\dusklight.iso
+[INFO | dusk] Loaded game disc is GZ2E01
+[INFO | dusk] Initializing mods...
+[INFO | dusk::mods::manifest] no symbol manifest embedded; by-name resolution unavailable
+open: NtCreateFile(game:\TwilitRealm\Dusklight\mods\.cache) failed: 0xC000003A
+[INFO | dusk::mods::loader] no mods found
+[DEBUG | dusk::mods::overlay] Registering 0 overlay file(s).
+[INFO | dusk::osReport] Starting main01 (Game Loop)...
+[INFO | dusk::osReport] [JKRHeap] initArena: Lo=0x3da5b48 Hi=0xcda1b48 Size=0x8FFC000
+[INFO | dusk::osReport] [PC-OSThread] Thread system initialized (multi-threaded mode)
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x3da69e0 (priority=6, stackSize=3072)
+[DEBUG | aurora::ar] Initialized 0x1800000 bytes of ARAM!
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x3da7aa0 (priority=8, stackSize=3072)
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x3da7aa0
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x3da7aa0 on hardware thread 1
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x3da86e0 (priority=7, stackSize=2048)
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x3da86e0
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x3da86e0 on hardware thread 1
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x3da69e0
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x3da69e0 on hardware thread 1
+open: NtCreateFile(game:\TwilitRealm\Dusklight\keyboard_bindings.dat) failed: 0xC0000034
+[INFO | dusk::osReport] コマンドヒープ    = 05da74e0-05da94e0 size=8 KB
+
+[INFO | aurora::thread] Aurora tex preconv on hardware thread 3
+[INFO | dusk::osReport] アーカイブヒープ = 05da94f0-06f67cf0 size=18170 KB
+
+[INFO | dusk::osReport] Ｊ２Ｄ用ヒープ    = 06f67d00-07061d00 size=1000 KB
+
+[INFO | dusk::osReport] ゲームヒープ       = 07061d10-0c679d10 size=88160 KB
+
+[INFO | dusk::osReport] ゼルダヒープ       = 03e4e370-05d95c20 size=32030 KB
+
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x843652e8 (priority=14, stackSize=4096)
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x843652e8
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x843652e8 on hardware thread 1
+[INFO | aurora::card] CARD API Initialized BUILT <Oct 15 2026 02:40:19>
+[INFO | aurora::card] Loaded GC Card Image: game:\TwilitRealm\Dusklight\/USA/Card A
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x84366960 (priority=17, stackSize=4096)
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x84366960
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x84366960 on hardware thread 1
+[INFO | dusk::osReport] Calling fapGm_Create()...
+[INFO | dusk] COPYDATE=[2006/11/06 18:16
+]
+[INFO | dusk::osReport] Calling fopAcM_initManager()...
+[INFO | dusk::osReport] Calling cDyl_InitAsync()...
+[DEBUG | dusk] [DIAG] cDyl_InitCallback: START
+[INFO | dusk::osReport] Entering Main Loop (main01)...
+[DEBUG | dusk] fopScnM_CreateReq: procName=9 fade=32767
+[DEBUG | dusk] fopScnM_CreateReq: result=0 (error=4294967295)
+[DEBUG | dusk] cDyl_InitCallback: fpcNm_LOGO_SCENE_e created, DONE
+[DEBUG | dusk] fapGm_Execute frame=0
+[DEBUG | dusk] fpcDw_Handler: before BeforeOfDraw
+[DEBUG | dusk] fpcDw_Handler: before draw iteration
+[DEBUG | dusk] fpcDw_Handler: before AfterOfDraw
+[DEBUG | dusk] fpcDw_Handler: done
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fpcNdRq_phase_Create: name=9 layer=0x84379f58
+[DEBUG | dusk] fpcNdRq_phase_Create: creating_id=1 (error=4294967295)
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=1
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=9 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=9
+[DEBUG | dusk] fpcBs_Create: pid=1 profname=fpcNm_LOGO_SCENE_e (9) profile=0x82174eec procSize=688 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] dScnLogo_c::create START
+[DEBUG | dusk] dScnLogo_c::create resLoad=0 (need 4 for complete)
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcDw_Handler: before BeforeOfDraw
+[DEBUG | dusk] fpcDw_Handler: before draw iteration
+[DEBUG | dusk] fpcDw_Handler: before AfterOfDraw
+[DEBUG | dusk] fpcDw_Handler: done
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=2
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcDw_Handler: before BeforeOfDraw
+[DEBUG | dusk] fpcDw_Handler: before draw iteration
+[DEBUG | dusk] fpcDw_Handler: before AfterOfDraw
+[DEBUG | dusk] fpcDw_Handler: done
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=3
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcDw_Handler: before BeforeOfDraw
+[DEBUG | dusk] fpcDw_Handler: before draw iteration
+[DEBUG | dusk] fpcDw_Handler: before AfterOfDraw
+[DEBUG | dusk] fpcDw_Handler: done
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=4
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcDw_Handler: before BeforeOfDraw
+[DEBUG | dusk] fpcDw_Handler: before draw iteration
+[DEBUG | dusk] fpcDw_Handler: before AfterOfDraw
+[DEBUG | dusk] fpcDw_Handler: done
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=5
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=6
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=7
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=8
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] fapGm_Execute frame=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcSCtRq_phase_SubCreateProcess: pid=1 procName=0009 ret=0
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] fpcNdRq_Handler: queue size=1
+[DEBUG | dusk] fopScnRq_phase_Execute: ret=0 name=9
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] fpcCtRq_Do: phase=0 process=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x3fd6fa0 (priority=3, stackSize=4096)
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x3fd6fa0
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x3fd6fa0 on hardware thread 1
+audio: the callback runs on hardware thread 0
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] [DIAG] dScnLogo_Create: entry i_this=0x5d95874
+[DEBUG | dusk] Loading Resource: dolby_p2_232_112.bti (Size: 26016)
+[DEBUG | dusk] Loading Resource: nintendo_376x104.bti (Size: 78240)
+[DEBUG | dusk] Loading Resource: progressive_choice.bti (Size: 15008)
+[DEBUG | dusk] Loading Resource: progressive_inter.bti (Size: 15008)
+[DEBUG | dusk] Loading Resource: progressive_no.bti (Size: 2592)
+[DEBUG | dusk] Loading Resource: progressive_pro.bti (Size: 15008)
+[DEBUG | dusk] Loading Resource: progressive_yes.bti (Size: 2848)
+[DEBUG | dusk] Loading Resource: warning.bti (Size: 136224)
+[DEBUG | dusk] Loading Resource: warning_pstart.bti (Size: 14624)
+[DEBUG | dusk] dScnLogo_c::create resLoad COMPLETE, continuing init...
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=120
+[INFO | dusk] Logo scene: warning in
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=119
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=118
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=117
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=116
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=115
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=114
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=113
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=112
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[DEBUG | dusk] dScnLogo_c::draw: mExecCommand=0 mTimer=111
+[DEBUG | dusk] dDlst_2D_c::draw: pos=(0,0) size=(608,448) alpha=255
+[INFO | dusk] Logo scene: warning
+[DEBUG | dusk] fapGm_Execute frame=300
+[INFO | dusk] 496 frames in 10.0 s, 49.5 fps
+[INFO | dusk] Memory: 151 MB free; the title's pages: 45 MB physical, 232 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 232 MB, 230 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=600
+[DEBUG | dusk] fapGm_Execute frame=900
+[INFO | aurora::vulkan4xenon] Vertex cache, last 1000 frames: 1794 of 1865 draws found their vertices, 96.38% of 0.2 MiB; 0.0 MiB decoded; 0 entries evicted, 0 forgotten, 0 without room; at most 0.00 MiB a frame and 0.01 MiB held, of 8.00; waited 0 times for frames in flight, 0.0 ms in all, 0.00 ms at most; 0 index lists built, 0 kept in 0.00 MiB
+[INFO | dusk] 599 frames in 10.0 s, 59.9 fps
+[INFO | dusk] Memory: 151 MB free; the title's pages: 45 MB physical, 232 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 232 MB, 230 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=1200
+[DEBUG | dusk] fapGm_Execute frame=1500
+[INFO | dusk] 599 frames in 10.0 s, 59.9 fps
+[INFO | dusk] Memory: 151 MB free; the title's pages: 45 MB physical, 232 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 232 MB, 230 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=1800
+[INFO | aurora::vulkan4xenon] Vertex cache, last 1000 frames: 2000 of 2000 draws found their vertices, 100.00% of 0.2 MiB; 0.0 MiB decoded; 0 entries evicted, 0 forgotten, 0 without room; at most 0.00 MiB a frame and 0.00 MiB held, of 8.00; waited 0 times for frames in flight, 0.0 ms in all, 0.00 ms at most; 0 index lists built, 0 kept in 0.00 MiB
+[DEBUG | dusk] fapGm_Execute frame=2100
+[INFO | dusk] 598 frames in 10.0 s, 59.7 fps
+[INFO | dusk] Memory: 151 MB free; the title's pages: 45 MB physical, 232 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 232 MB, 230 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=2400
+[DEBUG | dusk] fapGm_Execute frame=2700
+[INFO | dusk] 600 frames in 10.0 s, 60.0 fps
+[INFO | dusk] Memory: 151 MB free; the title's pages: 45 MB physical, 232 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 232 MB, 230 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=3000
+[INFO | aurora::vulkan4xenon] Vertex cache, last 1000 frames: 2000 of 2000 draws found their vertices, 100.00% of 0.2 MiB; 0.0 MiB decoded; 0 entries evicted, 0 forgotten, 0 without room; at most 0.00 MiB a frame and 0.00 MiB held, of 8.00; waited 0 times for frames in flight, 0.0 ms in all, 0.00 ms at most; 0 index lists built, 0 kept in 0.00 MiB
+[DEBUG | dusk] fapGm_Execute frame=3300
+[INFO | dusk] 600 frames in 10.0 s, 59.9 fps
+[INFO | dusk] Memory: 151 MB free; the title's pages: 45 MB physical, 232 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 232 MB, 230 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=3600
+[INFO | dusk] Logo scene: warning out
+[INFO | dusk] Logo scene: Nintendo in
+[INFO | dusk] Logo scene: Nintendo out
+[INFO | dusk] Logo scene: Dolby in
+[DEBUG | dusk] fapGm_Execute frame=3900
+[INFO | dusk] Logo scene: Dolby out
+[INFO | dusk] Logo scene: Dolby out 2
+[INFO | dusk] Logo scene: disc wait
+[DEBUG | dusk] Loading Resource: ef_mizubashira.bck (Size: 672)
+[DEBUG | dusk] Loading Resource: f_znc_r_impact.bck (Size: 704)
+[DEBUG | dusk] Loading Resource: o_g_hutk.bck (Size: 416)
+[DEBUG | dusk] Loading Resource: o_g_hutu.bck (Size: 416)
+[DEBUG | dusk] Loading Resource: waita.bck (Size: 768)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_red.bck (Size: 512)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_yellow.bck (Size: 416)
+[DEBUG | dusk] Loading Resource: o_g_hart.bmd (Size: 5472)
+[DEBUG | dusk] Loading Resource: o_g_hutk.bmd (Size: 29376)
+[DEBUG | dusk] Loading Resource: o_g_hutu.bmd (Size: 29376)
+[DEBUG | dusk] Loading Resource: o_g_rupy.bmd (Size: 8224)
+[DEBUG | dusk] Loading Resource: breakwoodbox.bmd (Size: 3744)
+[DEBUG | dusk] Loading Resource: d_brockbrk.bmd (Size: 2848)
+[DEBUG | dusk] Loading Resource: ef_mizubashira.bmd (Size: 12224)
+[DEBUG | dusk] Loading Resource: ef_screen_suityu.bmd (Size: 4128)
+[DEBUG | dusk] Loading Resource: ef_thunder01.bmd (Size: 10016)
+[DEBUG | dusk] Loading Resource: ef_thunder02.bmd (Size: 10304)
+[DEBUG | dusk] Loading Resource: mpm_tubo.bmd (Size: 4704)
+[DEBUG | dusk] Loading Resource: nv.bmd (Size: 4256)
+[DEBUG | dusk] Loading Resource: o_g_arow.bmd (Size: 4960)
+[DEBUG | dusk] Loading Resource: o_g_arow_taba.bmd (Size: 22304)
+[DEBUG | dusk] Loading Resource: o_g_tane.bmd (Size: 13152)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_red.bmd (Size: 7808)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_yellow.bmd (Size: 10688)
+[DEBUG | dusk] Loading Resource: f_znc_r_impact.bpk (Size: 416)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_red.bpk (Size: 320)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_yellow.bpk (Size: 320)
+[DEBUG | dusk] Loading Resource: ef_mizubashira.brk (Size: 480)
+[DEBUG | dusk] Loading Resource: ef_thunder.brk (Size: 640)
+[DEBUG | dusk] Loading Resource: f_g_hart.brk (Size: 384)
+[DEBUG | dusk] Loading Resource: f_g_rupy.brk (Size: 800)
+[DEBUG | dusk] Loading Resource: f_znc_r_impact.brk (Size: 384)
+[DEBUG | dusk] Loading Resource: o_g_hutk.brk (Size: 416)
+[DEBUG | dusk] Loading Resource: o_g_hutu.brk (Size: 544)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_red.brk (Size: 288)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_red_02.brk (Size: 224)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_yellow.brk (Size: 544)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_yellow_02.brk (Size: 224)
+[DEBUG | dusk] Loading Resource: ef_mizubashira.btk (Size: 704)
+[DEBUG | dusk] Loading Resource: ef_screen_suityu.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: f_znc_r_impact.btk (Size: 256)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_red.btk (Size: 256)
+[DEBUG | dusk] Loading Resource: zelda_notice_cursor_yellow.btk (Size: 576)
+[DEBUG | dusk] Loading Resource: mpm_tubo.btp (Size: 128)
+[DEBUG | dusk] Loading Resource: areamapres.bin (Size: 444)
+[DEBUG | dusk] Loading Resource: item_table.bin (Size: 128)
+[DEBUG | dusk] Loading Resource: a_kusa_rgba.bti (Size: 2080)
+[DEBUG | dusk] Loading Resource: ball32_i4.bti (Size: 544)
+[DEBUG | dusk] Loading Resource: im_enter_4i_32.bti (Size: 544)
+[DEBUG | dusk] Loading Resource: im_map_icon_circle_4i.bti (Size: 64)
+[DEBUG | dusk] Loading Resource: im_map_icon_enter_4i.bti (Size: 160)
+[DEBUG | dusk] Loading Resource: im_map_icon_nijumaru_4i.bti (Size: 160)
+[DEBUG | dusk] Loading Resource: im_map_icon_square_4i.bti (Size: 64)
+[DEBUG | dusk] Loading Resource: im_map_icon_tresurebox_4i.bti (Size: 64)
+[DEBUG | dusk] Loading Resource: im_map_icon_try_force_4i.bti (Size: 160)
+[DEBUG | dusk] Loading Resource: map_icon_circle16x16_4i.bti (Size: 160)
+[DEBUG | dusk] Loading Resource: moya.bti (Size: 1056)
+[DEBUG | dusk] Loading Resource: rope.bti (Size: 160)
+[DEBUG | dusk] Loading Resource: snow.bti (Size: 160)
+[DEBUG | dusk] Loading Resource: snow_tex.bti (Size: 1056)
+[DEBUG | dusk] Loading Resource: txa_ring_a_32hafe.bti (Size: 544)
+[DEBUG | dusk] Loading Resource: txa_tuki_as.bti (Size: 2080)
+[DEBUG | dusk] Loading Resource: txa_tuki_bs.bti (Size: 2080)
+[DEBUG | dusk] Loading Resource: txa_tuki_cs.bti (Size: 2080)
+[DEBUG | dusk] Loading Resource: txa_tuki_ds.bti (Size: 2080)
+[DEBUG | dusk] Loading Resource: vr_lenzf_tex.bti (Size: 1056)
+[DEBUG | dusk] Loading Resource: warp_tex.bti (Size: 1056)
+[DEBUG | dusk] Loading Resource: zl2_polygon_ia8 (Size: 64)
+[DEBUG | dusk] Loading Resource: crod_ball_revive_demo.bck (Size: 288)
+[DEBUG | dusk] Loading Resource: crod_ball_wait_a.bck (Size: 288)
+[DEBUG | dusk] Loading Resource: crod_ball_wait_a_t.bck (Size: 288)
+[DEBUG | dusk] Loading Resource: crod_ball_wait_a_t_start.bck (Size: 288)
+[DEBUG | dusk] Loading Resource: crod_ball_wait_b.bck (Size: 352)
+[DEBUG | dusk] Loading Resource: crod_ball_wait_c.bck (Size: 384)
+[DEBUG | dusk] Loading Resource: ef_shippu.bck (Size: 544)
+[DEBUG | dusk] Loading Resource: pb_move.bck (Size: 2816)
+[DEBUG | dusk] Loading Resource: pb_wait.bck (Size: 928)
+[DEBUG | dusk] Loading Resource: spout.bck (Size: 1088)
+[DEBUG | dusk] Loading Resource: ef_setboom.bmd (Size: 15392)
+[DEBUG | dusk] Loading Resource: al_arrow.bmd (Size: 5024)
+[DEBUG | dusk] Loading Resource: al_arrowb.bmd (Size: 9696)
+[DEBUG | dusk] Loading Resource: al_bomb.bmd (Size: 11104)
+[DEBUG | dusk] Loading Resource: al_boom.bmd (Size: 20000)
+[DEBUG | dusk] Loading Resource: al_pachi_nut.bmd (Size: 2176)
+[DEBUG | dusk] Loading Resource: al_sp.bmd (Size: 21824)
+[DEBUG | dusk] Loading Resource: crod_ball.bmd (Size: 3840)
+[DEBUG | dusk] Loading Resource: footmark.bmd (Size: 2272)
+[DEBUG | dusk] Loading Resource: hk.bmd (Size: 3648)
+[DEBUG | dusk] Loading Resource: inochidama.bmd (Size: 13120)
+[DEBUG | dusk] Loading Resource: pb.bmd (Size: 34976)
+[DEBUG | dusk] Loading Resource: pg.bmd (Size: 20736)
+[DEBUG | dusk] Loading Resource: rod_ukia.bmd (Size: 4384)
+[DEBUG | dusk] Loading Resource: rod_ukib.bmd (Size: 2656)
+[DEBUG | dusk] Loading Resource: rod_ukic.bmd (Size: 2656)
+[DEBUG | dusk] Loading Resource: sango_fook.bmd (Size: 9984)
+[DEBUG | dusk] Loading Resource: sfook.bmd (Size: 3456)
+[DEBUG | dusk] Loading Resource: uki.bmd (Size: 4928)
+[DEBUG | dusk] Loading Resource: uki_saki.bmd (Size: 4160)
+[DEBUG | dusk] Loading Resource: wl_change.bmd (Size: 44256)
+[DEBUG | dusk] Loading Resource: worm.bmd (Size: 8256)
+[DEBUG | dusk] Loading Resource: worm_hole.bmd (Size: 2816)
+[DEBUG | dusk] Loading Resource: ef_shippu.bmd (Size: 33216)
+[DEBUG | dusk] Loading Resource: al_podm.bmd (Size: 21504)
+[DEBUG | dusk] Loading Resource: al_swm.bmd (Size: 22720)
+[DEBUG | dusk] Loading Resource: al_poda.bmd (Size: 12032)
+[DEBUG | dusk] Loading Resource: al_swa.bmd (Size: 11808)
+[DEBUG | dusk] Loading Resource: al_swm.brk (Size: 256)
+[DEBUG | dusk] Loading Resource: crod_ball.brk (Size: 736)
+[DEBUG | dusk] Loading Resource: inochidama.brk (Size: 288)
+[DEBUG | dusk] Loading Resource: al_swa.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: al_swm.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: crod_ball.btk (Size: 416)
+[DEBUG | dusk] Loading Resource: ef_setboom.btk (Size: 704)
+[DEBUG | dusk] Loading Resource: ef_shippu.btk (Size: 1120)
+[DEBUG | dusk] Loading Resource: inochidama.btk (Size: 672)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_orange.blo (Size: 2368)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_orange.brk (Size: 320)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_orange_02.brk (Size: 384)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_red.blo (Size: 2368)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_red.brk (Size: 320)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_red_02.brk (Size: 384)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_yellow.bck (Size: 2016)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_yellow.blo (Size: 2336)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_yellow.bpk (Size: 448)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_yellow.brk (Size: 320)
+[DEBUG | dusk] Loading Resource: zelda_v_cursor_new_yellow_02.brk (Size: 352)
+[DEBUG | dusk] Loading Resource: blur.bti (Size: 96)
+[DEBUG | dusk] Loading Resource: rock_mark.bti (Size: 544)
+[DEBUG | dusk] Loading Resource: tt_v_point_128_00_4ia_02.bti (Size: 16416)
+[DEBUG | dusk] Loading Resource: tt_map_icon_link_40_4ia_00.bti (Size: 1632)
+[DEBUG | dusk] Loading Resource: tt_navi_l.bti (Size: 544)
+[INFO | dusk] Logo scene: scene change
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=0 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=0
+[DEBUG | dusk] fpcBs_Create: pid=2 profname=fpcNm_OVERLAP0_e (0) profile=0x82174bbc procSize=220 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d95788
+[INFO | dusk] 505 frames in 10.0 s, 50.4 fps
+[INFO | dusk] Memory: 151 MB free; the title's pages: 45 MB physical, 232 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 232 MB, 231 MB of it in use
+[INFO | aurora::vulkan4xenon] Vertex cache, last 1000 frames: 1782 of 1819 draws found their vertices, 98.43% of 0.1 MiB; 0.0 MiB decoded; 0 entries evicted, 0 forgotten, 0 without room; at most 0.00 MiB a frame and 0.01 MiB held, of 8.00; waited 0 times for frames in flight, 0.0 ms in all, 0.00 ms at most; 0 index lists built, 0 kept in 0.00 MiB
+[DEBUG | dusk] fpcNdRq_phase_Create: name=12 layer=0x84379f58
+[DEBUG | dusk] fpcNdRq_phase_Create: creating_id=3 (error=4294967295)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=12 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=12
+[DEBUG | dusk] fpcBs_Create: pid=3 profname=fpcNm_OPENING_SCENE_e (12) profile=0x82175148 procSize=476 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d958d8
+[INFO | dusk] Stage: F_SP102
+[INFO | dusk] Memory: 149 MB free; the title's pages: 45 MB physical, 233 MB virtual, 0 MB heap, 14 MB stack; newlib's heap 233 MB, 233 MB of it in use
+[DEBUG | dusk] Loading Resource: vrbox_kasumim.bmd (Size: 2272)
+[DEBUG | dusk] Loading Resource: vrbox_kumo.bmd (Size: 69664)
+[DEBUG | dusk] Loading Resource: vrbox_sora.bmd (Size: 6624)
+[DEBUG | dusk] Loading Resource: vrbox_sun.bmd (Size: 12032)
+[DEBUG | dusk] Loading Resource: vrbox_sun.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: colordata_tbl.dat (Size: 800)
+[DEBUG | dusk] Loading Resource: pol_arg.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_effcol.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_effcol2.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_efftbl.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_efftbl2.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_sound.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: room0.dzs (Size: 5440)
+[DEBUG | dusk] Loading Resource: stage.dzs (Size: 1952)
+[DEBUG | dusk] Loading Resource: cloudtx_01.bti (Size: 4128)
+[DEBUG | dusk] Loading Resource: cloudtx_02.bti (Size: 4128)
+[DEBUG | dusk] Loading Resource: cloudtx_03.bti (Size: 4128)
+[DEBUG | dusk] Loading Resource: f_moon.bti (Size: 8224)
+[DEBUG | dusk] Loading Resource: f_moon_a.bti (Size: 2080)
+[DEBUG | dusk] Loading Resource: f_moon_a_a00.bti (Size: 64)
+[DEBUG | dusk] Loading Resource: f_moon_a_a01.bti (Size: 544)
+[DEBUG | dusk] Loading Resource: f_moon_a_a02.bti (Size: 544)
+[DEBUG | dusk] Loading Resource: f_moon_a_a03.bti (Size: 544)
+[DEBUG | dusk] Loading Resource: event_list.dat (Size: 106476)
+[DEBUG | dusk] Loading Resource: camstyle.dat (Size: 43328)
+[DEBUG | dusk] Loading Resource: camtype.dat (Size: 14560)
+[DEBUG | dusk] fopScnM_CreateReq: procName=18 fade=32767
+[DEBUG | dusk] fopScnM_CreateReq: result=2 (error=4294967295)
+[DEBUG | dusk] fpcBs_Create: pid=7 profname=fpcNm_KANKYO_e (19) profile=0x8216c440 procSize=252 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=9 profname=fpcNm_KYEFF_e (785) profile=0x8216c490 procSize=252 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=11 profname=fpcNm_KYEFF2_e (786) profile=0x8216c4b8 procSize=252 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=13 profname=fpcNm_ENVSE_e (21) profile=0x8216b06c procSize=272 unkSize=0
+[DEBUG | dusk] fpcNdRq_phase_Create: name=18 layer=0x5d95998
+[DEBUG | dusk] fpcNdRq_phase_Create: creating_id=16 (error=4294967295)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=737 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=737
+[DEBUG | dusk] fpcBs_Create: pid=4 profname=fpcNm_TITLE_e (737) profile=0x821eb628 procSize=1556 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d94854
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=781 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=781
+[DEBUG | dusk] fpcBs_Create: pid=5 profname=fpcNm_CAMERA_e (781) profile=0x8216af90 procSize=3688 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d939dc
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=730 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=730
+[DEBUG | dusk] fpcBs_Create: pid=14 profname=fpcNm_VRBOX_e (730) profile=0x8217d384 procSize=1412 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d93448
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=731 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=731
+[DEBUG | dusk] fpcBs_Create: pid=15 profname=fpcNm_VRBOX2_e (731) profile=0x8217d404 procSize=1452 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d92e8c
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=18 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=18
+[DEBUG | dusk] fpcBs_Create: pid=16 profname=fpcNm_ROOM_SCENE_e (18) profile=0x8217519c procSize=480 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d92c9c
+[DEBUG | dusk] Loading Resource: titlelogo.bck (Size: 704)
+[DEBUG | dusk] Loading Resource: titlelogo_r.bmd (Size: 1995456)
+[DEBUG | dusk] Loading Resource: titlelogo.bpk (Size: 576)
+[DEBUG | dusk] Loading Resource: titlelogo.brk (Size: 704)
+[DEBUG | dusk] Loading Resource: titlelogo.btk (Size: 672)
+[DEBUG | dusk] Loading Resource: model.bmd (Size: 927520)
+[DEBUG | dusk] Loading Resource: model1.bmd (Size: 7488)
+[DEBUG | dusk] Loading Resource: model2.bmd (Size: 22752)
+[DEBUG | dusk] Loading Resource: model3.bmd (Size: 166848)
+[DEBUG | dusk] Loading Resource: model4.bmd (Size: 10400)
+[DEBUG | dusk] Loading Resource: model.btk (Size: 576)
+[DEBUG | dusk] Loading Resource: model1.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: model2.btk (Size: 352)
+[DEBUG | dusk] Loading Resource: model4.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: room.dzr (Size: 7456)
+[DEBUG | dusk] Loading Resource: event_list.dat (Size: 5304)
+[DEBUG | dusk] Loading Resource: room.kcl (Size: 449804)
+[DEBUG | dusk] Loading Resource: room.plc (Size: 608)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=253 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=253
+[DEBUG | dusk] fpcBs_Create: pid=17 profname=fpcNm_ALINK_e (253) profile=0x82165fb4 procSize=14660 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8f348
+[DEBUG | dusk] Loading Resource: demo38_wl_cut01_gp_1_o.bck (Size: 8000)
+[DEBUG | dusk] Loading Resource: demo38_wl_cut01_gp_1_l.bck (Size: 5088)
+[DEBUG | dusk] Loading Resource: demo38_wl_cut00_gp_1_o.bmd (Size: 239584)
+[DEBUG | dusk] Loading Resource: demo38_twfilm_cut00_gp_1_o.bmd (Size: 45376)
+[DEBUG | dusk] Loading Resource: demo38_01.stb (Size: 9368)
+[DEBUG | dusk] Loading Resource: demo38_twfilm_cut00_gp_1_l.btk (Size: 832)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=732 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=732
+[DEBUG | dusk] fpcBs_Create: pid=18 profname=fpcNm_BG_e (732) profile=0x821791a0 procSize=1536 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8e1d4
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=222 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=222
+[DEBUG | dusk] fpcBs_Create: pid=19 profname=fpcNm_OBJ_IHASI_e (222) profile=0x821d8850 procSize=1488 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8dbf4
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=187 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=187
+[DEBUG | dusk] fpcBs_Create: pid=20 profname=fpcNm_CSTAF_e (187) profile=0x8217fcf8 procSize=2952 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8d05c
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=733 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=733
+[DEBUG | dusk] fpcBs_Create: pid=21 profname=fpcNm_SET_BG_OBJ_e (733) profile=0x8217c0d4 procSize=1420 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8cac0
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=238 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=238
+[DEBUG | dusk] fpcBs_Create: pid=22 profname=fpcNm_HORSE_e (238) profile=0x821a5ce8 procSize=6500 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8b14c
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=784 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=784
+[DEBUG | dusk] fpcBs_Create: pid=23 profname=fpcNm_GRASS_e (784) profile=0x821826d0 procSize=1404 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8abc0
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=784 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=784
+[DEBUG | dusk] fpcBs_Create: pid=24 profname=fpcNm_GRASS_e (784) profile=0x821826d0 procSize=1404 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8a634
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=784 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=784
+[DEBUG | dusk] fpcBs_Create: pid=25 profname=fpcNm_GRASS_e (784) profile=0x821826d0 procSize=1404 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8a0a8
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=784 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=784
+[DEBUG | dusk] fpcBs_Create: pid=26 profname=fpcNm_GRASS_e (784) profile=0x821826d0 procSize=1404 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d89b1c
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=784 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=784
+[DEBUG | dusk] fpcBs_Create: pid=27 profname=fpcNm_GRASS_e (784) profile=0x821826d0 procSize=1404 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d89590
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=784 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=784
+[DEBUG | dusk] fpcBs_Create: pid=28 profname=fpcNm_GRASS_e (784) profile=0x821826d0 procSize=1404 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d89004
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=333 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=333
+[DEBUG | dusk] fpcBs_Create: pid=29 profname=fpcNm_Obj_Yobikusa_e (333) profile=0x8218adb4 procSize=1916 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d88878
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=333 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=333
+[DEBUG | dusk] fpcBs_Create: pid=30 profname=fpcNm_Obj_Yobikusa_e (333) profile=0x8218adb4 procSize=1916 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d880ec
+[DEBUG | dusk] Loading Resource: al_umakusa.bmd (Size: 5984)
+[DEBUG | dusk] Loading Resource: j_umakusa.bmd (Size: 13152)
+[DEBUG | dusk] Loading Resource: j_umakusa_c.bmd (Size: 9536)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=333 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=333
+[DEBUG | dusk] fpcBs_Create: pid=31 profname=fpcNm_Obj_Yobikusa_e (333) profile=0x8218adb4 procSize=1916 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d87960
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=333 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=333
+[DEBUG | dusk] fpcBs_Create: pid=32 profname=fpcNm_Obj_Yobikusa_e (333) profile=0x8218adb4 procSize=1916 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d871d4
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=333 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=333
+[DEBUG | dusk] fpcBs_Create: pid=33 profname=fpcNm_Obj_Yobikusa_e (333) profile=0x8218adb4 procSize=1916 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d86a48
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=333 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=333
+[DEBUG | dusk] fpcBs_Create: pid=34 profname=fpcNm_Obj_Yobikusa_e (333) profile=0x8218adb4 procSize=1916 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d862bc
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=733 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=733
+[DEBUG | dusk] fpcBs_Create: pid=35 profname=fpcNm_SET_BG_OBJ_e (733) profile=0x8217c0d4 procSize=1420 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d85d20
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=733 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=733
+[DEBUG | dusk] fpcBs_Create: pid=36 profname=fpcNm_SET_BG_OBJ_e (733) profile=0x8217c0d4 procSize=1420 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d85784
+[DEBUG | dusk] Loading Resource: model0.bmd (Size: 13312)
+[DEBUG | dusk] Loading Resource: model1.bmd (Size: 10656)
+[DEBUG | dusk] Loading Resource: model0.dzb (Size: 832)
+[DEBUG | dusk] Loading Resource: spec.dat (Size: 148)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=733 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=733
+[DEBUG | dusk] fpcBs_Create: pid=37 profname=fpcNm_SET_BG_OBJ_e (733) profile=0x8217c0d4 procSize=1420 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d851e8
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=734 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=734
+[DEBUG | dusk] fpcBs_Create: pid=38 profname=fpcNm_BG_OBJ_e (734) profile=0x82179278 procSize=3340 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d844cc
+[DEBUG | dusk] fpcBs_Create: pid=41 profname=fpcNm_Tag_Attp_e (346) profile=0x8217f4f4 procSize=1396 unkSize=0
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=734 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=734
+[DEBUG | dusk] fpcBs_Create: pid=39 profname=fpcNm_BG_OBJ_e (734) profile=0x82179278 procSize=3340 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8322c
+[DEBUG | dusk] fpcBs_Create: pid=43 profname=fpcNm_Tag_Attp_e (346) profile=0x8217f4f4 procSize=1396 unkSize=0
+[DEBUG | dusk] Loading Resource: al_kantera.bmd (Size: 21024)
+[DEBUG | dusk] Loading Resource: ef_ktglow.bmd (Size: 3040)
+[DEBUG | dusk] Loading Resource: al.bmd (Size: 140448)
+[DEBUG | dusk] Loading Resource: al_bootsh.bmd (Size: 22048)
+[DEBUG | dusk] Loading Resource: al_face.bmd (Size: 72576)
+[DEBUG | dusk] Loading Resource: al_hands.bmd (Size: 61056)
+[DEBUG | dusk] Loading Resource: al_head.bmd (Size: 34400)
+[DEBUG | dusk] Loading Resource: al_swb.bmd (Size: 23552)
+[DEBUG | dusk] Loading Resource: ef_ktglow.btk (Size: 512)
+[DEBUG | dusk] Loading Resource: i_bajyohasiparts.bmd (Size: 76032)
+[DEBUG | dusk] Loading Resource: i_bajyohasiparts_ef.bmd (Size: 37088)
+[DEBUG | dusk] Loading Resource: i_bajyohasiparts_ef.btk (Size: 512)
+[DEBUG | dusk] Loading Resource: i_bajyohasiparts.dzb (Size: 6848)
+[DEBUG | dusk] Loading Resource: cs_f_b_fall.bck (Size: 448)
+[DEBUG | dusk] Loading Resource: cs_f_b_swing_reaction.bck (Size: 416)
+[DEBUG | dusk] Loading Resource: cs_f_b_walk.bck (Size: 544)
+[DEBUG | dusk] Loading Resource: cs_f_b.bmd (Size: 66176)
+[DEBUG | dusk] Loading Resource: cs_f_cover.bmd (Size: 30112)
+[DEBUG | dusk] Loading Resource: cs_f_b_start.brk (Size: 352)
+[DEBUG | dusk] Loading Resource: cs_f_b_stop.brk (Size: 320)
+[DEBUG | dusk] Loading Resource: cs_f_cover_vanish.brk (Size: 544)
+[DEBUG | dusk] Loading Resource: cs_f_b_start.btk (Size: 512)
+[DEBUG | dusk] Loading Resource: cs_f_cover_vanish.btk (Size: 896)
+[DEBUG | dusk] Loading Resource: cs_f_b.dzb (Size: 544)
+[DEBUG | dusk] Loading Resource: model0.bmd (Size: 22624)
+[DEBUG | dusk] Loading Resource: spec.dat (Size: 16)
+[DEBUG | dusk] Loading Resource: hs_back_walk.bck (Size: 5536)
+[DEBUG | dusk] Loading Resource: hs_back_walk_start.bck (Size: 6304)
+[DEBUG | dusk] Loading Resource: hs_excitement.bck (Size: 11968)
+[DEBUG | dusk] Loading Resource: hs_excitement_2.bck (Size: 14144)
+[DEBUG | dusk] Loading Resource: hs_jump_end.bck (Size: 5344)
+[DEBUG | dusk] Loading Resource: hs_jump_middle.bck (Size: 4640)
+[DEBUG | dusk] Loading Resource: hs_jump_start.bck (Size: 4832)
+[DEBUG | dusk] Loading Resource: hs_jump_start_clift.bck (Size: 5248)
+[DEBUG | dusk] Loading Resource: hs_lash.bck (Size: 3200)
+[DEBUG | dusk] Loading Resource: hs_neck_waitback_left.bck (Size: 2880)
+[DEBUG | dusk] Loading Resource: hs_neck_waitback_right.bck (Size: 2848)
+[DEBUG | dusk] Loading Resource: hs_run_dash.bck (Size: 7680)
+[DEBUG | dusk] Loading Resource: hs_run_fast.bck (Size: 6688)
+[DEBUG | dusk] Loading Resource: hs_run_slow.bck (Size: 7712)
+[DEBUG | dusk] Loading Resource: hs_stand.bck (Size: 17984)
+[DEBUG | dusk] Loading Resource: hs_stop_slow.bck (Size: 14208)
+[DEBUG | dusk] Loading Resource: hs_stop_stand.bck (Size: 16352)
+[DEBUG | dusk] Loading Resource: hs_turn_left.bck (Size: 9632)
+[DEBUG | dusk] Loading Resource: hs_turn_left_start.bck (Size: 5248)
+[DEBUG | dusk] Loading Resource: hs_turn_right.bck (Size: 9472)
+[DEBUG | dusk] Loading Resource: hs_turn_right_start.bck (Size: 5344)
+[DEBUG | dusk] Loading Resource: hs_wait_01.bck (Size: 4768)
+[DEBUG | dusk] Loading Resource: hs_wait_01b.bck (Size: 4672)
+[DEBUG | dusk] Loading Resource: hs_wait_01b_connect.bck (Size: 4672)
+[DEBUG | dusk] Loading Resource: hs_wait_02.bck (Size: 8928)
+[DEBUG | dusk] Loading Resource: hs_wait_03.bck (Size: 7552)
+[DEBUG | dusk] Loading Resource: hs_wait_04.bck (Size: 12640)
+[DEBUG | dusk] Loading Resource: hs_wait_05.bck (Size: 10528)
+[DEBUG | dusk] Loading Resource: hs_walk_fast.bck (Size: 5792)
+[DEBUG | dusk] Loading Resource: hs_walk_slow.bck (Size: 5600)
+[DEBUG | dusk] Loading Resource: hs.bmd (Size: 131264)
+[DEBUG | dusk] Loading Resource: hs_eye.btp (Size: 128)
+[DEBUG | dusk] Loading Resource: tazuna.bti (Size: 160)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=734 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=734
+[DEBUG | dusk] fpcBs_Create: pid=44 profname=fpcNm_BG_OBJ_e (734) profile=0x82179278 procSize=3340 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d81f8c
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=734 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=734
+[DEBUG | dusk] fpcBs_Create: pid=45 profname=fpcNm_BG_OBJ_e (734) profile=0x82179278 procSize=3340 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d81270
+[DEBUG | dusk] fpcBs_Create: pid=47 profname=fpcNm_Tag_Attp_e (346) profile=0x8217f4f4 procSize=1396 unkSize=0
+[DEBUG | dusk] Loading Resource: al_sha.bmd (Size: 24288)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=255 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=255
+[DEBUG | dusk] fpcBs_Create: pid=48 profname=fpcNm_MIDNA_e (255) profile=0x8217ec2c procSize=2584 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d8e920
+[DEBUG | dusk] Loading Resource: s_md_hands.bmd (Size: 19776)
+[DEBUG | dusk] Loading Resource: s_md_mask.bmd (Size: 15424)
+[DEBUG | dusk] Loading Resource: s_md_gokou.bmd (Size: 3008)
+[DEBUG | dusk] Loading Resource: s_md.bmd (Size: 69984)
+[DEBUG | dusk] Loading Resource: s_md_hair_hand.bmd (Size: 18944)
+[DEBUG | dusk] Loading Resource: s_md_appear.brk (Size: 352)
+[DEBUG | dusk] Loading Resource: s_md_gokou_appear.brk (Size: 256)
+[DEBUG | dusk] Loading Resource: s_md_hair_hand_appear.brk (Size: 288)
+[DEBUG | dusk] Loading Resource: s_md_mask_appear.brk (Size: 256)
+[DEBUG | dusk] Loading Resource: s_md_hair_hand_moya.btk (Size: 544)
+[DEBUG | dusk] Loading Resource: s_md_hands_moya.btk (Size: 608)
+[DEBUG | dusk] Loading Resource: s_md_mask_moya.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: s_md_moya.btk (Size: 512)
+[DEBUG | dusk] fpcBs_Create: pid=50 profname=fpcNm_DEMO00_e (718) profile=0x8217da88 procSize=10652 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=52 profname=fpcNm_DEMO00_e (718) profile=0x8217da88 procSize=10652 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=54 profname=fpcNm_DEMO00_e (718) profile=0x8217da88 procSize=10652 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=56 profname=fpcNm_DEMO00_e (718) profile=0x8217da88 procSize=10652 unkSize=0
+[DEBUG | dusk] frameInterp: onTypeChange 41 -> 40 (event_type_id=40, leaving_event=false, entering_event=true)
+[INFO | dusk::osReport] [PC-OSThread] Thread system initialized (multi-threaded mode)
+vulkan4xenon: not supported: colour attachments with mips, or 16 texels or less on a side
+[ERROR | aurora::vulkan4xenon] vkCreateImage: -8
+[INFO | aurora::thread] Aurora decode helper on hardware thread 5
+[ERROR | aurora::vulkan4xenon] No image for Resolved Texture (20x11)
+vulkan4xenon: not supported: colour attachments with mips, or 16 texels or less on a side
+[ERROR | aurora::vulkan4xenon] vkCreateImage: -8
+[ERROR | aurora::vulkan4xenon] No image for Resolved Texture (20x11)
+[DEBUG | dusk] fapGm_Execute frame=4200
+[INFO | dusk] 205 frames in 10.0 s, 20.4 fps
+[INFO | dusk] Memory: 115 MB free; the title's pages: 61 MB physical, 251 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 249 MB, 237 MB of it in use
+[WARNING | aurora::gx::fifo] 65538 bytes written between publishes, more than a 65536 byte chunk: given a chunk of their own
+[INFO | aurora::vulkan4xenon] Read 3534e73acf5c631f.frag from the disk; 0 compiled and 1 read this run
+vulkan4xenon: SPIR-V 8DF156C62DA6F40C read from the shader cache
+[INFO | dusk] 298 frames in 10.0 s, 29.7 fps
+[INFO | dusk] Memory: 113 MB free; the title's pages: 61 MB physical, 252 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 251 MB, 243 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=4500
+[INFO | aurora::vulkan4xenon] Wrote frame capture to game:\dusklight_title.ppm
+[INFO | dusk] 289 frames in 10.0 s, 28.9 fps
+[INFO | dusk] Memory: 112 MB free; the title's pages: 61 MB physical, 254 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 251 MB, 246 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=4800
+[INFO | aurora::vulkan4xenon] Vertex cache, last 1000 frames: 162444 of 181936 draws found their vertices, 97.75% of 1603.3 MiB; 36.1 MiB decoded; 11700 entries evicted, 0 forgotten, 0 without room; at most 1.91 MiB a frame and 8.00 MiB held, of 8.00; waited 0 times for frames in flight, 0.0 ms in all, 0.00 ms at most; 377 index lists built, 377 kept in 3.86 MiB
+[INFO | dusk] 300 frames in 10.0 s, 29.9 fps
+[INFO | dusk] Memory: 112 MB free; the title's pages: 61 MB physical, 254 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 251 MB, 243 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=5100
+[INFO | dusk] 300 frames in 10.0 s, 29.9 fps
+[INFO | dusk] Memory: 111 MB free; the title's pages: 61 MB physical, 254 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 253 MB, 247 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=5400
+[INFO | dusk] 300 frames in 10.0 s, 30.0 fps
+[INFO | dusk] Memory: 111 MB free; the title's pages: 61 MB physical, 254 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 253 MB, 247 MB of it in use
+[DEBUG | dusk] fapGm_Execute frame=5700
+[INFO | dusk] Diagnostics: the still shot found 68.0 s into the title scene
+[INFO | aurora::vulkan4xenon] Wrote frame capture to game:\dusklight_shot_start.ppm
+[INFO | dusk] 284 frames in 10.0 s, 28.3 fps
+[INFO | dusk] Memory: 107 MB free; the title's pages: 61 MB physical, 258 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 255 MB, 246 MB of it in use
+[INFO | dusk] Diagnostics, phase 0 (skipping nothing): 48 frames in 1.72 s, 27.9 fps, 35.9 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 4.2 ms a frame
+[INFO | dusk]   FIFO worker 11.5 ms; render worker 15.1 ms: acquire 0.0, replay 13.1, present 0.0, the rest 2.0
+[INFO | dusk]   GPU 17.9 ms from submit, 4.8 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 32282 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 109 draws, 75357 vertices; fog: 81 draws, 69126 vertices; range fog: 75 draws, 69090 vertices; indirect: 3 draws, 1518 vertices; PNMTXIDX: 133 draws, 23550 vertices; TEXnMTXIDX: 49 draws, 9030 vertices; none: 34 draws, 5949 vertices
+[INFO | dusk]   replay: 1474 commands, 254.2 draws in 254.2 packets; 86.8 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 818.7, 818.7 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 254.2 (840 registers); literals 433.9; textures set 107.2, skipped 151.1; streams set 248.1
+[INFO | dusk]   replay ms: 13.55 in all; begin pass 0.10, end pass 12.62, pipeline 0.27, CPU uniforms 0.00, GPU uniforms 0.12, push 0.06, textures 0.07, streams 0.06, packets 0.04, uploads 0.00, other commands 0.12; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 12.51 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[DEBUG | dusk] fapGm_Execute frame=6000
+[INFO | aurora::vulkan4xenon] Vertex cache, last 1000 frames: 188983 of 209127 draws found their vertices, 99.62% of 1590.5 MiB; 6.1 MiB decoded; 6675 entries evicted, 0 forgotten, 0 without room; at most 1.89 MiB a frame and 8.00 MiB held, of 8.00; waited 0 times for frames in flight, 0.0 ms in all, 0.00 ms at most; 44 index lists built, 421 kept in 3.87 MiB
+[INFO | dusk] Diagnostics, phase 1 (skipping lit): 48 frames in 1.66 s, 29.0 fps, 34.5 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 4.8 ms a frame
+[INFO | dusk]   FIFO worker 11.8 ms; render worker 9.0 ms: acquire 0.0, replay 6.2, present 0.0, the rest 2.8
+[INFO | dusk]   GPU 9.1 ms from submit, 2.9 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 16444 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 0 draws, 0 vertices; fog: 2 draws, 54 vertices; range fog: 2 draws, 54 vertices; indirect: 0 draws, 0 vertices; PNMTXIDX: 91 draws, 16290 vertices; TEXnMTXIDX: 49 draws, 9030 vertices; none: 34 draws, 5939 vertices
+[INFO | dusk]   replay: 914 commands, 142.9 draws in 142.9 packets; 43.9 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 353.2, 353.2 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 142.9 (402 registers); literals 92.9; textures set 27.6, skipped 8.2; streams set 136.8
+[INFO | dusk]   replay ms: 6.51 in all; begin pass 0.10, end pass 5.98, pipeline 0.09, CPU uniforms 0.00, GPU uniforms 0.05, push 0.07, textures 0.04, streams 0.03, packets 0.02, uploads 0.00, other commands 0.08; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 5.87 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[INFO | dusk] Diagnostics, phase 2 (skipping fog, range fog): 48 frames in 1.65 s, 29.1 fps, 34.3 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 5.2 ms a frame
+[INFO | dusk]   FIFO worker 11.6 ms; render worker 12.3 ms: acquire 0.0, replay 10.4, present 0.0, the rest 1.9
+[INFO | dusk]   GPU 13.2 ms from submit, 2.8 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 19247 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 30 draws, 6285 vertices; fog: 0 draws, 0 vertices; range fog: 0 draws, 0 vertices; indirect: 1 draws, 585 vertices; PNMTXIDX: 91 draws, 16290 vertices; TEXnMTXIDX: 49 draws, 9030 vertices; none: 34 draws, 5959 vertices
+[INFO | dusk]   replay: 1044 commands, 171.5 draws in 171.5 packets; 55.1 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 410.4, 410.4 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 171.5 (491 registers); literals 137.8; textures set 41.9, skipped 21.4; streams set 165.4
+[INFO | dusk]   replay ms: 10.55 in all; begin pass 0.12, end pass 9.99, pipeline 0.13, CPU uniforms 0.00, GPU uniforms 0.05, push 0.04, textures 0.03, streams 0.04, packets 0.03, uploads 0.00, other commands 0.08; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 9.86 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[INFO | dusk] Diagnostics, phase 3 (skipping indirect): 48 frames in 1.64 s, 29.2 fps, 34.2 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 3.3 ms a frame
+[INFO | dusk]   FIFO worker 11.5 ms; render worker 15.1 ms: acquire 0.0, replay 13.1, present 0.0, the rest 2.0
+[INFO | dusk]   GPU 17.8 ms from submit, 4.7 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 31184 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 106 draws, 73839 vertices; fog: 79 draws, 68193 vertices; range fog: 74 draws, 68163 vertices; indirect: 0 draws, 0 vertices; PNMTXIDX: 133 draws, 23550 vertices; TEXnMTXIDX: 49 draws, 9030 vertices; none: 34 draws, 5949 vertices
+[INFO | dusk]   replay: 1456 commands, 251.1 draws in 251.1 packets; 83.7 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 808.5, 808.5 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 251.1 (828 registers); literals 398.1; textures set 98.0, skipped 150.1; streams set 245.0
+[INFO | dusk]   replay ms: 13.25 in all; begin pass 0.15, end pass 12.29, pipeline 0.27, CPU uniforms 0.00, GPU uniforms 0.12, push 0.06, textures 0.07, streams 0.06, packets 0.04, uploads 0.00, other commands 0.11; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 12.17 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[INFO | dusk] Diagnostics, phase 4 (skipping PNMTXIDX, TEXnMTXIDX): 48 frames in 1.65 s, 29.0 fps, 34.5 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 5.1 ms a frame
+[INFO | dusk]   FIFO worker 11.5 ms; render worker 14.5 ms: acquire 0.0, replay 12.7, present 0.0, the rest 1.8
+[INFO | dusk]   GPU 17.5 ms from submit, 4.8 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 23615 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 67 draws, 68097 vertices; fog: 39 draws, 61866 vertices; range fog: 33 draws, 61830 vertices; indirect: 3 draws, 1518 vertices; PNMTXIDX: 0 draws, 0 vertices; TEXnMTXIDX: 0 draws, 0 vertices; none: 34 draws, 5949 vertices
+[INFO | dusk]   replay: 789 commands, 118.4 draws in 118.4 packets; 76.6 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 282.8, 282.8 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 118.4 (433 registers); literals 392.0; textures set 103.1, skipped 69.4; streams set 112.3
+[INFO | dusk]   replay ms: 12.90 in all; begin pass 0.10, end pass 12.25, pipeline 0.24, CPU uniforms 0.00, GPU uniforms 0.04, push 0.03, textures 0.07, streams 0.03, packets 0.02, uploads 0.00, other commands 0.05; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 12.14 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[INFO | dusk] 255 frames in 10.0 s, 25.5 fps
+[INFO | dusk] Memory: 107 MB free; the title's pages: 61 MB physical, 258 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 253 MB, 246 MB of it in use
+[INFO | dusk] Diagnostics, phase 5 (skipping lit, fog, range fog, indirect, PNMTXIDX, TEXnMTXIDX): 48 frames in 1.68 s, 28.6 fps, 34.9 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 4.3 ms a frame
+[INFO | dusk]   FIFO worker 11.9 ms; render worker 7.8 ms: acquire 0.0, replay 5.9, present 0.0, the rest 1.9
+[INFO | dusk]   GPU 8.8 ms from submit, 2.9 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 10681 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 0 draws, 0 vertices; fog: 0 draws, 0 vertices; range fog: 0 draws, 0 vertices; indirect: 0 draws, 0 vertices; PNMTXIDX: 0 draws, 0 vertices; TEXnMTXIDX: 0 draws, 0 vertices; none: 34 draws, 5949 vertices
+[INFO | dusk]   replay: 438 commands, 48.0 draws in 48.0 packets; 34.7 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 68.4, 68.4 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 48.0 (117 registers); literals 64.3; textures set 25.5, skipped 6.1; streams set 41.9
+[INFO | dusk]   replay ms: 6.14 in all; begin pass 0.10, end pass 5.84, pipeline 0.07, CPU uniforms 0.00, GPU uniforms 0.01, push 0.01, textures 0.04, streams 0.01, packets 0.01, uploads 0.00, other commands 0.03; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 5.72 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[DEBUG | dusk] fapGm_Execute frame=6300
+[INFO | dusk] Diagnostics, phase 6 (skipping pixels (1x1 scissor)): 48 frames in 1.66 s, 28.9 fps, 34.6 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 4.3 ms a frame
+[INFO | dusk]   FIFO worker 11.7 ms; render worker 7.1 ms: acquire 0.0, replay 5.0, present 0.0, the rest 2.1
+[INFO | dusk]   GPU 7.7 ms from submit, 2.7 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 32196 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 107 draws, 75357 vertices; fog: 81 draws, 69126 vertices; range fog: 75 draws, 69090 vertices; indirect: 3 draws, 1518 vertices; PNMTXIDX: 133 draws, 23550 vertices; TEXnMTXIDX: 49 draws, 9030 vertices; none: 34 draws, 5949 vertices
+[INFO | dusk]   replay: 1466 commands, 252.6 draws in 252.6 packets; 86.8 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 815.5, 815.5 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 252.6 (835 registers); literals 433.9; textures set 107.2, skipped 149.5; streams set 246.4
+[INFO | dusk]   replay ms: 5.39 in all; begin pass 0.15, end pass 4.39, pipeline 0.25, CPU uniforms 0.00, GPU uniforms 0.10, push 0.06, textures 0.08, streams 0.06, packets 0.04, uploads 0.00, other commands 0.18; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 4.27 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[INFO | dusk] Diagnostics, phase 7 (skipping pixels past 3/4 (scissor)): 48 frames in 1.63 s, 29.5 fps, 33.9 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 3.0 ms a frame
+[INFO | dusk]   FIFO worker 11.5 ms; render worker 10.7 ms: acquire 0.0, replay 8.8, present 0.0, the rest 1.9
+[INFO | dusk]   GPU 12.6 ms from submit, 3.8 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 32046 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 103 draws, 75340 vertices; fog: 81 draws, 69126 vertices; range fog: 75 draws, 69090 vertices; indirect: 3 draws, 1518 vertices; PNMTXIDX: 133 draws, 23550 vertices; TEXnMTXIDX: 49 draws, 9030 vertices; none: 34 draws, 5949 vertices
+[INFO | dusk]   replay: 1449 commands, 248.3 draws in 248.3 packets; 86.8 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 807.0, 807.0 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 248.3 (823 registers); literals 433.9; textures set 107.2, skipped 145.2; streams set 242.2
+[INFO | dusk]   replay ms: 9.04 in all; begin pass 0.10, end pass 8.07, pipeline 0.27, CPU uniforms 0.00, GPU uniforms 0.10, push 0.08, textures 0.12, streams 0.06, packets 0.04, uploads 0.00, other commands 0.12; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 7.96 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[INFO | dusk] Diagnostics, phase 8 (skipping pixels past 1/2 (scissor)): 48 frames in 1.63 s, 29.5 fps, 33.9 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.0 ms for the backend's slot
+[INFO | dusk]   audio callback 2.5 ms a frame
+[INFO | dusk]   FIFO worker 11.4 ms; render worker 8.8 ms: acquire 0.0, replay 6.8, present 0.0, the rest 2.0
+[INFO | dusk]   GPU 9.9 ms from submit, 3.1 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 12.0; passes 17.0
+[INFO | dusk]   stream 32235 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 106 draws, 75340 vertices; fog: 81 draws, 69127 vertices; range fog: 75 draws, 69090 vertices; indirect: 3 draws, 1518 vertices; PNMTXIDX: 133 draws, 23550 vertices; TEXnMTXIDX: 49 draws, 9030 vertices; none: 35 draws, 5965 vertices
+[INFO | dusk]   replay: 1463 commands, 251.6 draws in 251.6 packets; 87.8 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 812.6, 812.6 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 251.6 (833 registers); literals 435.9; textures set 107.2, skipped 147.5; streams set 245.5
+[INFO | dusk]   replay ms: 6.95 in all; begin pass 0.10, end pass 6.04, pipeline 0.25, CPU uniforms 0.00, GPU uniforms 0.10, push 0.06, textures 0.10, streams 0.06, packets 0.04, uploads 0.00, other commands 0.12; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 29.6 hits, 2.0 evictions, 1.0 waits for the GPU, 5.93 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=0 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=0
+[DEBUG | dusk] fpcBs_Create: pid=57 profname=fpcNm_OVERLAP0_e (0) profile=0x82174bbc procSize=220 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d76490
+[DEBUG | dusk] fpcNdRq_phase_Create: name=11 layer=0x84379f58
+[DEBUG | dusk] fpcNdRq_phase_Create: creating_id=58 (error=4294967295)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=11 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=11
+[DEBUG | dusk] fpcBs_Create: pid=58 profname=fpcNm_PLAY_SCENE_e (11) profile=0x82175170 procSize=476 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d958d8
+[INFO | dusk] Stage: S_MV000
+[INFO | dusk] Memory: 107 MB free; the title's pages: 61 MB physical, 258 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 253 MB, 242 MB of it in use
+[DEBUG | dusk] Loading Resource: colordata_tbl.dat (Size: 800)
+[DEBUG | dusk] Loading Resource: pol_arg.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_effcol.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_effcol2.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_efftbl.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_efftbl2.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: pol_sound.dat (Size: 128)
+[DEBUG | dusk] Loading Resource: room0.dzs (Size: 64)
+[DEBUG | dusk] Loading Resource: stage.dzs (Size: 448)
+[DEBUG | dusk] Loading Resource: event_list.dat (Size: 106476)
+[DEBUG | dusk] Loading Resource: camstyle.dat (Size: 43328)
+[DEBUG | dusk] Loading Resource: camtype.dat (Size: 14560)
+[DEBUG | dusk] fopScnM_CreateReq: procName=18 fade=32767
+[DEBUG | dusk] fopScnM_CreateReq: result=4 (error=4294967295)
+[DEBUG | dusk] fpcBs_Create: pid=61 profname=fpcNm_KANKYO_e (19) profile=0x8216c440 procSize=252 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=63 profname=fpcNm_KYEFF_e (785) profile=0x8216c490 procSize=252 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=65 profname=fpcNm_KYEFF2_e (786) profile=0x8216c4b8 procSize=252 unkSize=0
+[DEBUG | dusk] fpcBs_Create: pid=67 profname=fpcNm_ENVSE_e (21) profile=0x8216b06c procSize=272 unkSize=0
+[DEBUG | dusk] fpcNdRq_phase_Create: name=18 layer=0x5d95998
+[DEBUG | dusk] fpcNdRq_phase_Create: creating_id=68 (error=4294967295)
+[INFO | dusk] 259 frames in 10.0 s, 25.8 fps
+[INFO | dusk] Memory: 107 MB free; the title's pages: 61 MB physical, 258 MB virtual, 0 MB heap, 15 MB stack; newlib's heap 253 MB, 242 MB of it in use
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=781 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=781
+[DEBUG | dusk] fpcBs_Create: pid=59 profname=fpcNm_CAMERA_e (781) profile=0x8216af90 procSize=3688 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d75618
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=18 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=18
+[DEBUG | dusk] fpcBs_Create: pid=68 profname=fpcNm_ROOM_SCENE_e (18) profile=0x8217519c procSize=480 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d94f50
+[INFO | dusk] Diagnostics, phase 9 (skipping nothing): 48 frames in 2.07 s, 23.2 fps, 43.1 ms a frame
+[INFO | dusk]   game thread's waits a frame: 0.0 ms for a frame slot, 0.2 ms for the backend's slot
+[INFO | dusk]   audio callback 2.8 ms a frame
+[INFO | dusk]   FIFO worker 8.3 ms; render worker 11.1 ms: acquire 0.5, replay 9.2, present 0.0, the rest 1.4
+[INFO | dusk]   GPU 14.0 ms from submit, 4.8 ms after the replay
+[INFO | dusk]   uploads 0.00 (0.0 KB), replayed 0.00: 0.00 ms waiting for the GPU, 0.00 ms copying; copies 8.5; passes 12.3
+[INFO | dusk]   stream 23284 dwords, 0.00 waits for room, 0.00 ms waiting
+[INFO | dusk]   draws by feature: lit: 72 draws, 51796 vertices; fog: 56 draws, 47524 vertices; range fog: 52 draws, 47499 vertices; indirect: 2 draws, 1044 vertices; PNMTXIDX: 91 draws, 16191 vertices; TEXnMTXIDX: 34 draws, 6208 vertices; none: 25 draws, 4101 vertices
+[INFO | dusk]   replay: 1030 commands, 176.1 draws in 176.1 packets; 62.6 pipeline applies, 0.0 viewport applies
+[INFO | dusk]   uniforms: 564.8, 564.8 loaded by the GPU; read by the CPU: 0.0 for the first register, 0.0 for the address, 0.0 for the range, 0 words
+[INFO | dusk]   push writes 176.1 (581 registers); literals 306.9; textures set 75.1, skipped 102.1; streams set 171.8
+[INFO | dusk]   replay ms: 9.17 in all; begin pass 0.08, end pass 8.52, pipeline 0.18, CPU uniforms 0.00, GPU uniforms 0.09, push 0.04, textures 0.05, streams 0.04, packets 0.03, uploads 0.00, other commands 0.08; invalidate 0.00
+[INFO | dusk]   resolve rectangles: 22.0 hits, 1.4 evictions, 0.7 waits for the GPU, 8.44 ms waiting; 9 sizes: 384x384 192x192 1280x720 640x360 960x360 320x180 160x90 96x45 64x22
+[DEBUG | dusk] Loading Resource: room.dzr (Size: 384)
+[DEBUG | dusk] Loading Resource: event_list.dat (Size: 1176)
+[DEBUG | dusk] Loading Resource: room.kcl (Size: 326)
+[DEBUG | dusk] Loading Resource: room.plc (Size: 32)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=253 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=253
+[DEBUG | dusk] fpcBs_Create: pid=69 profname=fpcNm_ALINK_e (253) profile=0x82165fb4 procSize=14660 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d71cc4
+[INFO | aurora::vulkan4xenon] Wrote frame capture to game:\dusklight_shot_end.ppm
+[DEBUG | dusk] Loading Resource: demo04_01.stb (Size: 132)
+[DEBUG | dusk] Loading Resource: demo98_00.stb (Size: 132)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=732 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=732
+[DEBUG | dusk] fpcBs_Create: pid=70 profname=fpcNm_BG_e (732) profile=0x821791a0 procSize=1536 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d94860
+[DEBUG | dusk] Loading Resource: al_kantera.bmd (Size: 21024)
+[DEBUG | dusk] Loading Resource: ef_ktglow.bmd (Size: 3040)
+[DEBUG | dusk] Loading Resource: al.bmd (Size: 140448)
+[DEBUG | dusk] Loading Resource: al_bootsh.bmd (Size: 22048)
+[DEBUG | dusk] Loading Resource: al_face.bmd (Size: 72576)
+[DEBUG | dusk] Loading Resource: al_hands.bmd (Size: 61056)
+[DEBUG | dusk] Loading Resource: al_head.bmd (Size: 34400)
+[DEBUG | dusk] Loading Resource: al_swb.bmd (Size: 23552)
+[DEBUG | dusk] Loading Resource: ef_ktglow.btk (Size: 512)
+[DEBUG | dusk] Loading Resource: al_sha.bmd (Size: 24288)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=255 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=255
+[DEBUG | dusk] fpcBs_Create: pid=71 profname=fpcNm_MIDNA_e (255) profile=0x8217ec2c procSize=2584 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d7129c
+[DEBUG | dusk] Loading Resource: s_md_hands.bmd (Size: 19776)
+[DEBUG | dusk] Loading Resource: s_md_mask.bmd (Size: 15424)
+[DEBUG | dusk] Loading Resource: s_md_gokou.bmd (Size: 3008)
+[DEBUG | dusk] Loading Resource: s_md.bmd (Size: 69984)
+[DEBUG | dusk] Loading Resource: s_md_hair_hand.bmd (Size: 18944)
+[DEBUG | dusk] Loading Resource: s_md_appear.brk (Size: 352)
+[DEBUG | dusk] Loading Resource: s_md_gokou_appear.brk (Size: 256)
+[DEBUG | dusk] Loading Resource: s_md_hair_hand_appear.brk (Size: 288)
+[DEBUG | dusk] Loading Resource: s_md_mask_appear.brk (Size: 256)
+[DEBUG | dusk] Loading Resource: s_md_hair_hand_moya.btk (Size: 544)
+[DEBUG | dusk] Loading Resource: s_md_hands_moya.btk (Size: 608)
+[DEBUG | dusk] Loading Resource: s_md_mask_moya.btk (Size: 320)
+[DEBUG | dusk] Loading Resource: s_md_moya.btk (Size: 512)
+[DEBUG | dusk] fpcBs_Create: pid=73 profname=fpcNm_DEMO00_e (718) profile=0x8217da88 procSize=10652 unkSize=0
+[DEBUG | dusk] frameInterp: onTypeChange 41 -> 40 (event_type_id=40, leaving_event=false, entering_event=true)
+[DEBUG | dusk] [DIAG] fpcSCtRq_phase_Load: procName=736 ret=4
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: procName=736
+[DEBUG | dusk] fpcBs_Create: pid=74 profname=fpcNm_MOVIE_PLAYER_e (736) profile=0x821a7974 procSize=1420 unkSize=0
+[DEBUG | dusk] fpcSCtRq_phase_CreateProcess: fpcBs_Create OK proc=0x5d6e354
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x843cea88 (priority=20, stackSize=8)
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x843cee34 (priority=12, stackSize=8)
+[INFO | dusk::osReport] [PC-OSThread] Created thread 0x843cf158 (priority=8, stackSize=8)
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x843cea88
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x843cea88 on hardware thread 1
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x843cee34
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x843cee34 on hardware thread 1
+[INFO | dusk::osReport] [PC-OSThread] Started thread 0x843cf158
+[INFO | dusk::osReport] [PC-OSThread] Thread 0x843cf158 on hardware thread 1
+[INFO | dusk] A minute into the title scene. The heaps at their peaks:
+[INFO | dusk]   root: 140176 KB of 147439 KB
+[INFO | dusk]   system: 32739 KB of 32767 KB
+[INFO | dusk]   zelda: 5163 KB of 32030 KB
+[INFO | dusk]   game: 17634 KB of 88159 KB
+[INFO | dusk]   archive: 7110 KB of 18169 KB
+[INFO | dusk]   j2d: 41 KB of 999 KB
+[INFO | dusk]   command: 1 KB of 7 KB
+[INFO | dusk]   dbPrint: 0 KB of 5 KB
+[INFO | dusk]   hostIO: 0 KB of 0 KB
+[INFO | dusk]   audio: 2667 KB of 2667 KB
+[INFO | dusk]   newlib's: 260250 KB
+[INFO | dusk] Aurora's frame pools at their peaks, a frame's:
+[INFO | dusk]   vertex: 526 KB
+[INFO | dusk]   uniform: 451 KB
+[INFO | dusk]   index: 222 KB
+[INFO | dusk]   storage: 448 KB
+[INFO | dusk]   texture upload: 6880 KB
+[INFO | dusk::mods::loader] all mods unloaded
+[INFO | dusk::osReport] [PC] OSResetSystem called (reset=2, code=0)
+[INFO | aurora::vulkan4xenon] Programs this run: 0 compiled and 1 read from the disk; vulkan4xenon's shaders: 0 compiled and 1 read
+exit: status 0

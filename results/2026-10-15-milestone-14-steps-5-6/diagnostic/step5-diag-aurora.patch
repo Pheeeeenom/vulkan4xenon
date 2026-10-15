@@ -1,0 +1,46 @@
+diff --git a/lib/dolphin/gx/GXCpu2Efb.cpp b/lib/dolphin/gx/GXCpu2Efb.cpp
+index c6e1e9c..f3ce732 100644
+--- a/lib/dolphin/gx/GXCpu2Efb.cpp
++++ b/lib/dolphin/gx/GXCpu2Efb.cpp
+@@ -6,14 +6,40 @@
+ #include <dolphin/gx/GXAurora.h>
+ #include <dolphin/gx/GXCpu2Efb.h>
+ 
++#include <chrono>
++#include <string>
++
++extern "C" void aurora_diag_request_depth() { aurora::gfx::backend::request_depth_snapshot(); }
++
++extern "C" void aurora_diag_peek_grid(const char* when) {
++  for (const u16 y : {60, 170, 280, 400}) {
++    std::string row;
++    for (const u16 x : {60, 180, 304, 420, 540}) {
++      u32 value = 0;
++      row += aurora::gfx::backend::read_depth(x, y, value) ? fmt::format(" {:06X}", value) : " none  ";
++    }
++    Log.info("Diagnostics: peeks {} at y {}, x 60 180 304 420 540:{}", when, y, row);
++  }
++}
++
+ void GXPeekZ(u16 x, u16 y, u32* z) {
+   if (z != nullptr) {
+     u32 value = 0;
+-    if (aurora::gfx::backend::read_depth(x, y, value)) {
++    const bool read = aurora::gfx::backend::read_depth(x, y, value);
++    if (read) {
+       *z = value;
+     } else {
+       *z = 0;
+     }
++    static auto next = std::chrono::steady_clock::now();
++    static int logged = 0;
++    if (std::chrono::steady_clock::now() >= next) {
++      Log.info("Diagnostics: GXPeekZ ({}, {}): {}", x, y, read ? fmt::format("{:06X}", value) : "none");
++      if (++logged == 8) {
++        logged = 0;
++        next = std::chrono::steady_clock::now() + std::chrono::seconds(5);
++      }
++    }
+   }
+ 
+   GX_WRITE_AURORA(GX_AURORA_REQUEST_DEPTH_SNAPSHOT);
