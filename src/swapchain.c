@@ -135,9 +135,21 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAcquireNextImageKHR(VkDevice device, VkSwapchai
 	return VK_SUCCESS;
 }
 
+// While the Guide is open, XAM draws it in eDRAM between frames (xsdk:include/xsdk/gpu.h, XsdkGpuStats).
+static void forget_edram_after_system_draws(VkQueue queue)
+{
+	XsdkGpuStats stats;
+	xsdk_gpu_stats(&stats);
+	if (stats.system_draws == queue->system_draws)
+		return;
+	queue->system_draws = stats.system_draws;
+	queue->color = (EdramPart){ .contents = EDRAM_UNKNOWN };
+	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS; i++)
+		queue->depths[i] = (EdramPart){ .contents = EDRAM_UNKNOWN };
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR *pPresentInfo)
 {
-	(void)queue;
 	VkResult result = VK_SUCCESS;
 	for (uint32_t i = 0; i < pPresentInfo->swapchainCount; i++) {
 		Swapchain *const swapchain = v4x_object(pPresentInfo->pSwapchains[i]);
@@ -153,5 +165,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(VkQueue queue, const VkPresentI
 		if (presented != VK_SUCCESS)
 			result = presented;
 	}
+	forget_edram_after_system_draws(queue);
 	return result;
 }

@@ -103,6 +103,8 @@ struct VkQueue_T {
 	float depth_clear;
 	uint32_t stencil_clear;
 	Blit blit;
+	// xsdk's count of frames XAM drew the Guide in, as last seen; XAM's drawing leaves eDRAM holding none of the parts.
+	uint32_t system_draws;
 	// The submission being replayed, numbered from 1, and the fence each recent one ended with, at serial % the count.
 	uint32_t serial;
 	uint32_t submit_fences[V4X_SUBMIT_FENCES];

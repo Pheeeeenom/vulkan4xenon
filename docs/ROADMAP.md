@@ -1585,6 +1585,17 @@ the frame has to be drawn in tiles, as Xenos's predicated tiling does (xsdk:SCOP
 
 **Agreed with the user (2026-10-14)** as a milestone after 14 and 15; its scope is settled when it starts.
 
+### The Guide, through xsdk (2026-10-15)
+
+xsdk's milestone 37 shows the Guide: `xsdk_present_end` hands each frame to the kernel's swap, and while the Guide is
+open XAM's commands run between the title's frames and draw in eDRAM (xsdk:docs/HARDWARE.md, "The Guide shows through
+VdSwap"). So `vkQueuePresentKHR` forgets what the queue keeps in eDRAM, its colour and depths, whenever xsdk's count of
+those frames moves (src/swapchain.c). On the console vulkan4xenon_test passed 112 of 112, and vkbench 14 of 14,
+this morning's build and the new one twice each in turn: the draw scenes record 0.7 to 2.7% slower and the uniform
+scene 3.4% faster, the differences growing with the draws though the swap comes once a frame, so from where the
+rebuilt code lies (`results/2026-10-15-guide/`; xsdk:docs/HARDWARE.md, "The Guide, milestone 37"). Dusklight shows the
+Guide over the whole frame and leaves through its Xbox Home cleanly.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
