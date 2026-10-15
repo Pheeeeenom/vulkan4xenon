@@ -10,7 +10,8 @@ enum {
 	// A texture fetch constant holds its address in 4 KB units (xsdk:src/texture.c, FETCH_ADDRESS_ALIGNMENT).
 	IMAGE_ALIGNMENT = 4096,
 	MEMORY_TYPE_BITS = 1,
-	// A depth image's memory is never used, since depth stays in eDRAM; a page keeps allocators happy.
+	// A depth image's memory is never used unless it's sampled, since depth stays in eDRAM; a page keeps allocators
+	// happy.
 	DEPTH_IMAGE_BYTES = 4096,
 };
 
@@ -56,11 +57,13 @@ bool v4x_attachment_format(VkFormat format)
 
 static VkResult check_depth_create_info(const VkImageCreateInfo *info)
 {
-	const VkImageUsageFlags usage =
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
 	if (info->mipLevels != 1 || info->samples != VK_SAMPLE_COUNT_1_BIT || info->tiling != VK_IMAGE_TILING_OPTIMAL ||
-		(info->usage & ~usage))
-		return v4x_host_unsupported("depth images other than a single-sampled attachment of one level");
+		!(info->usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) || (info->usage & ~V4X_DEPTH_IMAGE_USAGE))
+		return v4x_host_unsupported("depth images other than a single-sampled attachment of one level, sampled or not");
+	// A resolve writes from the corner, so the texture's base can't sit in the packed tail (xsdk:src/gpu_resolve.c).
+	if ((info->usage & VK_IMAGE_USAGE_SAMPLED_BIT) &&
+		(info->extent.width <= V4X_PACKED_SIDE || info->extent.height <= V4X_PACKED_SIDE))
+		return v4x_host_unsupported("sampled depth images of 16 texels or less on a side");
 	return VK_SUCCESS;
 }
 
@@ -100,13 +103,15 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
 	image->width = pCreateInfo->extent.width;
 	image->height = pCreateInfo->extent.height;
 	image->format = pCreateInfo->format;
-	if (pCreateInfo->format == VK_FORMAT_D24_UNORM_S8_UINT) {
+	const bool is_depth = pCreateInfo->format == VK_FORMAT_D24_UNORM_S8_UINT;
+	if (is_depth && !(pCreateInfo->usage & VK_IMAGE_USAGE_SAMPLED_BIT)) {
 		image->is_depth = true;
 		*pImage = v4x_handle(image);
 		return VK_SUCCESS;
 	}
-	uint32_t format = 0;
-	(void)v4x_image_format(pCreateInfo->format, &format);
+	uint32_t format = XSDK_FORMAT_D24S8;
+	if (!is_depth)
+		(void)v4x_image_format(pCreateInfo->format, &format);
 	const NTSTATUS status = xsdk_texture_init(
 		&image->texture, format, pCreateInfo->extent.width, pCreateInfo->extent.height, pCreateInfo->mipLevels, true);
 	if (!NT_SUCCESS(status)) {
@@ -114,7 +119,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
 		v4x_host_free(allocator, image);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
-	image->is_texture = true;
+	image->is_depth = is_depth;
+	image->is_sampled_depth = is_depth;
+	image->is_texture = !is_depth;
 	image->is_attachment = (pCreateInfo->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) != 0;
 	*pImage = v4x_handle(image);
 	return VK_SUCCESS;
@@ -131,7 +138,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements(
 	(void)device;
 	const Image *const object = v4x_object(image);
 	*pMemoryRequirements = (VkMemoryRequirements){
-		.size = object->is_depth ? DEPTH_IMAGE_BYTES : object->texture.size_bytes,
+		.size = object->is_depth && !object->is_sampled_depth ? DEPTH_IMAGE_BYTES : object->texture.size_bytes,
 		.alignment = IMAGE_ALIGNMENT,
 		.memoryTypeBits = MEMORY_TYPE_BITS,
 	};
@@ -143,7 +150,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory(
 	(void)device;
 	Image *const object = v4x_object(image);
 	const DeviceMemory *const bound = v4x_object(memory);
-	if (object->is_depth)
+	if (object->is_depth && !object->is_sampled_depth)
 		return VK_SUCCESS;
 	// Invalid use: an image's memory types are the GPU's alone (vkGetImageMemoryRequirements).
 	if (bound->cached) {
@@ -178,7 +185,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device, const VkImageV
 {
 	Image *const image = v4x_object(pCreateInfo->image);
 	const VkImageSubresourceRange *const range = &pCreateInfo->subresourceRange;
-	const uint32_t levels = image->is_texture ? image->texture.levels : 1;
+	const uint32_t levels = image->is_texture || image->is_sampled_depth ? image->texture.levels : 1;
 	const uint32_t level_count = range->levelCount == VK_REMAINING_MIP_LEVELS ? levels : range->levelCount;
 	if (pCreateInfo->viewType != VK_IMAGE_VIEW_TYPE_2D || pCreateInfo->format != image->format || range->baseMipLevel ||
 		level_count != levels || range->baseArrayLayer || range->layerCount != 1)

@@ -35,6 +35,10 @@ void test_run_time_index(const Harness *harness);
 void test_uploads(const Harness *harness);
 // Images one texel high, as palettes are, every texel drawn where it should be (milestone 14).
 void test_thin_textures(const Harness *harness);
+// A D24S8 attachment stored by one pass, its memory read and its depth sampled by the next (milestone 14).
+void test_sampled_depth(const Harness *harness);
+// Stripes squeezed 8 to 1, sampled without anisotropy and with 16 (milestone 14).
+void test_anisotropy(const Harness *harness);
 // Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
 void test_shader_cache_start(void);
 // The files the layer kept, and a second device reading the triangle's shaders back; called after the first goes.

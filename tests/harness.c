@@ -43,12 +43,15 @@ VkResult harness_create_device(Harness *harness)
 		.queueCount = 1,
 		.pQueuePriorities = &priority,
 	};
+	// Sampler anisotropy, the one feature the device has, for test_anisotropy.
+	const VkPhysicalDeviceFeatures features = { .samplerAnisotropy = VK_TRUE };
 	const VkDeviceCreateInfo device_info = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.queueCreateInfoCount = 1,
 		.pQueueCreateInfos = &queue_info,
 		.enabledExtensionCount = sizeof device_extensions / sizeof device_extensions[0],
 		.ppEnabledExtensionNames = device_extensions,
+		.pEnabledFeatures = &features,
 	};
 	result = vkCreateDevice(harness->physical_device, &device_info, NULL, &harness->device);
 	if (!harness_ok("vkCreateDevice", result))

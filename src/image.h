@@ -10,6 +10,9 @@ enum {
 	// What colour images may be used for.
 	V4X_IMAGE_USAGE =
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+	// What depth images may be used for: attachments, and sampled after a pass stores them and leaves them to be read.
+	V4X_DEPTH_IMAGE_USAGE = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+		VK_IMAGE_USAGE_SAMPLED_BIT,
 	// A base level this many texels or fewer on a side sits in the packed mip tail, where a resolve can't write
 	// (xsdk:src/gpu_resolve.c, xsdk_gpu_resolve_texture).
 	V4X_PACKED_SIDE = 16,
@@ -21,5 +24,8 @@ bool v4x_image_format(VkFormat format, uint32_t *xsdk_format);
 bool v4x_attachment_format(VkFormat format);
 // The bytes in a texel of an image of this format, which copies take.
 uint32_t v4x_texel_bytes(VkFormat format);
+// Whether a shader may sample an image in this layout: a render pass that leaves a sampled depth image in one resolves
+// it into its texture.
+bool v4x_read_layout(VkImageLayout layout);
 
 #endif

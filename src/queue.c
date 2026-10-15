@@ -46,6 +46,9 @@ typedef struct {
 	VkRect2D scissor;
 	const RenderPass *render_pass;
 	const Framebuffer *framebuffer;
+	// Where the pass's depth is, in queue->depths and in eDRAM (place_depth).
+	uint32_t depth_part;
+	uint32_t depth_tile;
 	uint32_t clear_argb;
 	float clear_depth;
 	uint32_t clear_stencil;
@@ -223,12 +226,11 @@ static void set_depth_clear(VkQueue queue, float depth, uint32_t stencil)
 	queue->stencil_clear = stencil;
 }
 
-// Colour from tile 0 and depth ending at the top, so a pass without depth leaves depth alone (docs/ROADMAP.md,
-// milestone 4).
-static void set_target(const Framebuffer *framebuffer)
+// Colour from tile 0 and depth where place_depth put it (docs/ROADMAP.md, milestones 4 and 14).
+static void set_target(const Replay *replay)
 {
-	const uint32_t tiles = xsdk_gpu_target_tiles(framebuffer->width, framebuffer->height);
-	xsdk_gpu_set_target_at(framebuffer->width, framebuffer->height, 0, XSDK_EDRAM_TILES - tiles);
+	const Framebuffer *const framebuffer = replay->framebuffer;
+	xsdk_gpu_set_target_at(framebuffer->width, framebuffer->height, 0, replay->depth_tile);
 }
 
 // Copies eDRAM's colour into the attachment, then clears what's asked; the target must be set again after.
@@ -251,18 +253,21 @@ static EdramPart cleared_color(const Framebuffer *framebuffer, uint32_t argb)
 	};
 }
 
-static EdramPart cleared_depth(const Framebuffer *framebuffer, float depth, uint32_t stencil)
+static EdramPart cleared_depth(const Framebuffer *framebuffer, uint32_t tile, float depth, uint32_t stencil)
 {
 	return (EdramPart){ .contents = EDRAM_CLEARED,
 		.width = framebuffer->width,
 		.height = framebuffer->height,
 		.depth = depth,
-		.stencil = stencil };
+		.stencil = stencil,
+		.tile = tile };
 }
 
-static EdramPart holding(const Image *image)
+static EdramPart holding(const Image *image, uint32_t tile)
 {
-	return (EdramPart){ .contents = EDRAM_IMAGE, .width = image->width, .height = image->height, .image = image };
+	return (EdramPart){
+		.contents = EDRAM_IMAGE, .width = image->width, .height = image->height, .image = image, .tile = tile
+	};
 }
 
 // Whether eDRAM's colour is what the pass's load op wants there.
@@ -285,22 +290,81 @@ static bool depth_ready(const EdramPart *depth, const Replay *replay)
 		depth->depth == replay->clear_depth && depth->stencil == replay->clear_stencil;
 }
 
-// Colour reaching the tiles depth holds overwrites it.
-static void cover_depth(VkQueue queue, const Framebuffer *framebuffer)
+// Whether a depth eDRAM holds reaches into tiles first to first + tiles.
+static bool part_overlaps(const EdramPart *part, uint32_t first, uint32_t tiles)
 {
-	const EdramPart *const depth = &queue->depth;
-	if (depth->contents == EDRAM_UNKNOWN)
-		return;
-	const uint32_t depth_tile = XSDK_EDRAM_TILES - xsdk_gpu_target_tiles(depth->width, depth->height);
-	if (xsdk_gpu_target_tiles(framebuffer->width, framebuffer->height) > depth_tile)
-		queue->depth = (EdramPart){ .contents = EDRAM_UNKNOWN };
+	return part->contents != EDRAM_UNKNOWN && part->tile < first + tiles &&
+		first < part->tile + xsdk_gpu_target_tiles(part->width, part->height);
+}
+
+// Whether tiles first to first + tiles stay above the pass's colour and miss every depth image eDRAM holds.
+static bool depth_tiles_free(VkQueue queue, uint32_t first, uint32_t tiles, uint32_t color_tiles)
+{
+	if (first < color_tiles)
+		return false;
+	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS; i++) {
+		if (queue->depths[i].contents == EDRAM_IMAGE && part_overlaps(&queue->depths[i], first, tiles))
+			return false;
+	}
+	return true;
+}
+
+// Where a depth eDRAM doesn't hold goes: ending at the top, as milestone 4 placed every depth, or else just under a
+// depth image eDRAM holds, so that image keeps its depth for a later pass to load; at the top all the same when
+// neither fits.
+static uint32_t new_depth_tile(VkQueue queue, uint32_t tiles, uint32_t color_tiles)
+{
+	const uint32_t top = XSDK_EDRAM_TILES - tiles;
+	if (depth_tiles_free(queue, top, tiles, color_tiles))
+		return top;
+	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS; i++) {
+		const EdramPart *const part = &queue->depths[i];
+		if (part->contents == EDRAM_IMAGE && part->tile >= tiles &&
+			depth_tiles_free(queue, part->tile - tiles, tiles, color_tiles))
+			return part->tile - tiles;
+	}
+	return top;
+}
+
+// Places the pass's depth: where eDRAM holds its image's, or the clear the pass wants at its size, or at new tiles.
+// Whatever depth the pass's colour or depth then reaches is lost, as colour drawn over it overwrites it.
+static void place_depth(VkQueue queue, Replay *replay)
+{
+	const RenderPass *const render_pass = replay->render_pass;
+	const Framebuffer *const framebuffer = replay->framebuffer;
+	const uint32_t tiles = xsdk_gpu_target_tiles(framebuffer->width, framebuffer->height);
+	uint32_t part = V4X_EDRAM_DEPTHS;
+	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS && render_pass->has_depth; i++) {
+		const EdramPart *const depth = &queue->depths[i];
+		if ((depth->contents == EDRAM_IMAGE && depth->image == framebuffer->depth) ||
+			(part == V4X_EDRAM_DEPTHS && render_pass->clears_depth && depth_ready(depth, replay)))
+			part = i;
+	}
+	const uint32_t tile = part < V4X_EDRAM_DEPTHS ? queue->depths[part].tile
+												  : new_depth_tile(queue, tiles, render_pass->has_depth ? tiles : 0);
+	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS; i++) {
+		if (i != part &&
+			(part_overlaps(&queue->depths[i], 0, tiles) ||
+				(render_pass->has_depth && part_overlaps(&queue->depths[i], tile, tiles))))
+			queue->depths[i] = (EdramPart){ .contents = EDRAM_UNKNOWN };
+	}
+	// A new depth takes a part eDRAM no longer holds, or else the last.
+	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS && part == V4X_EDRAM_DEPTHS; i++) {
+		if (queue->depths[i].contents == EDRAM_UNKNOWN)
+			part = i;
+	}
+	if (part == V4X_EDRAM_DEPTHS)
+		part = V4X_EDRAM_DEPTHS - 1;
+	replay->depth_part = part;
+	replay->depth_tile = render_pass->has_depth ? tile : XSDK_EDRAM_TILES - tiles;
 }
 
 // Depth never leaves eDRAM, so loading it after eDRAM lost it finds undefined contents.
-static void check_depth_kept(VkQueue queue, const Framebuffer *framebuffer)
+static void check_depth_kept(VkQueue queue, const Replay *replay)
 {
 	static bool logged;
-	if (logged || (queue->depth.contents == EDRAM_IMAGE && queue->depth.image == framebuffer->depth))
+	const EdramPart *const depth = &queue->depths[replay->depth_part];
+	if (logged || (depth->contents == EDRAM_IMAGE && depth->image == replay->framebuffer->depth))
 		return;
 	xsdk_log_write("vulkan4xenon: a depth attachment was loaded after eDRAM lost it; its contents are undefined");
 	logged = true;
@@ -312,26 +376,27 @@ static void begin_render_pass(VkQueue queue, Replay *replay)
 {
 	const RenderPass *const render_pass = replay->render_pass;
 	const Framebuffer *const framebuffer = replay->framebuffer;
-	cover_depth(queue, framebuffer);
-	set_target(framebuffer);
+	place_depth(queue, replay);
+	set_target(replay);
 	if (render_pass->has_depth && render_pass->loads_depth)
-		check_depth_kept(queue, framebuffer);
+		check_depth_kept(queue, replay);
 	if (!color_ready(&queue->color, replay) && render_pass->load_op == VK_ATTACHMENT_LOAD_OP_LOAD) {
 		v4x_blit_draw(&queue->blit, &framebuffer->attachment->texture, framebuffer->width, framebuffer->height);
 		framebuffer->attachment->used_serial = replay->serial;
-		queue->color = holding(framebuffer->attachment);
+		queue->color = holding(framebuffer->attachment, 0);
 	}
+	EdramPart *const depth = &queue->depths[replay->depth_part];
 	const bool clear_color = !color_ready(&queue->color, replay);
-	const bool clear_depth = render_pass->clears_depth && !depth_ready(&queue->depth, replay);
+	const bool clear_depth = render_pass->clears_depth && !depth_ready(depth, replay);
 	if (clear_color || clear_depth) {
 		if (clear_depth)
 			set_depth_clear(queue, replay->clear_depth, replay->clear_stencil);
 		resolve(framebuffer->attachment, replay->serial, clear_color, clear_depth, replay->clear_argb);
-		set_target(framebuffer);
+		set_target(replay);
 		if (clear_color)
 			queue->color = cleared_color(framebuffer, replay->clear_argb);
 		if (clear_depth)
-			queue->depth = cleared_depth(framebuffer, replay->clear_depth, replay->clear_stencil);
+			*depth = cleared_depth(framebuffer, replay->depth_tile, replay->clear_depth, replay->clear_stencil);
 	}
 	replay->pipeline_dirty = true;
 	// Drawing an image back and resolves point streams and slots of their own.
@@ -370,12 +435,24 @@ static bool end_depth_clear(const Replay *replay, const Command *next, float *de
 		framebuffer->height == replay->framebuffer->height;
 }
 
+// A sampled depth attachment the pass leaves to be read goes into its texture first, clearing nothing, so the colour's
+// resolve clears as it would.
+static void resolve_depth(Image *depth, uint32_t serial)
+{
+	xsdk_gpu_set_resolve_clears(false, false);
+	xsdk_gpu_resolve_depth_texture(&depth->texture);
+	depth->used_serial = serial;
+}
+
 static void end_render_pass(VkQueue queue, Replay *replay, const Command *next)
 {
 	const RenderPass *const render_pass = replay->render_pass;
 	const Framebuffer *const framebuffer = replay->framebuffer;
+	EdramPart *const depth_part = &queue->depths[replay->depth_part];
 	if (render_pass->has_depth)
-		queue->depth = holding(framebuffer->depth);
+		*depth_part = holding(framebuffer->depth, replay->depth_tile);
+	if (render_pass->has_depth && render_pass->leaves_depth_to_read && framebuffer->depth->is_sampled_depth)
+		resolve_depth(framebuffer->depth, replay->serial);
 	if (render_pass->store_op != VK_ATTACHMENT_STORE_OP_STORE) {
 		queue->color = (EdramPart){ .contents = EDRAM_UNKNOWN };
 		return;
@@ -388,9 +465,9 @@ static void end_render_pass(VkQueue queue, Replay *replay, const Command *next)
 	if (clear_depth)
 		set_depth_clear(queue, depth, stencil);
 	resolve(framebuffer->attachment, replay->serial, clear_color, clear_depth, argb);
-	queue->color = clear_color ? cleared_color(framebuffer, argb) : holding(framebuffer->attachment);
+	queue->color = clear_color ? cleared_color(framebuffer, argb) : holding(framebuffer->attachment, 0);
 	if (clear_depth)
-		queue->depth = cleared_depth(framebuffer, depth, stencil);
+		*depth_part = cleared_depth(framebuffer, replay->depth_tile, depth, stencil);
 }
 
 // The next render pass in the command buffer after this command, if there is one.

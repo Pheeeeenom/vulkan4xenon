@@ -39,8 +39,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 
 - One physical device, and one device at a time: a second `vkCreateDevice` returns `VK_ERROR_TOO_MANY_OBJECTS`, since
   the GPU has one owner. `vkCreateDevice` takes the GPU from XAM (`xsdk_gpu_open`) and shows the boot logo.
-- No features. Requesting any returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires `robustBufferAccess`;
-  that's a deviation.
+- One feature, `samplerAnisotropy` (Samplers). Requesting any other returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan
+  1.0 requires `robustBufferAccess`; that's a deviation.
 - One queue family with one queue, `VK_QUEUE_GRAPHICS_BIT` only. Vulkan 1.0 requires a family with graphics and
   compute together; Xenos has no compute stage, so that's a deviation.
 
@@ -146,16 +146,28 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - Every load op: clear, load or don't-care. Store op store or don't-care.
 - Depth and stencil clear together, as one register holds both (xsdk:src/gpu_resolve.c). A depth attachment that
   clears one and loads the other returns `VK_ERROR_FEATURE_NOT_PRESENT`.
-- **Depth stays in eDRAM:** resolving depth out is an xsdk TODO, so a depth attachment is stored only in eDRAM.
-  Loading it finds what the last pass left there, as long as no other depth attachment and no colour reaching its
-  tiles came in between. **Deviation:** otherwise its contents are undefined, and the layer logs that once. Depth
-  images can't be sampled or copied.
+- **Depth stays in eDRAM:** a depth attachment is stored in eDRAM. Loading it finds what the last pass left there, as
+  long as no colour and no other depth reached its tiles in between: a pass with another depth places it under the
+  first where both fit above the pass's colour (How it maps). **Deviation:** otherwise its contents are undefined, and
+  the layer logs that once.
+- **Depth to sample:** a depth image made with `VK_IMAGE_USAGE_SAMPLED_BIT` is resolved out of eDRAM into its texture
+  (`xsdk_gpu_resolve_depth_texture`) when a pass stores its depth or stencil and leaves it in a layout a shader samples
+  in: `finalLayout` `VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL`, `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL` or
+  `VK_IMAGE_LAYOUT_GENERAL`. A pass that leaves it `VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL` keeps it in eDRAM
+  alone, so the passes a later one loads cost no resolve (milestone 14). The resolve comes before the colour's and
+  clears nothing, so the colour's clears as it would.
+- A barrier moving a sampled depth image from `VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL` to one of those
+  layouts fails the command buffer: `vkEndCommandBuffer` returns `VK_ERROR_FEATURE_NOT_PRESENT`, as only a pass's end
+  resolves depth. Depth images can't be copied.
 - Framebuffers: the render pass's attachments, their full size, up to 1280x720, one layer. Colour attachments are
   swapchain images or images made with `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`. The render area must be the whole
   framebuffer.
 - How it maps (docs/ROADMAP.md, milestone 4):
-  - the pass draws into eDRAM, colour from tile 0 and depth ending at tile 2048, so a pass without depth leaves an
-    earlier pass's depth alone;
+  - the pass draws into eDRAM, colour from tile 0 and depth where eDRAM holds its image's, or the clear it wants at
+    its size; a depth eDRAM doesn't hold goes ending at tile 2048, or just under a depth image eDRAM holds there when
+    that stays above the pass's colour, so a pass with a smaller depth of its own leaves the earlier one alone, as a
+    pass without depth does (milestone 14). Up to four depths are tracked, each lost when a pass's colour or depth
+    reaches its tiles;
   - its end resolves the colour into the attachment's image;
   - the layer tracks what eDRAM holds: values a resolve cleared it to, at a framebuffer's size, or an image's
     contents;
@@ -175,8 +187,15 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - Optimal tiling is Xenos's tiled layout, with mips as xsdk milestones 15 and 16 settled.
 - Memory requirements: the texture's size, 4 KB aligned, as a fetch constant holds its address in 4 KB units. Binding
   places the texels at the memory (`xsdk_texture_attach`).
-- Depth images: `VK_FORMAT_D24_UNORM_S8_UINT`, one level, used as a depth attachment only. Their memory requirement is
-  one page, which nothing uses.
+- Depth images: `VK_FORMAT_D24_UNORM_S8_UINT`, one level, a depth attachment, and sampled if they're made to be. One
+  that isn't has a memory requirement of one page, which nothing uses. A sampled one is a tiled D24S8 texture
+  (`XSDK_FORMAT_D24S8`), both sides over 16 texels as a resolve needs, and needs its texture's memory:
+  - after a pass leaves it to be read (Render passes), each texel's word in its memory holds depth's 24 bits above
+    stencil's 8, as the CPU reads it, at `tiled_index` (tests/tiled_index.h) of the texel and the 32-texel pitch.
+    **Deviation:** Vulkan leaves an optimal-tiled image's memory opaque; a mapped read of it is how an app reads depth
+    back without a copy that waits for the GPU;
+  - sampled, it returns the depth from 0 to 1 in red, 0 in green and blue and 1 in alpha, whatever the view's aspect
+    mask.
 - Image views: the whole of a 2D image in its format. A component mapping sets the fetch constant's swizzle
   (`xsdk_texture_swizzle`), so a view samples any of the format's channels, 0 or 1 as each of red, green, blue and
   alpha; a swizzled view of a depth image returns `VK_ERROR_FEATURE_NOT_PRESENT`.
@@ -184,7 +203,10 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 ## Samplers
 
 - Nearest or linear filtering and mips; repeat, mirrored repeat or clamp to edge; a LOD bias within 15.
-- Clamp to border, anisotropy, comparison, unnormalized coordinates and a minimum LOD above 0 return
+- Anisotropy, on a device made with `samplerAnisotropy`: `maxAnisotropy` from 1 to 16, which xsdk's sampler rounds
+  down to a power of two (xsdk:include/xsdk/texture.h). Without the feature, or past 16, it returns
+  `VK_ERROR_FEATURE_NOT_PRESENT`.
+- Clamp to border, comparison, unnormalized coordinates and a minimum LOD above 0 return
   `VK_ERROR_FEATURE_NOT_PRESENT`; they're xsdk TODO items.
 - **Deviation:** the maximum LOD is ignored, so a mipped image samples all its levels.
 
@@ -214,7 +236,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   for the GPU to be done with what used the image: the submission that last sampled it, resolved into it or drew it
   back into eDRAM, for the fence that submission ended with; earlier in its own, for the GPU to finish what came
   before. An image no submission used isn't waited for (milestone 12).
-- `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for what used their image.
+- `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for what used their image. One that
+  would have a sampled depth image read from an attachment fails the command buffer (Render passes).
 - `vkCmdDraw` and `vkCmdDrawIndexed`: one instance, `firstInstance` 0.
   - `firstVertex` and `vertexOffset` move each stream's address, since xsdk draws from vertex 0.
   - `firstIndex` moves the index buffer's address. Indices are 16 or 32 bits, with values up to 2^24 - 1.
@@ -258,7 +281,7 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 | Format | Features |
 |---|---|
 | `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending |
-| `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment |
+| `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, nearest filtering only, as filtering depth hasn't been tried on the console |
 | `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
 | `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering |
 | `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
@@ -299,7 +322,7 @@ compute. Where Vulkan 1.0 has a minimum for one of those, the 0 is below it. `mi
 | `viewportBoundsRange` | -8192, 8191 |
 | `subPixelPrecisionBits` | 4 |
 | `maxSamplerLodBias` | 15 |
-| `maxSamplerAnisotropy` | 1 |
+| `maxSamplerAnisotropy` | 16 |
 | `minMemoryMapAlignment` | 65536 |
 | `minTexelBufferOffsetAlignment`, `minUniformBufferOffsetAlignment`, `minStorageBufferOffsetAlignment` | 256 |
 | `maxFramebufferWidth`, `maxFramebufferHeight` | 1280, 720 |

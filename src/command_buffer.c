@@ -376,14 +376,15 @@ VKAPI_ATTR void VKAPI_CALL vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer,
 	}
 }
 
-// Replay is in order and copies wait for the GPU, so barriers need nothing.
+// Replay is in order and copies wait for the GPU, so barriers need nothing. But a sampled depth image's depth reaches
+// its texture only from a render pass that leaves it to be read (render_pass.c), so a barrier that moves it from an
+// attachment to be read is refused rather than sampling what it held before.
 VKAPI_ATTR void VKAPI_CALL vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask,
 	VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount,
 	const VkMemoryBarrier *pMemoryBarriers, uint32_t bufferMemoryBarrierCount,
 	const VkBufferMemoryBarrier *pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount,
 	const VkImageMemoryBarrier *pImageMemoryBarriers)
 {
-	(void)commandBuffer;
 	(void)srcStageMask;
 	(void)dstStageMask;
 	(void)dependencyFlags;
@@ -391,8 +392,16 @@ VKAPI_ATTR void VKAPI_CALL vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, V
 	(void)pMemoryBarriers;
 	(void)bufferMemoryBarrierCount;
 	(void)pBufferMemoryBarriers;
-	(void)imageMemoryBarrierCount;
-	(void)pImageMemoryBarriers;
+	for (uint32_t i = 0; i < imageMemoryBarrierCount; i++) {
+		const VkImageMemoryBarrier *const barrier = &pImageMemoryBarriers[i];
+		const Image *const image = v4x_object(barrier->image);
+		if (image->is_sampled_depth && barrier->oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
+			v4x_read_layout(barrier->newLayout)) {
+			commandBuffer->result = v4x_host_unsupported(
+				"barriers moving a sampled depth image from an attachment to be read; a render pass must leave it so");
+			return;
+		}
+	}
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdSetViewport(

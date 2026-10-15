@@ -39,6 +39,12 @@ static VkResult check_subpass(const VkRenderPassCreateInfo *info)
 	return VK_SUCCESS;
 }
 
+bool v4x_read_layout(VkImageLayout layout)
+{
+	return layout == VK_IMAGE_LAYOUT_GENERAL || layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
+		layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateRenderPass(VkDevice device, const VkRenderPassCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass)
 {
@@ -66,6 +72,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateRenderPass(VkDevice device, const VkRende
 			stencil->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR || stencil->stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR;
 		render_pass->loads_depth =
 			stencil->loadOp == VK_ATTACHMENT_LOAD_OP_LOAD || stencil->stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD;
+		const bool stores =
+			stencil->storeOp == VK_ATTACHMENT_STORE_OP_STORE || stencil->stencilStoreOp == VK_ATTACHMENT_STORE_OP_STORE;
+		render_pass->leaves_depth_to_read = stores && v4x_read_layout(stencil->finalLayout);
 	}
 	*pRenderPass = v4x_handle(render_pass);
 	return VK_SUCCESS;
@@ -89,7 +98,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateFramebuffer(VkDevice device, const VkFram
 	// Colour and depth at the display's size fill 1440 of eDRAM's tiles (xsdk:SCOPE.md 3.4).
 	if (pCreateInfo->width > V4X_DISPLAY_WIDTH || pCreateInfo->height > V4X_DISPLAY_HEIGHT)
 		return v4x_host_unsupported("framebuffers larger than 1280x720");
-	const Image *depth = NULL;
+	Image *depth = NULL;
 	if (render_pass->has_depth) {
 		depth = ((const ImageView *)v4x_object(pCreateInfo->pAttachments[render_pass->depth_index]))->image;
 		if (!depth->is_depth || depth->width != view->image->width || depth->height != view->image->height)

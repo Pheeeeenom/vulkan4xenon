@@ -76,7 +76,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.subPixelPrecisionBits = 4,
 			.maxDrawIndexedIndexValue = MAX_INDEX_VALUE,
 			.maxSamplerLodBias = MAX_LOD_BIAS,
-			.maxSamplerAnisotropy = 1.0f,
+			.maxSamplerAnisotropy = XSDK_MAX_ANISOTROPY,
 			.minMemoryMapAlignment = MAP_ALIGNMENT,
 			.minTexelBufferOffsetAlignment = 256,
 			.minUniformBufferOffsetAlignment = 256,
@@ -104,7 +104,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures(
 	VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures *pFeatures)
 {
 	(void)physicalDevice;
-	*pFeatures = (VkPhysicalDeviceFeatures){ 0 };
+	*pFeatures = (VkPhysicalDeviceFeatures){ .samplerAnisotropy = VK_TRUE };
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice,
@@ -152,7 +152,9 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 		pFormatProperties->optimalTilingFeatures = color;
 		break;
 	case VK_FORMAT_D24_UNORM_S8_UINT:
-		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		// Sampled, its depth in red: nearest only, as filtering depth hasn't been tried on the console.
+		pFormatProperties->optimalTilingFeatures =
+			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
 		break;
 	case VK_FORMAT_R8_UNORM:
 	case VK_FORMAT_R8G8_UNORM:
@@ -180,16 +182,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 	VkImageFormatProperties *pImageFormatProperties)
 {
 	(void)physicalDevice;
-	const VkImageUsageFlags depth_usage =
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
 	if (format == VK_FORMAT_D24_UNORM_S8_UINT && type == VK_IMAGE_TYPE_2D && tiling == VK_IMAGE_TILING_OPTIMAL &&
-		!(usage & ~depth_usage) && !flags) {
+		!(usage & ~(VkImageUsageFlags)V4X_DEPTH_IMAGE_USAGE) && !flags) {
 		*pImageFormatProperties = (VkImageFormatProperties){
 			.maxExtent = { V4X_DISPLAY_WIDTH, V4X_DISPLAY_HEIGHT, 1 },
 			.maxMipLevels = 1,
 			.maxArrayLayers = 1,
 			.sampleCounts = VK_SAMPLE_COUNT_1_BIT,
-			.maxResourceSize = DEPTH_IMAGE_BYTES,
+			.maxResourceSize = (usage & VK_IMAGE_USAGE_SAMPLED_BIT) ? HEAP_BYTES : DEPTH_IMAGE_BYTES,
 		};
 		return VK_SUCCESS;
 	}

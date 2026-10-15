@@ -61,7 +61,8 @@ typedef enum {
 	EDRAM_IMAGE,
 } EdramContents;
 
-// What eDRAM's colour, or its depth and stencil, holds between render passes (docs/ROADMAP.md, milestone 4).
+// What eDRAM's colour, or a depth and stencil, holds between render passes (docs/ROADMAP.md, milestone 4); a depth's
+// first tile, colour's being tile 0.
 typedef struct {
 	EdramContents contents;
 	uint32_t width;
@@ -70,6 +71,7 @@ typedef struct {
 	float depth;
 	uint32_t stencil;
 	const struct Image *image;
+	uint32_t tile;
 } EdramPart;
 
 // The layer's own shaders and state for drawing an image back into eDRAM.
@@ -88,12 +90,15 @@ typedef struct {
 enum {
 	// The fences of this many submissions are kept, for copies into images they used.
 	V4X_SUBMIT_FENCES = 64,
+	// The depths eDRAM keeps track of at once.
+	V4X_EDRAM_DEPTHS = 4,
 };
 
 struct VkQueue_T {
 	VkDevice device;
 	EdramPart color;
-	EdramPart depth;
+	// Depths at tiles of their own, so a pass with depth of its own needn't take an earlier pass's (milestone 14).
+	EdramPart depths[V4X_EDRAM_DEPTHS];
 	// The depth and stencil resolves clear to, as last given to xsdk_gpu_set_depth_clear.
 	float depth_clear;
 	uint32_t stencil_clear;
@@ -113,6 +118,8 @@ struct VkDevice_T {
 	V4xShader **shaders;
 	uint32_t shader_count;
 	uint32_t shader_capacity;
+	// The samplerAnisotropy feature, enabled when the device was made.
+	bool sampler_anisotropy;
 };
 
 typedef struct {
@@ -140,8 +147,10 @@ typedef struct Image {
 	bool is_texture;
 	// Render passes may resolve into it.
 	bool is_attachment;
-	// A depth attachment lives in eDRAM; its memory is never used.
+	// A depth attachment lives in eDRAM, its memory never used unless it's made to be sampled: then a render pass that
+	// stores it and leaves it to be read resolves it into its texture, D24S8.
 	bool is_depth;
+	bool is_sampled_depth;
 	XsdkTexture texture;
 	// The submission that last sampled it, resolved into it or drew it back into eDRAM, so a copy waits for that
 	// one alone; 0 for none.
@@ -244,11 +253,14 @@ typedef struct {
 	uint32_t depth_index;
 	bool clears_depth;
 	bool loads_depth;
+	// It stores depth or stencil and leaves the attachment in a layout to sample it in, so a sampled depth image is
+	// resolved into its texture at its end; one kept as an attachment stays in eDRAM alone.
+	bool leaves_depth_to_read;
 } RenderPass;
 
 typedef struct {
 	Image *attachment;
-	const Image *depth;
+	Image *depth;
 	uint32_t width;
 	uint32_t height;
 } Framebuffer;

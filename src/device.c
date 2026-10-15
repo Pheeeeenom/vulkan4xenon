@@ -14,12 +14,15 @@
 // The GPU has one owner, so there's one device at a time.
 static bool device_exists;
 
+// Every feature off but sampler anisotropy, the one the device has.
 static bool features_off(const VkPhysicalDeviceFeatures *features)
 {
 	if (!features)
 		return true;
-	VkBool32 flags[sizeof *features / sizeof(VkBool32)];
-	memcpy(flags, features, sizeof flags);
+	VkPhysicalDeviceFeatures others = *features;
+	others.samplerAnisotropy = VK_FALSE;
+	VkBool32 flags[sizeof others / sizeof(VkBool32)];
+	memcpy(flags, &others, sizeof flags);
 	for (uint32_t i = 0; i < sizeof flags / sizeof flags[0]; i++) {
 		if (flags[i])
 			return false;
@@ -85,6 +88,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, c
 		device->has_allocator = true;
 	}
 	device->queue.device = device;
+	device->sampler_anisotropy = pCreateInfo->pEnabledFeatures && pCreateInfo->pEnabledFeatures->samplerAnisotropy;
 	// Resolves clear depth to far and stencil to 0 until a render pass says otherwise.
 	xsdk_gpu_set_depth_clear(1.0f, 0);
 	device->queue.depth_clear = 1.0f;

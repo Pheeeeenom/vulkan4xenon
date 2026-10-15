@@ -43,8 +43,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSampler(VkDevice device, const VkSamplerC
 	};
 	if (!address_mode(info->addressModeU, &setting.address_u) || !address_mode(info->addressModeV, &setting.address_v))
 		return v4x_host_unsupported("address modes other than repeat, mirrored repeat and clamp to edge");
-	if (info->anisotropyEnable || info->compareEnable || info->unnormalizedCoordinates)
-		return v4x_host_unsupported("anisotropy, comparison and unnormalized coordinates");
+	if (info->compareEnable || info->unnormalizedCoordinates)
+		return v4x_host_unsupported("comparison and unnormalized coordinates");
+	// The most anisotropy goes to xsdk's sampler, which rounds it down to a power of two.
+	if (info->anisotropyEnable) {
+		if (!device->sampler_anisotropy || info->maxAnisotropy < 1.0f || info->maxAnisotropy > XSDK_MAX_ANISOTROPY)
+			return v4x_host_unsupported("anisotropy without the device's samplerAnisotropy, or past 1 to 16");
+		setting.max_anisotropy = (uint32_t)info->maxAnisotropy;
+	}
 	if (info->minLod != 0.0f || info->mipLodBias < -MAX_LOD_BIAS || info->mipLodBias > MAX_LOD_BIAS)
 		return v4x_host_unsupported("a minimum LOD above 0, and LOD biases beyond 15");
 	Sampler *const sampler = v4x_host_alloc(
