@@ -43,7 +43,13 @@ drew the same picture.
 Every frame goes in `game:\vkbench_frames.csv` and the summary in `game:\vkbench_summary.csv`. docs/ROADMAP.md,
 milestone 5, has the scenes and how they're timed.
 
-## Trademark
+## Licence
+
+vulkan4xenon is under the MIT licence (LICENSE), copyright Mena. THIRD_PARTY_NOTICES.md lists the code from elsewhere
+in the repository and points to xsdk's notices, which every title built on it ships.
+
+## Trademarks
 
 The Vulkan logo is a registered trademark of the Khronos Group, used here at the project owner's choice. vulkan4xenon
-doesn't claim conformance.
+doesn't claim conformance. vulkan4xenon isn't affiliated with or endorsed by Microsoft; Xbox and Xbox 360 are
+trademarks of Microsoft, and the repository holds no Microsoft code.
