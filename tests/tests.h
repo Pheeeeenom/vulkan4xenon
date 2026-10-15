@@ -33,6 +33,8 @@ void test_render_to_texture(const Harness *harness);
 void test_run_time_index(const Harness *harness);
 // Copies from cached memory, R8 and R8G8 through swizzled views, R8 filtered, and copies around a draw (milestone 12).
 void test_uploads(const Harness *harness);
+// Images one texel high, as palettes are, every texel drawn where it should be (milestone 14).
+void test_thin_textures(const Harness *harness);
 // Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
 void test_shader_cache_start(void);
 // The files the layer kept, and a second device reading the triangle's shaders back; called after the first goes.

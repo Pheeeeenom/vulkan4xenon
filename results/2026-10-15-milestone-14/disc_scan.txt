@@ -1,0 +1,49 @@
+     132  2D screens
+            /res/Layout/clctres.arc/zelda_collect_soubi_do_icon_parts.blo
+            /res/Layout/clctres.arc/zelda_collect_soubi_screen.blo
+            /res/Layout/clctres.arc/zelda_item_screen_save.blo
+            /res/Layout/clctres.arc/zelda_letter_select_6menu.blo
+     265  2D texgens
+            /res/Layout/clctres.arc/zelda_collect_soubi_do_icon_parts.blo
+            /res/Layout/clctres.arc/zelda_collect_soubi_screen.blo
+            /res/Layout/clctres.arc/zelda_item_screen_save.blo
+            /res/Layout/clctres.arc/zelda_letter_select_6menu.blo
+       1  MAT2 (v21) material blocks, not read
+            /res/Object/Fshop.arc/dm.bmd
+    4213  Yaz0 files
+            /res/Object/Demo19_01.arc
+            /res/Stage/F_SP115/R00_00.arc
+            /res/Object/Demo07_02.arc
+            /res/Object/Demo18_00.arc
+      11  blend: subtract
+            /res/Object/Demo26_00.arc/demo26_gwall_cut00_gp_1.bmd material 1
+            /res/Object/Demo26_00.arc/demo26_gwall_cut00_gp_1.bmd material 2
+            /res/Object/Demo21_02.arc/demo21_ganonwall_cut00_gp_1.bmd material 1
+            /res/Object/Demo21_02.arc/demo21_ganonwall_cut00_gp_1.bmd material 2
+   13371  materials
+     222  materials with 0 texgens
+    9850  materials with 1 texgens
+    2059  materials with 2 texgens
+    1094  materials with 3 texgens
+      41  materials with 4 texgens
+      78  materials with 5 texgens
+       2  materials with 6 texgens
+      25  materials with 7 texgens
+   18130  models
+    3093  texture format 0
+     860  texture format 1
+   11545  texture format 14
+     718  texture format 2
+     550  texture format 3
+     588  texture format 4
+    1666  texture format 5
+      32  texture format 6
+      36  texture format 8
+     405  texture format 9
+    1880  texture: LOD bias
+            /res/Object/Demo19_01.arc/demo19_doc_cut00_gp_1.bmd
+            /res/Object/Demo19_01.arc/demo19_yelia_cut00_gp_1.bmd
+            /res/Object/Demo19_01.arc/demo19_gzne_cut00_gp_1.bmd
+            /res/Object/Demo19_01.arc/demo19_the_cut00_gp_1.bmd
+    6396  texture: mipped
+   19493  textures

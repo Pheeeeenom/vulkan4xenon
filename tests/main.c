@@ -38,6 +38,7 @@ int main(void)
 		test_render_to_texture(&harness);
 		test_run_time_index(&harness);
 		test_uploads(&harness);
+		test_thin_textures(&harness);
 	}
 	harness_destroy(&harness);
 	if (made)

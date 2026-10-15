@@ -1356,13 +1356,110 @@ console's memory ran out (milestone 15), 204 of them weren't made, and the map w
 3. **Getting there.** The diagnostics build's warp to Ordon (milestone 15) shows the map without anyone at the pad,
    and captures the frame.
 
+**Found on the way (2026-10-14).** With the conversion in, the map still came out wrong, so the PC's Dawn build ran the
+same warp beside the console's, logging each step. The copy's indices, the palette, the TEV registers and the uniforms
+the GPU read all matched the PC's. What didn't: the map's areas, the draws with C0 at index 188, are GX lines, and the
+GLSL generator refuses lines and points ("no GLSL yet for config ...: lines and points", three configs), so those
+draws get no pipeline and are skipped. The map showed only what's drawn as triangles.
+
+**Agreed with the user (2026-10-14), added:**
+
+4. **Lines and points, as the WebGPU backend draws them** (aurora-xenon:lib/gx/shader.cpp:1042-1125): each segment
+   and each point a quad in screen space, as wide as GX's line width or point size, in sixths of a pixel, scaled from
+   the game's viewport to the one drawn into, its texture coordinates offset across it as `GXSetLineWidth`'s and
+   `GXSetPointSize`'s texture offsets say (gx/shader_info.cpp:355-380). The layer draws lines and points 1 pixel wide
+   (docs/SUPPORT.md, Pipelines) and xost has no instancing or storage buffers, so the backend's vertex decode writes
+   each segment's or point's corners as two triangles, each corner with its end, the other end and which corner it is,
+   and the GLSL vertex program moves the corners out from the ends' clip positions. The game draws them for the minimap
+   and its paths (d_map.cpp, d_map_path.cpp, with `GX_TO_ONE` offsets), the effect lines (d_drawlist.cpp,
+   `dDlst_effectLine_c`), 2D points (`dDlst_2DPoint_c`) and debug packets (m_Do_ext.cpp).
+
+**Agreed with the user (2026-10-14), after lines and points:** the rest of what the game draws that the backend
+refuses. Two more errors show in every console run past the title, and both need depth read out of eDRAM, which
+neither xsdk nor the layer can do yet (xsdk:TODO.md, "Depth resolves"; docs/SUPPORT.md, "Depth stays in eDRAM"):
+- "Depth copies (format 19) aren't supported": the depth of field copies the scene's depth as `GX_TF_Z16`
+  (dusklight-xenon:src/m_Do/m_Do_graphic.cpp:1134), so the blur reads a texture never written;
+- "GXPeekZ isn't supported": the sun's lens flare and the insects test their visibility against the depth
+  (d_kankyo_rain.cpp:357, d_insect.cpp:96), and read nothing.
+
+5. **Depth out of eDRAM.**
+   - xsdk resolves depth into a texture, as a resolve with `RB_COPY_CONTROL`'s source 4 does
+     (xenia:src/xenia/gpu/registers.h:856; xenos.h:925-933), checked by xsdk_test against depth it drew, and what a
+     fetch of the resolved texture returns measured on the console and recorded in docs/HARDWARE.md.
+   - The layer stores a depth attachment into its image when the image is made to be sampled, samples it, and copies
+     it into a buffer the CPU reads (`vkCmdCopyImageToBuffer`), checked by vulkan4xenon_test against known depths.
+   - Aurora's backend makes the `GX_TF_Z8` and `GX_TF_Z16` copies as the WebGPU backend's conversions do
+     (aurora-xenon:lib/gfx/tex_copy_conv.cpp, FragZ8 and FragZ16), and answers `GXPeekZ` from a snapshot of the
+     frame's depth, as gfx/depth_peek.cpp does.
+
+**Agreed with the user (2026-10-14), after depth:**
+
+6. **Anisotropic filtering.** Aurora asks for 16 times by default (aurora-xenon:lib/aurora.cpp:75-76) and the backend
+   asks for none, as the layer has none (`maxSamplerAnisotropy` 1, src/sampler.c:46-47), though xsdk's samplers have
+   had it since its milestone 33 (xsdk:SCOPE.md). The layer offers the `samplerAnisotropy` feature, up to 16, and
+   passes a sampler's `maxAnisotropy` to xsdk's; the backend asks for Aurora's setting. vulkan4xenon_test checks it as
+   xsdk_test does, stripes squeezed 8 to 1 keeping their contrast, and Dusklight's frame time in the title scene and
+   Ordon is measured with it and without, for the user to settle the default.
+
+**What else the backend refuses, and why it stays out.** Everything the backend refuses was checked against the game's
+code and against every model, 2D screen and texture on its disc (a scan of its 2,095 archives: 3,626 J3D models with
+13,371 materials, 132 2D screens, 19,493 textures). None of these is used:
+- emboss texgens and binormal or tangent sources, and vertex formats with binormals: none on the disc, none in the code;
+- more than xost's 10 interpolants: the most texgens a material has is 7, 10 with both colour channels and fog;
+- a TEV stage sampling a texture with no coordinates, and logic ops: none in any material. The code's one logic op,
+  the shadows' OR (d_drawlist.cpp:1574), is blending on the PC;
+- destination alpha: only `JFWDisplay::clearEfb` sets it, and it returns at once on the PC
+  (libs/JSystem/src/JFramework/JFWDisplay.cpp:486);
+- polygon offset: only `GX2SetPolygonOffset` sets it, and the game never calls it;
+- 16-bit palette indices (`GX_TF_C14X2` and the conversion's third variant): no texture on the disc, and no EFB copy;
+- a sampler's minimum LOD above 0, its own anisotropy, or a maximum LOD short of the texture's last level: no texture
+  on the disc sets one.
+
+Two gaps outside GX were found on the way, each agreed (2026-10-14) as a milestone of its own after milestones 14 and
+15: Dusklight's menus, milestone 16, and multisampling, milestone 17.
+
 **Done when,** on the console:
-- Ordon's minimap draws as on the PC's Dawn build, steady, and the log has no "Palette conversions" line; broken on
-  purpose, the index read one entry off, the map's colours come out wrong;
+- Ordon's minimap draws as on the PC's Dawn build, steady, and the log has no "Palette conversions" or "lines and
+  points" line; broken on purpose, the index read one entry off, the map's colours come out wrong, and with the line
+  width left out, its lines vanish, their quads having no area;
+- with step 5: the log has no "Depth copies" or "GXPeekZ" line, Ordon's depth of field matches the PC's at the same
+  warp, and the peeks the diagnostics build logs match the PC's; broken on purpose, the copy reading colour, the blur
+  comes out wrong;
+- with step 6: vulkan4xenon_test's stripes keep their contrast with anisotropy, and grey without it, and the frame
+  times with and without are reported;
 - vulkan4xenon_glsl_tests compile the new programs on the PC through glslang and xost, as the others;
 - Dusklight's title scene and logo shot run as before, and vulkan4xenon_test, vkbench and xsdk_test pass.
 
-**Left out:** palettes that don't come from EFB copies, which Aurora converts on the CPU; the 16-bit index variant.
+**Left out:** palettes that don't come from EFB copies, which Aurora converts on the CPU; the 16-bit index variant;
+the menus and multisampling, milestones 16 and 17.
+
+**Steps 1 to 4 on the console** (2026-10-15; `results/2026-10-15-milestone-14/`; Aurora `a41820d`, Dusklight
+`e5632c4f1a`, xsdk `2f8351d` and `0e8af8f`). Ordon's minimap draws as on the PC's Dawn build, the same warp from the
+title scene (`minimap_pc_console.png`; `ordon_console.png`, `ordon_pc.png`), steady over five captures 20 s apart
+(`minimap_5_captures.png`), and the log has no "Palette conversions" or "lines and points" line, only step 5's two
+(`dusklight_ordon.log`). Broken on purpose (`breaks.png`): with the line width left out, the map's outlines are gone;
+with each index read one entry off, Link's marker turns cyan, where the palette's entries, four alike in a row,
+change. Three things were found on the way:
+- **The game's map draws its areas' outlines as GX lines,** which the generator refused. Found by building Dusklight
+  for Windows on Dawn and logging the map's draws there and on the console side by side: the copy's indices, the
+  palette and the uniforms matched, and the draws at index 188 had no pipeline on the console. Hence step 4.
+- **The corners' first decode froze the console:** they were written into the vertex cache, write-combined memory,
+  through `memcpy`s of 8 and 12 bytes, which GCC makes 8-byte stores, and one at an odd word raised an alignment
+  exception there. Xenia ran it. They're written in cached memory and copied over a word at a time now, as the decode
+  writes (Aurora's lib/vulkan4xenon/decode.cpp).
+- **The conversion came out as noise on the console and right in Xenia,** from the same containers: xost never set
+  the serialize bit, and the ALU read the fetched index in its fetch's exec before the fetch had written it. xost now
+  serializes what an exec reads across the ALU and its fetches (xsdk:docs/HARDWARE.md, "Serialized fetches"). It also
+  lowered a vec2's `dot()` as a 4-wide one, which tools/check_glsl_math.py caught in the lines' corners.
+
+On the PC, vulkan4xenon_glsl_tests passed 39 of 39 (`vulkan4xenon_glsl_tests.txt`), the corners' order broken on
+purpose failing one (`vulkan4xenon_glsl_tests_corner_break.txt`), and their programs, 109, compiled through glslang and
+xost; tools/check_glsl_math.py passed its 17 cases (`check_glsl_math.txt`), three new for lines and points, which fail
+with the corners' sides swapped, the width unscaled or the mask ignored (`check_glsl_math_breaks.txt`). On the console
+the title scene ran at 28 to 30 fps and the logo shot took 17.6 ms of GPU time a frame as before, its end frame the
+same byte for byte; xsdk_test passed 300 of 300, vulkan4xenon_test 100 of 100 (with `test_thin_textures`, four strips
+16 to 256 by 1, written while the noise was chased) and vkbench 14 of 14 (xsdk:results/2026-10-15-serialized-fetches/).
+`disc_scan.txt` is the disc's scan behind "What else the backend refuses". Steps 5 and 6 are next.
 
 ### Milestone 15: GPU memory in Ordon
 
@@ -1407,6 +1504,26 @@ physical pages are accounted for to within the 3 to 4 MB there from boot, and st
 show is the played run's 143 MB: here Link stood still in a dialogue. Aurora keeps a palette texture for each EFB
 copy it converts until 600 frames go by unused (aurora-xenon:lib/gx/texture.cpp, sweep_object_caches), so 35 to 49 at
 once means the copies behind the map keep changing, and a moving player may well change them faster.
+
+### Milestone 16: Dusklight's menus
+
+**Why.** Dusklight's own menus, its settings, controller setup, achievements, graphics tuner and command console, are
+RmlUi documents (dusklight-xenon:src/dusk/ui/), and the vulkan4xenon backend skips every RmlUi draw
+(aurora-xenon:lib/vulkan4xenon/encoding.cpp, encode_pass: "recorded only on Dawn"), so on the console they run unseen.
+Aurora draws them on the PC through its WebGPU render interface (aurora-xenon:lib/rmlui/WebGPURenderInterface.cpp and
+pipeline.cpp, about 2,900 lines): geometry with a transform, scissors, clip masks, layers composited together, and
+blur, glass and drop-shadow filters.
+
+**Agreed with the user (2026-10-14)** as a milestone after 14 and 15; its scope is settled when it starts.
+
+### Milestone 17: multisampling
+
+**Why.** Aurora draws with Dusklight's anti-aliasing setting on the PC, and the backend draws with one sample whatever
+it's set to (aurora-xenon:lib/vulkan4xenon/backend.cpp:401-402). xsdk has had 2- and 4-sample targets since its
+milestone 32 (xsdk:SCOPE.md), but at 1280x720 a 2-sample colour and depth target needs 14 MB, past eDRAM's 10 MB, so
+the frame has to be drawn in tiles, as Xenos's predicated tiling does (xsdk:SCOPE.md, "predicated tiling").
+
+**Agreed with the user (2026-10-14)** as a milestone after 14 and 15; its scope is settled when it starts.
 
 ## 5. The Dusklight track
 

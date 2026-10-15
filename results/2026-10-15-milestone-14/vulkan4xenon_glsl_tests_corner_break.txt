@@ -1,0 +1,6 @@
+2
+[  FAILED  ] Corners.AreEachSegmentsEndsWithTheOtherEnd (0 ms)
+[  PASSED  ] 38 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Corners.AreEachSegmentsEndsWithTheOtherEnd
+[  PASSED  ] 39 tests.
