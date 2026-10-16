@@ -2155,6 +2155,12 @@ A draw whose pipeline has no loop costs one test.
     console from SPIR-V the bundle doesn't hold.
   - xsdk_test's compiler check takes `vk_vertex_if.vert`, `vk_vertex_uniform_if.vert` and `vk_loop_count_if.frag`, the
     console's containers and needs against the PC's.
+- **Broken on purpose:** `results/2026-10-16-milestone-21/breaks.py` and `builds.sh`, here and in xsdk, build a
+  `.xex` for each break from copies of the trees: six of xost's (an if/else on data's select taking the other arm,
+  the arms on the predicate swapped, a loop's counter stuck at 0, what a loop carries kept as it came in, pixel
+  shaders' loops at loop constant 0, and a Phi's arms swapped) and four of the layer's (a dynamic offset ignored, a
+  count unclamped, the loop constants written once, and a push constant's count read a word off). `breaks.py fails`
+  names the checks each should fail; on the PC, xost's change the containers of only the shaders those checks draw.
 
 ### Milestone 22: Shader Model 3's fetches and inputs
 
