@@ -21,7 +21,7 @@ software.
 | Vertex and pixel shaders from a high-level language | Yes | Yes: GLSL through xost, offline or on the console | Yes |
 | 256 vertex and 224 pixel float constants | Yes | Yes | Yes, 256 a stage |
 | Constant arrays at a run-time index, as skinning palettes are | Yes | Yes (xost:docs/xsc.md:71) | Yes |
-| `if` and `else` | Yes: conditional execs and predicates (xenia:src/xenia/gpu/ucode.h:101-130) | Yes: selects; a `switch`, and a `break` or `return` in an arm, refused (xost:docs/xsc.md, "Control flow") | Yes |
+| `if` and `else` | Yes: conditional execs and predicates (xenia:src/xenia/gpu/ucode.h:101-130) | Yes: selects on data, execs on the predicate where every vertex or pixel agrees; a `switch`, and a `break` or `return` in an arm, refused (xost:docs/xsc.md, "Control flow") | Yes |
 | Loops | Yes (xenia:src/xenia/gpu/ucode.h:132) | Partial: fixed counts unrolled, an `if` on data inside them (xost:docs/xsc.md, "Loops (unrolling + mem2reg)") | Partial: a shader that needs a hardware loop's constants is refused (SUPPORT.md, Shaders) |
 | `discard` | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md:64) | Yes |
 | Derivatives | Yes | Yes, confirmed on the console (xost:docs/xsc.md:282) | Yes |

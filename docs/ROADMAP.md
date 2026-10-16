@@ -2109,17 +2109,26 @@ Done when GLSL with each runs through the layer on the console, checked by pixel
    one path alone is refused, as nothing else gives the pixel a depth (xenia:src/xenia/gpu/draw_util.cc:498-502).
    Selects, not execs on the predicate, as such an exec runs for every vertex or pixel of 64 when any of them needs it
    (ucode.h:114-124), so arms that differ within a group run both either way (xost:docs/xsc.md, "Control flow").
+2. **An if/else every vertex or pixel agrees on, in execs on the predicate** (xsdk `36c09cc`). Where the condition
+   reads only push constants, uniform blocks and literals, and an arm works something out of its own, a `setp_*` sets
+   p0 (ucode.h:1162-1204) and the arms go in `(p0)` and `(!p0)` execs, every instruction in them predicated as its
+   exec is (ucode.h:114-124), so the arm not taken runs no instructions. An if/else inside such an arm is selects, as
+   there's one predicate.
 - **The checks:** vulkan4xenon_test's `test_branches.c`, each scene 30 frames, checked by pixel on every frame and on
   the screen after, a check line of its own for each:
   - `branch_data.vert`: four quads whose colour's w picks each arm, moving the quad right or down and picking its
     colour, one arm with an `if` of its own, then an `&&` greening the quad that ends at the bottom right; each quad
     probed where its arm puts it, and the clear where the other would.
+  - `branch_uniform.vert`: four draws of one quad, a push constant picking the arm, right in its colour's swizzle or
+    down in its colour, probed the same way.
   - `loop_if.frag`: an if/else on the pixel's u in an unrolled loop of four, in bands across the screen, both sides of
-    a threshold.
+    a threshold; `loop_uniform_if.frag`: an if/else on a push constant in an unrolled loop of three, a half of the
+    screen for each value.
   - `depth_if.frag` and `depth_before.frag`: `gl_FragDepth` in both arms, and before an if/else and again in an arm,
     then a green quad between the two depths, showing where the arms wrote the far depth alone.
-  - `branch_data.vert` again, compiled on the console from SPIR-V the bundle doesn't hold.
-  - xsdk_test's compiler check takes `vk_vertex_if.vert`, the console's container and needs against the PC's.
+  - `branch_data.vert` and `branch_uniform.vert` again, compiled on the console from SPIR-V the bundle doesn't hold.
+  - xsdk_test's compiler check takes `vk_vertex_if.vert` and `vk_vertex_uniform_if.vert`, the console's containers
+    and needs against the PC's.
 
 ### Milestone 22: Shader Model 3's fetches and inputs
 

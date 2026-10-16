@@ -59,8 +59,8 @@ void test_anisotropy(const Harness *harness);
 void test_aurora_points(const Harness *harness);
 // Samplers' LOD bias and clamps, and an image of one level, by the colour of the level each cell shows (milestone 18).
 void test_lod(const Harness *harness);
-// If/else on data in vertex shaders, in unrolled loops' bodies and around gl_FragDepth, each arm's output where it
-// alone puts it (milestone 21).
+// If/else in vertex shaders, on data and a push constant, in unrolled loops' bodies and around gl_FragDepth, each arm's
+// output where it alone puts it (milestone 21).
 void test_branches(const Harness *harness);
 // Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
 void test_shader_cache_start(void);

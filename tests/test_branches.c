@@ -8,8 +8,9 @@
 #include "shaders.h"
 #include "tests.h"
 
-// Milestone 21's if/else on data: in a vertex shader, in an unrolled loop's body, and around gl_FragDepth. Each arm
-// puts its quad, band or depth somewhere of its own, so a branch that takes the wrong arm shows where it shouldn't.
+// Milestone 21's if/else: in a vertex shader on data and on a push constant, in an unrolled loop's body on data and on
+// a push constant, and around gl_FragDepth. Each arm puts its quad, band or depth somewhere of its own, so a branch
+// that takes the wrong arm shows where it shouldn't.
 
 enum {
 	FRAMES = 30,
@@ -58,8 +59,10 @@ typedef struct {
 	HarnessProbes check;
 } Scene;
 
-// The layer compiles it on the console, with its literals and blocks (docs/ROADMAP.md, milestone 13).
+// The layer compiles these on the console, with their literals, blocks and predicated execs (docs/ROADMAP.md,
+// milestone 13).
 static uint32_t compiled_branch_data_vert[BRANCH_DATA_VERT_SPIRV_BYTES / 4];
+static uint32_t compiled_branch_uniform_vert[BRANCH_UNIFORM_VERT_SPIRV_BYTES / 4];
 static bool compiled;
 
 // A dark slate no other test clears to.
@@ -206,6 +209,35 @@ static bool build_data(const Harness *harness, Scene *scene)
 		build_vertices(harness, scene, vertices, QUADS * QUAD_VERTICES);
 }
 
+// branch_uniform.vert: each quad's push constant mode takes its arms, right in its colour's swizzle or down in it.
+static bool build_uniform(const Harness *harness, Scene *scene)
+{
+	static const float colors[QUADS][4] = {
+		{ 0.75f, 0.25f, 0.125f, 1.0f },
+		{ 0.25f, 0.625f, 0.375f, 1.0f },
+		{ 0.5f, 0.875f, 0.25f, 1.0f },
+		{ 0.125f, 0.375f, 0.875f, 1.0f },
+	};
+	Vertex vertices[QUAD_VERTICES];
+	rectangle(vertices, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+	scene->check = (HarnessProbes){ "branches: a push constant", scene->probes, 0, TOLERANCE, 0 };
+	for (uint32_t q = 0; q < QUADS; q++) {
+		const bool right = q % 2 == 0;
+		Draw *const draw = &scene->draws[q];
+		const float push[13] = { QUAD_SIZE, QUAD_SIZE, 0.0f, 1.0f, homes[q][0], homes[q][1], 0.5f, 0.0f, colors[q][0],
+			colors[q][1], colors[q][2], colors[q][3], right ? 1.0f : 0.0f };
+		*draw = (Draw){ .vertex_count = QUAD_VERTICES };
+		memcpy(draw->push, push, sizeof push);
+		const float swizzled[3] = { colors[q][2], colors[q][1], colors[q][0] };
+		probe_quad(scene, q, right, rgb_of(right ? swizzled : colors[q]));
+	}
+	scene->draw_count = QUADS;
+	return build_layout(harness, scene) && build_pass(harness, scene, false) &&
+		add_pipeline(harness, scene, compiled ? compiled_branch_uniform_vert : branch_uniform_vert_spirv,
+			BRANCH_UNIFORM_VERT_SPIRV_BYTES, triangle_frag_spirv, TRIANGLE_FRAG_SPIRV_BYTES, NULL) &&
+		build_vertices(harness, scene, vertices, QUAD_VERTICES);
+}
+
 // loop_if.frag over the screen: the passes whose threshold a pixel's u passes, each a band, an edge's sides too.
 static bool build_loop_data(const Harness *harness, Scene *scene)
 {
@@ -230,6 +262,35 @@ static bool build_loop_data(const Harness *harness, Scene *scene)
 		add_pipeline(harness, scene, triangle_vert_spirv, TRIANGLE_VERT_SPIRV_BYTES, loop_if_frag_spirv,
 			LOOP_IF_FRAG_SPIRV_BYTES, NULL) &&
 		build_vertices(harness, scene, vertices, SCREEN_VERTICES);
+}
+
+// loop_uniform_if.frag: the left half's mode 0 adds blue a pass, the right half's 1 halves and adds the step.
+static bool build_loop_uniform(const Harness *harness, Scene *scene)
+{
+	static const float step[4] = { 0.25f, 0.125f, 0.0625f, 0.0f };
+	Vertex vertices[2 * SCREEN_VERTICES];
+	rectangle(vertices, -1.0f, -1.0f, 0.0f, 1.0f, 0.5f);
+	rectangle(vertices + SCREEN_VERTICES, 0.0f, -1.0f, 1.0f, 1.0f, 0.5f);
+	scene->check = (HarnessProbes){ "branches: a push constant in a loop", scene->probes, 0, TOLERANCE, 0 };
+	for (uint32_t half = 0; half < 2; half++) {
+		Draw *const draw = &scene->draws[half];
+		*draw = (Draw){ .first_vertex = half * SCREEN_VERTICES, .vertex_count = SCREEN_VERTICES };
+		memcpy(&draw->push[8], step, sizeof step);
+		draw->push[12] = (float)half;
+	}
+	float sum[3] = { 0.0f, 0.0f, 0.0f };
+	for (uint32_t p = 0; p < 3; p++) {
+		for (uint32_t c = 0; c < 3; c++)
+			sum[c] = sum[c] * 0.5f + step[c];
+	}
+	const float blue[3] = { 0.0f, 0.0f, 0.75f };
+	add_probe(scene, "mode 0, blue a pass", -0.5f, 0.0f, rgb_of(blue));
+	add_probe(scene, "mode 1, halved and stepped a pass", 0.5f, 0.0f, rgb_of(sum));
+	scene->draw_count = 2;
+	return build_layout(harness, scene) && build_pass(harness, scene, false) &&
+		add_pipeline(harness, scene, triangle_vert_spirv, TRIANGLE_VERT_SPIRV_BYTES, loop_uniform_if_frag_spirv,
+			LOOP_UNIFORM_IF_FRAG_SPIRV_BYTES, NULL) &&
+		build_vertices(harness, scene, vertices, 2 * SCREEN_VERTICES);
 }
 
 // depth_if.frag on the left half by u, depth_before.frag on the right by v, then green at depth 0.5 testing less: it
@@ -338,13 +399,20 @@ static void run(const Harness *harness, const char *name, bool (*build)(const Ha
 void test_branches(const Harness *harness)
 {
 	memcpy(compiled_branch_data_vert, branch_data_vert_spirv, sizeof compiled_branch_data_vert);
+	memcpy(compiled_branch_uniform_vert, branch_uniform_vert_spirv, sizeof compiled_branch_uniform_vert);
 	compiled_branch_data_vert[GENERATOR_WORD] ^= GENERATOR_CHANGE;
+	compiled_branch_uniform_vert[GENERATOR_WORD] ^= GENERATOR_CHANGE;
 	compiled = true;
 	run(harness, "data in a vertex shader, the shader compiled here", build_data,
 		"places and colours each quad by the arms its vertices take");
+	run(harness, "a push constant in a vertex shader, the shader compiled here", build_uniform,
+		"places and colours each quad by the arm its push constant takes");
 	compiled = false;
 
 	run(harness, "data in a vertex shader", build_data, "places and colours each quad by the arms its vertices take");
+	run(harness, "a push constant in a vertex shader", build_uniform,
+		"places and colours each quad by the arm its push constant takes");
 	run(harness, "data in a loop's body", build_loop_data, "colours each band by the passes its u passes");
+	run(harness, "a push constant in a loop's body", build_loop_uniform, "colours each half by its push constant");
 	run(harness, "gl_FragDepth stored in an if/else", build_depth, "shows the green where the arms wrote 0.75 alone");
 }
