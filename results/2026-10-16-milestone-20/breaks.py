@@ -14,6 +14,12 @@ Step 2:
 - 2a: R8G8B8A8_UNORM, R16G16_SNORM and R16G16B16A16_UNORM fetched without their picks, B8G8R8A8_UNORM with R8G8B8A8's,
   and A8B8G8R8_SSCALED_PACK32 as unsigned: each its format's colours check, and the first four the triangles check;
   R8G8B8A8_UINT offered as a vertex format, the vertex buffer features check.
+
+Step 3:
+- 3a: signed formats read unsigned, each signed format's sampled check, and the filtered check; R16_UNORM on xsdk's
+  half floats, its sampled check; sRGB's encoding left out of the CPU's packing, the blit and clear checks.
+- 3b: sRGB formats read without gamma, each sRGB format's sampled check and the sRGB filtered check; BC4 on DXN, its
+  sampled check; BC5 offered for blits, the features check.
 """
 import pathlib
 import sys
@@ -26,8 +32,8 @@ SETS = {
         (TRANSFER, "\t\tto[i] = (word & 0x00FF00FF) << 8 | (word >> 8 & 0x00FF00FF);\n", "\t\tto[i] = word;\n"),
         (FORMAT, "XSDK_FORMAT_A4R4G4B4, { ALPHA, RED, GREEN, BLUE }", "XSDK_FORMAT_A4R4G4B4, { RED, GREEN, BLUE, ALPHA }"),
         (FORMAT, "XSDK_FORMAT_R5G6B5, { BLUE, GREEN, RED, ALPHA }", "XSDK_FORMAT_R5G6B5, { RED, GREEN, BLUE, ALPHA }"),
-        (FORMAT, "XSDK_FORMAT_A2B10G10R10, { BLUE, GREEN, RED, ALPHA }",
-         "XSDK_FORMAT_A2B10G10R10, { RED, GREEN, BLUE, ALPHA }"),
+        (FORMAT, "A2R10G10B10_UNORM_PACK32, XSDK_FORMAT_A2B10G10R10, { BLUE, GREEN, RED, ALPHA }",
+         "A2R10G10B10_UNORM_PACK32, XSDK_FORMAT_A2B10G10R10, { RED, GREEN, BLUE, ALPHA }"),
         (FORMAT, "return bits == 16 ? float_to_half(value) : bits_of(value);",
          "return bits == 16 ? 0 * float_to_half(value) : bits_of(value);"),
         ("src/command_buffer.c", "return (from && from->compressed) != (to && to->compressed);",
@@ -41,7 +47,8 @@ SETS = {
          "row_bytes);\n",
          "\t\tmemcpy((void *)(uintptr_t)(command->copy.buffer + y * command->copy.row_bytes / 4), rows[ROW_OUT], "
          "row_bytes);\n"),
-        (FORMAT, "XSDK_FORMAT_DXT1, { RED, GREEN, BLUE, ONE }", "XSDK_FORMAT_DXT1, { RED, GREEN, BLUE, ALPHA }"),
+        (FORMAT, "BC1_RGB_UNORM_BLOCK, XSDK_FORMAT_DXT1, { RED, GREEN, BLUE, ONE }",
+         "BC1_RGB_UNORM_BLOCK, XSDK_FORMAT_DXT1, { RED, GREEN, BLUE, ALPHA }"),
         (FORMAT, "XSDK_FORMAT_R16G16F, { RED, GREEN, BLUE, ALPHA }", "XSDK_FORMAT_R16G16F, { GREEN, RED, BLUE, ALPHA }"),
         (FORMAT, "return format->texel_bytes > 4 && shift < 32;", "return format->texel_bytes > 4 && shift >= 32;"),
         ("src/physical_device.c", "flags || (linear && image->compressed) ||", "flags ||"),
@@ -59,6 +66,18 @@ SETS = {
          "{ VK_FORMAT_A8B8G8R8_SSCALED_PACK32, XSDK_VERTEX_UBYTE4, { 0 } },"),
         (FORMAT, "{ VK_FORMAT_R32_SFLOAT, XSDK_VERTEX_FLOAT1, { 0 } },",
          "{ VK_FORMAT_R32_SFLOAT, XSDK_VERTEX_FLOAT1, { 0 } },\n\t{ VK_FORMAT_R8G8B8A8_UINT, XSDK_VERTEX_UBYTE4, { 0 } },"),
+    ],
+    "3a": [
+        ("src/image.c", "\t\t\tsigns[channel] = XSDK_SIGN_SIGNED;\n", "\t\t\tsigns[channel] = XSDK_SIGN_UNSIGNED;\n"),
+        (FORMAT, "{ VK_FORMAT_R16_UNORM, XSDK_FORMAT_R16,", "{ VK_FORMAT_R16_UNORM, XSDK_FORMAT_R16F,"),
+        (FORMAT, "return value <= 0.0031308f ? value * 12.92f : 1.055f * powf(value, 1.0f / 2.4f) - 0.055f;",
+         "return value + 0.0f * powf(value, 1.0f / 2.4f);"),
+    ],
+    "3b": [
+        ("src/image.c", "\t\t\tsigns[channel] = XSDK_SIGN_GAMMA;\n", "\t\t\tsigns[channel] = XSDK_SIGN_UNSIGNED;\n"),
+        (FORMAT, "{ VK_FORMAT_BC4_UNORM_BLOCK, XSDK_FORMAT_DXT5A,", "{ VK_FORMAT_BC4_UNORM_BLOCK, XSDK_FORMAT_DXN,"),
+        (FORMAT, "{ VK_FORMAT_BC5_UNORM_BLOCK, XSDK_FORMAT_DXN, { RED, GREEN, BLUE, ALPHA }, 16, true, { 0 }, { 0 }, UNORM,\n\t\tFILTERED },",
+         "{ VK_FORMAT_BC5_UNORM_BLOCK, XSDK_FORMAT_DXN, { RED, GREEN, BLUE, ALPHA }, 16, true, { 0 }, { 0 }, UNORM,\n\t\tBLITTED },"),
     ],
 }
 

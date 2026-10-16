@@ -49,6 +49,25 @@ bool v4x_attachment_format(VkFormat format)
 	return info && (info->features & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT);
 }
 
+// A signed format reads every channel signed, an sRGB one its colours through gamma; each sign is for the xsdk channel
+// the Vulkan one is (xsdk_texture_signs).
+static void sign_channels(XsdkTexture *texture, const V4xFormat *format)
+{
+	if (format->number != V4X_NUMBER_SNORM && format->number != V4X_NUMBER_SRGB)
+		return;
+	uint32_t signs[4] = { XSDK_SIGN_UNSIGNED, XSDK_SIGN_UNSIGNED, XSDK_SIGN_UNSIGNED, XSDK_SIGN_UNSIGNED };
+	for (uint32_t c = 0; c < 4; c++) {
+		const uint32_t channel = format->channels[c];
+		if (channel > XSDK_CHANNEL_ALPHA)
+			continue;
+		if (format->number == V4X_NUMBER_SNORM)
+			signs[channel] = XSDK_SIGN_SIGNED;
+		else if (c < 3)
+			signs[channel] = XSDK_SIGN_GAMMA;
+	}
+	xsdk_texture_signs(texture, signs);
+}
+
 static VkResult check_depth_create_info(const VkImageCreateInfo *info)
 {
 	if (info->mipLevels != 1 || info->samples != VK_SAMPLE_COUNT_1_BIT || info->tiling != VK_IMAGE_TILING_OPTIMAL ||
@@ -114,6 +133,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
 		v4x_host_free(allocator, image);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
+	if (!is_depth)
+		sign_channels(&image->texture, v4x_format(pCreateInfo->format));
 	image->is_depth = is_depth;
 	image->is_sampled_depth = is_depth;
 	image->is_texture = !is_depth;

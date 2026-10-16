@@ -14,7 +14,12 @@ enum {
 	BLITTED = FILTERED | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT,
 	// Resolves write R8G8B8A8 and B8G8R8A8 alone (src/render_pass.c).
 	ATTACHMENT = BLITTED | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT,
+	// Xenos filtered the half floats and 10-10-10-2 wrong on the console, so they sample nearest and blit on the CPU
+	// (docs/SUPPORT.md, Formats).
+	NEAREST_BLITTED = SAMPLED | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT,
 	UNORM = V4X_NUMBER_UNORM,
+	SNORM = V4X_NUMBER_SNORM,
+	SRGB = V4X_NUMBER_SRGB,
 	FLOAT = V4X_NUMBER_FLOAT,
 	// A half float's exponent bias against a float's, and the bits of each below the exponent.
 	HALF_REBIAS = 127 - 15,
@@ -71,15 +76,61 @@ static const V4xFormat formats[] = {
 	{ VK_FORMAT_B4G4R4A4_UNORM_PACK16, XSDK_FORMAT_A4R4G4B4, { GREEN, RED, ALPHA, BLUE }, 2, false, { 4, 4, 4, 4 },
 		{ 4, 8, 12, 0 }, UNORM, BLITTED },
 	{ VK_FORMAT_A2B10G10R10_UNORM_PACK32, XSDK_FORMAT_A2B10G10R10, { RED, GREEN, BLUE, ALPHA }, 4, false,
-		{ 10, 10, 10, 2 }, { 0, 10, 20, 30 }, UNORM, BLITTED },
+		{ 10, 10, 10, 2 }, { 0, 10, 20, 30 }, UNORM, NEAREST_BLITTED },
 	{ VK_FORMAT_A2R10G10B10_UNORM_PACK32, XSDK_FORMAT_A2B10G10R10, { BLUE, GREEN, RED, ALPHA }, 4, false,
-		{ 10, 10, 10, 2 }, { 20, 10, 0, 30 }, UNORM, BLITTED },
+		{ 10, 10, 10, 2 }, { 20, 10, 0, 30 }, UNORM, NEAREST_BLITTED },
 	{ VK_FORMAT_R16_SFLOAT, XSDK_FORMAT_R16F, { RED, GREEN, BLUE, ALPHA }, 2, false, { 16, 0, 0, 0 }, { 0, 0, 0, 0 },
-		FLOAT, BLITTED },
+		FLOAT, NEAREST_BLITTED },
 	{ VK_FORMAT_R16G16_SFLOAT, XSDK_FORMAT_R16G16F, { RED, GREEN, BLUE, ALPHA }, 4, false, { 16, 16, 0, 0 },
-		{ 16, 0, 0, 0 }, FLOAT, BLITTED },
+		{ 16, 0, 0, 0 }, FLOAT, NEAREST_BLITTED },
 	{ VK_FORMAT_R16G16B16A16_SFLOAT, XSDK_FORMAT_R16G16B16A16F, { RED, GREEN, BLUE, ALPHA }, 8, false,
-		{ 16, 16, 16, 16 }, { 48, 32, 16, 0 }, FLOAT, BLITTED },
+		{ 16, 16, 16, 16 }, { 48, 32, 16, 0 }, FLOAT, NEAREST_BLITTED },
+	{ VK_FORMAT_BC4_UNORM_BLOCK, XSDK_FORMAT_DXT5A, { RED, GREEN, BLUE, ALPHA }, 8, true, { 0 }, { 0 }, UNORM,
+		FILTERED },
+	{ VK_FORMAT_BC5_UNORM_BLOCK, XSDK_FORMAT_DXN, { RED, GREEN, BLUE, ALPHA }, 16, true, { 0 }, { 0 }, UNORM,
+		FILTERED },
+	{ VK_FORMAT_R16_UNORM, XSDK_FORMAT_R16, { RED, GREEN, BLUE, ALPHA }, 2, false, { 16, 0, 0, 0 }, { 0, 0, 0, 0 },
+		UNORM, BLITTED },
+	{ VK_FORMAT_R16G16_UNORM, XSDK_FORMAT_R16G16, { RED, GREEN, BLUE, ALPHA }, 4, false, { 16, 16, 0, 0 },
+		{ 16, 0, 0, 0 }, UNORM, BLITTED },
+	{ VK_FORMAT_R16G16B16A16_UNORM, XSDK_FORMAT_R16G16B16A16, { RED, GREEN, BLUE, ALPHA }, 8, false, { 16, 16, 16, 16 },
+		{ 48, 32, 16, 0 }, UNORM, BLITTED },
+	// Signed formats read every channel signed (xsdk_texture_signs), Xenos's two's complement as Vulkan's SNORM
+	// (xenia:src/xenia/gpu/xenos.h:761-767, 1197-1201).
+	{ VK_FORMAT_R16_SNORM, XSDK_FORMAT_R16, { RED, GREEN, BLUE, ALPHA }, 2, false, { 16, 0, 0, 0 }, { 0, 0, 0, 0 },
+		SNORM, BLITTED },
+	{ VK_FORMAT_R16G16_SNORM, XSDK_FORMAT_R16G16, { RED, GREEN, BLUE, ALPHA }, 4, false, { 16, 16, 0, 0 },
+		{ 16, 0, 0, 0 }, SNORM, BLITTED },
+	{ VK_FORMAT_R16G16B16A16_SNORM, XSDK_FORMAT_R16G16B16A16, { RED, GREEN, BLUE, ALPHA }, 8, false, { 16, 16, 16, 16 },
+		{ 48, 32, 16, 0 }, SNORM, BLITTED },
+	{ VK_FORMAT_R8_SNORM, XSDK_FORMAT_R8, { RED, GREEN, BLUE, ALPHA }, 1, false, { 8, 0, 0, 0 }, { 0, 0, 0, 0 }, SNORM,
+		BLITTED },
+	{ VK_FORMAT_R8G8_SNORM, XSDK_FORMAT_R8G8, { RED, GREEN, BLUE, ALPHA }, 2, false, { 8, 8, 0, 0 }, { 8, 0, 0, 0 },
+		SNORM, BLITTED },
+	{ VK_FORMAT_R8G8B8A8_SNORM, XSDK_FORMAT_R8G8B8A8, { RED, GREEN, BLUE, ALPHA }, 4, false, { 8, 8, 8, 8 },
+		{ 24, 16, 8, 0 }, SNORM, BLITTED },
+	{ VK_FORMAT_B8G8R8A8_SNORM, XSDK_FORMAT_B8G8R8A8, { RED, GREEN, BLUE, ALPHA }, 4, false, { 8, 8, 8, 8 },
+		{ 8, 16, 24, 0 }, SNORM, BLITTED },
+	{ VK_FORMAT_A2B10G10R10_SNORM_PACK32, XSDK_FORMAT_A2B10G10R10, { RED, GREEN, BLUE, ALPHA }, 4, false,
+		{ 10, 10, 10, 2 }, { 0, 10, 20, 30 }, SNORM, NEAREST_BLITTED },
+	{ VK_FORMAT_A2R10G10B10_SNORM_PACK32, XSDK_FORMAT_A2B10G10R10, { BLUE, GREEN, RED, ALPHA }, 4, false,
+		{ 10, 10, 10, 2 }, { 20, 10, 0, 30 }, SNORM, NEAREST_BLITTED },
+	// sRGB formats read their colours through Xenos's gamma, a piecewise-linear curve near sRGB's
+	// (xenia:src/xenia/gpu/xenos.cc:27); their alpha is fixed point.
+	{ VK_FORMAT_R8_SRGB, XSDK_FORMAT_R8, { RED, GREEN, BLUE, ALPHA }, 1, false, { 8, 0, 0, 0 }, { 0, 0, 0, 0 }, SRGB,
+		BLITTED },
+	{ VK_FORMAT_R8G8_SRGB, XSDK_FORMAT_R8G8, { RED, GREEN, BLUE, ALPHA }, 2, false, { 8, 8, 0, 0 }, { 8, 0, 0, 0 },
+		SRGB, BLITTED },
+	{ VK_FORMAT_R8G8B8A8_SRGB, XSDK_FORMAT_R8G8B8A8, { RED, GREEN, BLUE, ALPHA }, 4, false, { 8, 8, 8, 8 },
+		{ 24, 16, 8, 0 }, SRGB, BLITTED },
+	{ VK_FORMAT_B8G8R8A8_SRGB, XSDK_FORMAT_B8G8R8A8, { RED, GREEN, BLUE, ALPHA }, 4, false, { 8, 8, 8, 8 },
+		{ 8, 16, 24, 0 }, SRGB, BLITTED },
+	{ VK_FORMAT_BC1_RGB_SRGB_BLOCK, XSDK_FORMAT_DXT1, { RED, GREEN, BLUE, ONE }, 8, true, { 0 }, { 0 }, SRGB,
+		FILTERED },
+	{ VK_FORMAT_BC1_RGBA_SRGB_BLOCK, XSDK_FORMAT_DXT1, { RED, GREEN, BLUE, ALPHA }, 8, true, { 0 }, { 0 }, SRGB,
+		FILTERED },
+	{ VK_FORMAT_BC2_SRGB_BLOCK, XSDK_FORMAT_DXT3, { RED, GREEN, BLUE, ALPHA }, 16, true, { 0 }, { 0 }, SRGB, FILTERED },
+	{ VK_FORMAT_BC3_SRGB_BLOCK, XSDK_FORMAT_DXT5, { RED, GREEN, BLUE, ALPHA }, 16, true, { 0 }, { 0 }, SRGB, FILTERED },
 };
 
 const V4xFormat *v4x_format(VkFormat format)
@@ -158,19 +209,49 @@ static uint32_t float_to_half(float value)
 	return sign | (rebiased + (1u << (dropped - 1)) - 1 + (rebiased >> dropped & 1)) >> dropped;
 }
 
+static float clamp(float value, float low, float high)
+{
+	return !(value > low) ? low : value > high ? high : value;
+}
+
+// sRGB's curve, which Vulkan's blits and clears convert by; sampling takes Xenos's instead (docs/SUPPORT.md, Formats).
+static float srgb_to_linear(float value)
+{
+	return value <= 0.04045f ? value / 12.92f : powf((value + 0.055f) / 1.055f, 2.4f);
+}
+
+static float linear_to_srgb(float value)
+{
+	return value <= 0.0031308f ? value * 12.92f : 1.055f * powf(value, 1.0f / 2.4f) - 0.055f;
+}
+
+// A channel's number: an sRGB format's alpha is fixed point.
+static uint32_t number_of(const V4xFormat *format, uint32_t channel)
+{
+	return format->number == V4X_NUMBER_SRGB && channel == 3 ? V4X_NUMBER_UNORM : format->number;
+}
+
 static float channel_value(uint32_t number, uint32_t bits, uint32_t field)
 {
 	if (number == V4X_NUMBER_FLOAT)
 		return bits == 16 ? half_to_float(field) : float_of(field);
-	return (float)field / (float)((1u << bits) - 1);
+	if (number == V4X_NUMBER_SNORM) {
+		// Two's complement, the most negative read as -1, as Vulkan has it.
+		const int32_t value = field >> (bits - 1) ? (int32_t)field - (int32_t)(1u << bits) : (int32_t)field;
+		return clamp((float)value / (float)((1u << (bits - 1)) - 1), -1.0f, 1.0f);
+	}
+	const float unorm = (float)field / (float)((1u << bits) - 1);
+	return number == V4X_NUMBER_SRGB ? srgb_to_linear(unorm) : unorm;
 }
 
 static uint32_t channel_field(uint32_t number, uint32_t bits, float value)
 {
 	if (number == V4X_NUMBER_FLOAT)
 		return bits == 16 ? float_to_half(value) : bits_of(value);
-	const float clamped = !(value > 0.0f) ? 0.0f : value > 1.0f ? 1.0f : value;
-	return (uint32_t)lrintf(clamped * (float)((1u << bits) - 1));
+	if (number == V4X_NUMBER_SNORM)
+		return (uint32_t)lrintf(clamp(value, -1.0f, 1.0f) * (float)((1u << (bits - 1)) - 1)) & ((1u << bits) - 1);
+	const float unorm = number == V4X_NUMBER_SRGB ? linear_to_srgb(clamp(value, 0.0f, 1.0f)) : value;
+	return (uint32_t)lrintf(clamp(unorm, 0.0f, 1.0f) * (float)((1u << bits) - 1));
 }
 
 void v4x_format_unpack(const V4xFormat *format, const uint8_t *texel, float rgba[4])
@@ -182,7 +263,7 @@ void v4x_format_unpack(const V4xFormat *format, const uint8_t *texel, float rgba
 		const uint32_t shift = format->shifts[c] % 32;
 		const uint32_t mask = bits == 32 ? 0xFFFFFFFF : (1u << bits) - 1;
 		const uint32_t field = words[word_of(format, format->shifts[c])] >> shift & mask;
-		rgba[c] = bits ? channel_value(format->number, bits, field) : c == 3 ? 1.0f : 0.0f;
+		rgba[c] = bits ? channel_value(number_of(format, c), bits, field) : c == 3 ? 1.0f : 0.0f;
 	}
 }
 
@@ -191,7 +272,7 @@ void v4x_format_pack(const V4xFormat *format, const float rgba[4], uint8_t *texe
 	uint32_t words[2] = { 0, 0 };
 	for (uint32_t c = 0; c < 4; c++) {
 		if (format->bits[c])
-			words[word_of(format, format->shifts[c])] |= channel_field(format->number, format->bits[c], rgba[c])
+			words[word_of(format, format->shifts[c])] |= channel_field(number_of(format, c), format->bits[c], rgba[c])
 				<< format->shifts[c] % 32;
 	}
 	write_unit(format, words, texel);

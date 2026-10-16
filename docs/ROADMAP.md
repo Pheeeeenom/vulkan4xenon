@@ -2042,6 +2042,50 @@ the halves come in reverse, which xsdk can't fetch as it stood.
   mirror and z and w swapped would lose, a check for all; and every format reports `VERTEX_BUFFER_BIT`, and the
   integer formats and those under a word don't, a check.
 
+**Step 3, built** (2026-10-16). The formats xsdk lacked, xsdk first.
+- **xsdk:** `XSDK_FORMAT_DXN` and `DXT5A`, which Xenia reads as BC5 and BC4
+  (xenia:src/xenia/gpu/vulkan/vulkan_texture_cache.cc:333-337, 384-388); `R16`, `R16G16` and `R16G16B16A16`, 16-bit
+  fixed point; `B10G11R11` and `B11G11R10`, Xenos's fixed-point 10-11-11 and 11-11-10; and `xsdk_texture_signs`, which
+  reads each of a format's channels unsigned, signed or through gamma, by the fetch constant's TextureSign for the
+  component the channel comes from (xenia:src/xenia/gpu/xenos.h:121-129, 1195-1205).
+- **The layer:** `BC4_UNORM` and `BC5_UNORM`; `R16`, `R16G16` and `R16G16B16A16` in `UNORM` and `SNORM`; `R8`,
+  `R8G8`, `R8G8B8A8` and `B8G8R8A8` in `SNORM` and `SRGB`; `A2B10G10R10` and `A2R10G10B10` in `SNORM`; and BC1 to
+  BC3 in `SRGB`. A signed format reads every channel signed, Xenos's two's complement from -1 to 1, the most negative
+  read as -1, as Vulkan's `SNORM` has it (xenia:src/xenia/gpu/xenos.h:761-767); an sRGB format reads its colours
+  through Xenos's gamma, its piecewise-linear curve a deviation (xenia:src/xenia/gpu/xenos.cc:27; docs/SUPPORT.md,
+  Formats). Blits and clears of sRGB images take sRGB's own curve on the CPU, as Vulkan has them.
+- **Left out:** `B10G11R11_UFLOAT`, as Xenos's 10-11-11 is fixed point; BC4 and BC5 `SNORM`, which Xenia doesn't read
+  signed, so nothing shows how Xenos signs them; sRGB colour attachments, with the render target formats
+  (milestone 25).
+- **The checks:** xsdk_test's formats test puts every format, the new ones a check of their own, in rows of a pixel a
+  texel, and draws eleven cells read signed or through gamma, a check for each kind, decoded by Xenia's curve.
+  vulkan4xenon_test's `test_formats.c` takes the 22 new formats as it took step 1's, an sRGB format's texels expected
+  through Xenos's curve as sampled and through sRGB's as blitted and cleared, a signed format's shown from -1 to 1 as
+  0 to 1; a signed texel holds the most negative value. sRGB images' filtered probes have a check of their own, as a
+  blend of texels after the curve, which is Vulkan's order and not Xenia's.
+
+**On the console** (2026-10-16, the zero-fuse console; `results/2026-10-16-milestone-20/`):
+- **vulkan4xenon_test passed 257 of 257, twice** (`vulkan4xenon_test.log`, `_2`). Every format held its channels
+  sampled nearest, BC's word swap, the signed mode's -1 and Xenia's gamma curve among them; BC2 and BC3 colour blocks
+  whose first endpoint is below the second took four colours; and filtered sRGB images blended their texels after the
+  curve, as Vulkan's do, so neither is a deviation (xsdk:TODO.md had both as questions).
+- **Linear filtering of the half floats and 10-10-10-2 is wrong.** The first run passed 255 of 257: halfway between two
+  texels, `A2B10G10R10` and `A2R10G10B10`, unsigned and signed, missed all 360 of their probes over 30 frames, and
+  the half floats 270 to 360, while every 8-bit, 16-bit fixed point and BC format gave the mean
+  (`vulkan4xenon_test_filtering_wrong.log`, and `_counts`, after the test logged each format's misses). Those seven
+  now sample nearest alone and blit nearest, a deviation (docs/SUPPORT.md, Formats; xsdk:docs/HARDWARE.md, "Texture
+  and vertex formats, vulkan4xenon milestone 20"); Xenos's formats for filtering at more precision are untried
+  (xsdk:TODO.md).
+- **Broken on purpose,** each of the five sets failed the checks `breaks.py` names for it, and only those but what
+  follows from them (`vulkan4xenon_test_broken_1a.log` to `_3b`); xsdk's two did the same
+  (xsdk:results/2026-10-16-vulkan4xenon-milestone-20/).
+- **xsdk_test passed 323 of 325,** the two left the controller's, as no pad was in, its four new checks among those
+  passed.
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.6 to 29.9 fps,
+  94 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m20.log`).
+
+Milestone 20 is done.
+
 ### Milestone 21: Shader Model 3's control flow
 
 **Why.** xost turns `if` into selects in pixel shaders and refuses it in vertex shaders (xost:docs/xsc.md:63), unrolls

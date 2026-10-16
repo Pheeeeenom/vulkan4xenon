@@ -18,9 +18,12 @@ enum {
 	V4X_BLOCK_SIDE = 4,
 };
 
-// How a channel's bits read: fixed point from 0 to 1, or a float of 16 or 32 bits.
+// How a channel's bits read: fixed point from 0 to 1, or two's complement from -1 to 1; sRGB's encoding of 0 to 1,
+// its alpha fixed point; or a float of 16 or 32 bits.
 enum {
 	V4X_NUMBER_UNORM,
+	V4X_NUMBER_SNORM,
+	V4X_NUMBER_SRGB,
 	V4X_NUMBER_FLOAT,
 };
 

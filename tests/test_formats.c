@@ -61,6 +61,8 @@ enum {
 	GROUP_FILTERED,
 	// BC2 and BC3 colour blocks whose first endpoint isn't above the second.
 	GROUP_FOUR_COLOUR,
+	// sRGB images filtered, which Vulkan blends after the curve, and Xenos might before.
+	GROUP_SRGB_FILTERED,
 	GROUPS,
 };
 
@@ -70,11 +72,15 @@ enum {
 	KIND_BC1_RGB,
 	KIND_BC2,
 	KIND_BC3,
+	KIND_BC4,
+	KIND_BC5,
 };
 
 enum {
 	UNORM,
 	HALF,
+	SNORM,
+	SRGB,
 };
 
 // A format as Vulkan defines it: a texel one unit of its bytes in the CPU's order, each channel's bits from its shift
@@ -108,6 +114,30 @@ static const Spec specs[] = {
 	{ VK_FORMAT_R16G16_SFLOAT, "R16G16_SFLOAT", KIND_UNITS, 4, { 16, 16, 0, 0 }, { 16, 0, 0, 0 }, HALF },
 	{ VK_FORMAT_R16G16B16A16_SFLOAT, "R16G16B16A16_SFLOAT", KIND_UNITS, 8, { 16, 16, 16, 16 }, { 48, 32, 16, 0 },
 		HALF },
+	{ VK_FORMAT_BC4_UNORM_BLOCK, "BC4_UNORM_BLOCK", KIND_BC4, 8, { 0 }, { 0 }, UNORM },
+	{ VK_FORMAT_BC5_UNORM_BLOCK, "BC5_UNORM_BLOCK", KIND_BC5, 16, { 0 }, { 0 }, UNORM },
+	{ VK_FORMAT_R16_UNORM, "R16_UNORM", KIND_UNITS, 2, { 16, 0, 0, 0 }, { 0, 0, 0, 0 }, UNORM },
+	{ VK_FORMAT_R16G16_UNORM, "R16G16_UNORM", KIND_UNITS, 4, { 16, 16, 0, 0 }, { 16, 0, 0, 0 }, UNORM },
+	{ VK_FORMAT_R16G16B16A16_UNORM, "R16G16B16A16_UNORM", KIND_UNITS, 8, { 16, 16, 16, 16 }, { 48, 32, 16, 0 }, UNORM },
+	{ VK_FORMAT_R16_SNORM, "R16_SNORM", KIND_UNITS, 2, { 16, 0, 0, 0 }, { 0, 0, 0, 0 }, SNORM },
+	{ VK_FORMAT_R16G16_SNORM, "R16G16_SNORM", KIND_UNITS, 4, { 16, 16, 0, 0 }, { 16, 0, 0, 0 }, SNORM },
+	{ VK_FORMAT_R16G16B16A16_SNORM, "R16G16B16A16_SNORM", KIND_UNITS, 8, { 16, 16, 16, 16 }, { 48, 32, 16, 0 }, SNORM },
+	{ VK_FORMAT_R8_SNORM, "R8_SNORM", KIND_UNITS, 1, { 8, 0, 0, 0 }, { 0, 0, 0, 0 }, SNORM },
+	{ VK_FORMAT_R8G8_SNORM, "R8G8_SNORM", KIND_UNITS, 2, { 8, 8, 0, 0 }, { 8, 0, 0, 0 }, SNORM },
+	{ VK_FORMAT_R8G8B8A8_SNORM, "R8G8B8A8_SNORM", KIND_UNITS, 4, { 8, 8, 8, 8 }, { 24, 16, 8, 0 }, SNORM },
+	{ VK_FORMAT_B8G8R8A8_SNORM, "B8G8R8A8_SNORM", KIND_UNITS, 4, { 8, 8, 8, 8 }, { 8, 16, 24, 0 }, SNORM },
+	{ VK_FORMAT_A2B10G10R10_SNORM_PACK32, "A2B10G10R10_SNORM_PACK32", KIND_UNITS, 4, { 10, 10, 10, 2 },
+		{ 0, 10, 20, 30 }, SNORM },
+	{ VK_FORMAT_A2R10G10B10_SNORM_PACK32, "A2R10G10B10_SNORM_PACK32", KIND_UNITS, 4, { 10, 10, 10, 2 },
+		{ 20, 10, 0, 30 }, SNORM },
+	{ VK_FORMAT_R8_SRGB, "R8_SRGB", KIND_UNITS, 1, { 8, 0, 0, 0 }, { 0, 0, 0, 0 }, SRGB },
+	{ VK_FORMAT_R8G8_SRGB, "R8G8_SRGB", KIND_UNITS, 2, { 8, 8, 0, 0 }, { 8, 0, 0, 0 }, SRGB },
+	{ VK_FORMAT_R8G8B8A8_SRGB, "R8G8B8A8_SRGB", KIND_UNITS, 4, { 8, 8, 8, 8 }, { 24, 16, 8, 0 }, SRGB },
+	{ VK_FORMAT_B8G8R8A8_SRGB, "B8G8R8A8_SRGB", KIND_UNITS, 4, { 8, 8, 8, 8 }, { 8, 16, 24, 0 }, SRGB },
+	{ VK_FORMAT_BC1_RGB_SRGB_BLOCK, "BC1_RGB_SRGB_BLOCK", KIND_BC1_RGB, 8, { 0 }, { 0 }, SRGB },
+	{ VK_FORMAT_BC1_RGBA_SRGB_BLOCK, "BC1_RGBA_SRGB_BLOCK", KIND_BC1, 8, { 0 }, { 0 }, SRGB },
+	{ VK_FORMAT_BC2_SRGB_BLOCK, "BC2_SRGB_BLOCK", KIND_BC2, 16, { 0 }, { 0 }, SRGB },
+	{ VK_FORMAT_BC3_SRGB_BLOCK, "BC3_SRGB_BLOCK", KIND_BC3, 16, { 0 }, { 0 }, SRGB },
 };
 
 enum {
@@ -163,6 +193,13 @@ typedef struct {
 static bool compressed(const Spec *spec)
 {
 	return spec->kind != KIND_UNITS;
+}
+
+// Xenos filtered the half floats and 10-10-10-2 wrong on the console, so the layer samples them nearest
+// (results/2026-10-16-milestone-20/).
+static bool filters(const Spec *spec)
+{
+	return spec->number != HALF && spec->bits[0] != 10;
 }
 
 static uint32_t side(const Spec *spec)
@@ -237,17 +274,70 @@ static float half_value(uint32_t texel, uint32_t channel)
 	return fraction(texel, channel);
 }
 
+// A signed texel's channel: the fraction spread from -1 to 1, and the most negative at one texel.
+static uint32_t signed_field(uint32_t texel, uint32_t channel, uint32_t bits)
+{
+	if (texel == 9 && channel == 0)
+		return 1u << (bits - 1);
+	const float value = fraction(texel, channel) * 2.0f - 1.0f;
+	return (uint32_t)lrintf(value * (float)field_max(bits - 1)) & field_max(bits);
+}
+
 static void encode_units(const Spec *spec, uint32_t texel, uint8_t *out)
 {
 	memset(out, 0, spec->texel_bytes);
 	for (uint32_t c = 0; c < 4; c++) {
-		if (!spec->bits[c])
+		const uint32_t bits = spec->bits[c];
+		if (!bits)
 			continue;
-		const uint32_t value = spec->number == HALF
-			? to_half(half_value(texel, c))
-			: (uint32_t)lrintf(fraction(texel, c) * (float)field_max(spec->bits[c]));
-		put_field(out, spec->texel_bytes, spec->shifts[c], spec->bits[c], value);
+		uint32_t value = (uint32_t)lrintf(fraction(texel, c) * (float)field_max(bits));
+		if (spec->number == HALF)
+			value = to_half(half_value(texel, c));
+		else if (spec->number == SNORM)
+			value = signed_field(texel, c, bits);
+		put_field(out, spec->texel_bytes, spec->shifts[c], bits, value);
 	}
+}
+
+static float clamp(float value, float low, float high)
+{
+	return !(value > low) ? low : value > high ? high : value;
+}
+
+// A field read signed: two's complement, the most negative read as -1.
+static float signed_value(uint32_t field, uint32_t bits)
+{
+	const int32_t number = field >> (bits - 1) ? (int32_t)field - (int32_t)(1u << bits) : (int32_t)field;
+	return clamp((float)number / (float)field_max(bits - 1), -1.0f, 1.0f);
+}
+
+// Xenos's gamma, which sampling an sRGB image takes: 255ths to 1023ths in four straight pieces
+// (xenia:src/xenia/gpu/xenos.cc:27-65; xsdk:tests/test_formats.c, gamma_linear).
+static float gamma_linear(float gamma)
+{
+	const float g = gamma * 255.0f;
+	const float slope = g >= 192.0f ? 8.0f : g >= 96.0f ? 4.0f : g >= 64.0f ? 2.0f : 1.0f;
+	const float offset = g >= 192.0f ? -1024.0f : g >= 96.0f ? -256.0f : g >= 64.0f ? -64.0f : 0.0f;
+	const float base = g * slope + offset;
+	return (base + truncf(base * slope / 1024.0f)) / 1023.0f;
+}
+
+// sRGB's own curve, which Vulkan's blits and clears convert by.
+static float srgb_linear(float value)
+{
+	return value <= 0.04045f ? value / 12.92f : powf((value + 0.055f) / 1.055f, 2.4f);
+}
+
+static float srgb_encoded(float value)
+{
+	return value <= 0.0031308f ? value * 12.92f : 1.055f * powf(value, 1.0f / 2.4f) - 0.055f;
+}
+
+// An sRGB format's colours as sampled, through Xenos's gamma, or as Vulkan decodes them, through sRGB's.
+static void linearise(const Spec *spec, float rgba[4], bool sampled)
+{
+	for (uint32_t c = 0; c < 3 && spec->number == SRGB; c++)
+		rgba[c] = sampled ? gamma_linear(rgba[c]) : srgb_linear(rgba[c]);
 }
 
 static void decode_units(const Spec *spec, const uint8_t *texel, float rgba[4])
@@ -257,8 +347,12 @@ static void decode_units(const Spec *spec, const uint8_t *texel, float rgba[4])
 		const uint32_t value = get_field(texel, spec->texel_bytes, spec->shifts[c], bits);
 		if (!bits)
 			rgba[c] = c == 3 ? 1.0f : 0.0f;
+		else if (spec->number == HALF)
+			rgba[c] = from_half(value);
+		else if (spec->number == SNORM)
+			rgba[c] = signed_value(value, bits);
 		else
-			rgba[c] = spec->number == HALF ? from_half(value) : (float)value / (float)field_max(bits);
+			rgba[c] = (float)value / (float)field_max(bits);
 	}
 }
 
@@ -298,6 +392,12 @@ static void bc3_alpha(uint32_t block, uint8_t *out)
 
 static void encode_block(const Spec *spec, uint32_t block, uint8_t *out)
 {
+	if (spec->kind == KIND_BC4 || spec->kind == KIND_BC5) {
+		bc3_alpha(block, out);
+		if (spec->kind == KIND_BC5)
+			bc3_alpha(block + 1, out + 8);
+		return;
+	}
 	if (spec->kind == KIND_BC1 || spec->kind == KIND_BC1_RGB) {
 		colour_block(block, bc1_ends[block], out);
 		return;
@@ -355,15 +455,20 @@ static float bc3_alpha_value(const uint8_t *block, uint32_t texel, bool *blended
 	return ((float)(6 - index) * first + (float)(index - 1) * second) / 5.0f / 255.0f;
 }
 
-// A texel of the image as written; returns whether a decoder may round it its own way.
-static bool texel_value(const Spec *spec, const uint8_t *staged, uint32_t x, uint32_t y, float rgba[4])
+// A texel of a compressed image; returns whether a decoder may round it its own way.
+static bool block_value(const Spec *spec, const uint8_t *staged, uint32_t x, uint32_t y, float rgba[4])
 {
-	if (!compressed(spec)) {
-		decode_units(spec, staged + (y * TEXELS + x) * spec->texel_bytes, rgba);
-		return false;
-	}
 	const uint8_t *const block = staged + (y / BLOCK_SIDE * 2 + x / BLOCK_SIDE) * spec->texel_bytes;
 	const uint32_t texel = y % BLOCK_SIDE * BLOCK_SIDE + x % BLOCK_SIDE;
+	if (spec->kind == KIND_BC4 || spec->kind == KIND_BC5) {
+		bool red_blended = false;
+		bool green_blended = false;
+		rgba[0] = bc3_alpha_value(block, texel, &red_blended);
+		rgba[1] = spec->kind == KIND_BC5 ? bc3_alpha_value(block + 8, texel, &green_blended) : 0.0f;
+		rgba[2] = 0.0f;
+		rgba[3] = 1.0f;
+		return red_blended || green_blended;
+	}
 	const bool bc1 = spec->kind == KIND_BC1 || spec->kind == KIND_BC1_RGB;
 	bool blended = decode_colour(bc1 ? block : block + 8, texel, bc1, rgba);
 	if (spec->kind == KIND_BC1_RGB)
@@ -378,20 +483,40 @@ static bool texel_value(const Spec *spec, const uint8_t *staged, uint32_t x, uin
 	return blended;
 }
 
+// A texel of the image as written, an sRGB one's colours as sampled or as Vulkan decodes them; returns whether a
+// decoder may round it its own way.
+static bool texel_value(const Spec *spec, const uint8_t *staged, uint32_t x, uint32_t y, float rgba[4], bool sampled)
+{
+	bool blended = false;
+	if (compressed(spec))
+		blended = block_value(spec, staged, x, y, rgba);
+	else
+		decode_units(spec, staged + (y * TEXELS + x) * spec->texel_bytes, rgba);
+	linearise(spec, rgba, sampled);
+	return blended;
+}
+
 static uint32_t to_byte(float value)
 {
 	const float clamped = !(value > 0.0f) ? 0.0f : value > 1.0f ? 1.0f : value;
 	return (uint32_t)lrintf(clamped * 255.0f);
 }
 
-static Rgb rgb_of(const float rgba[4])
+// The shader shows a signed format's -1 to 1 as 0 to 1 (push_quad).
+static float shown(const Spec *spec, float value)
 {
-	return (Rgb){ to_byte(rgba[0]), to_byte(rgba[1]), to_byte(rgba[2]) };
+	return spec->number == SNORM ? value * 0.5f + 0.5f : value;
 }
 
-static Rgb alpha_of(const float rgba[4])
+static Rgb rgb_of(const Spec *spec, const float rgba[4])
 {
-	return (Rgb){ to_byte(rgba[3]), to_byte(rgba[3]), to_byte(rgba[3]) };
+	return (Rgb){ to_byte(shown(spec, rgba[0])), to_byte(shown(spec, rgba[1])), to_byte(shown(spec, rgba[2])) };
+}
+
+static Rgb alpha_of(const Spec *spec, const float rgba[4])
+{
+	const uint32_t alpha = to_byte(shown(spec, rgba[3]));
+	return (Rgb){ alpha, alpha, alpha };
 }
 
 static void stage(const Spec *spec, uint8_t *out)
@@ -415,11 +540,14 @@ static uint32_t quad_y(uint32_t index, uint32_t quad)
 	return TOP + index / COLUMNS * BAND_HEIGHT + quad * STEP;
 }
 
-// The colour block's texels in BC2 and BC3's fourth block are those whose first endpoint is below the second.
+// The colour block's texels in BC2 and BC3's fourth block are those whose first endpoint is below the second; an sRGB
+// image's filtered texels have a check of their own.
 static uint32_t group_of(const Spec *spec, uint32_t x, uint32_t y, uint32_t group)
 {
 	const bool four = (spec->kind == KIND_BC2 || spec->kind == KIND_BC3) && x >= BLOCK_SIDE && y >= BLOCK_SIDE;
-	return four ? GROUP_FOUR_COLOUR : group;
+	if (four)
+		return GROUP_FOUR_COLOUR;
+	return spec->number == SRGB && group == GROUP_FILTERED ? GROUP_SRGB_FILTERED : group;
 }
 
 static void add_probe(
@@ -440,39 +568,39 @@ static void make_probes(Scene *scene, uint32_t index)
 	for (uint32_t y = 0; y < n; y++) {
 		for (uint32_t x = 0; x < n; x++) {
 			float rgba[4];
-			const bool blended = texel_value(spec, scene->staged + index * STAGED_BYTES, x, y, rgba);
+			const bool blended = texel_value(spec, scene->staged + index * STAGED_BYTES, x, y, rgba, true);
 			const uint32_t px = left + x * texel + texel / 2;
 			const uint32_t tolerance = blended ? BLEND_TOLERANCE : TOLERANCE;
 			add_probe(scene, index, group_of(spec, x, y, GROUP_SAMPLED), px,
-				quad_y(index, QUAD_NEAREST) + y * texel + texel / 2, rgb_of(rgba), tolerance);
+				quad_y(index, QUAD_NEAREST) + y * texel + texel / 2, rgb_of(spec, rgba), tolerance);
 			add_probe(scene, index, GROUP_SAMPLED, px, quad_y(index, QUAD_ALPHA) + y * texel + texel / 2,
-				alpha_of(rgba), tolerance);
+				alpha_of(spec, rgba), tolerance);
 		}
 	}
 	const uint32_t tolerance = compressed(spec) ? BLEND_TOLERANCE : FILTER_TOLERANCE;
-	for (uint32_t i = 0; i + 1 < n; i++) {
+	for (uint32_t i = 0; filters(spec) && i + 1 < n; i++) {
 		for (uint32_t edge = 0; edge < 2; edge++) {
 			const uint32_t far = edge ? n - 1 : 0;
 			float a[4];
 			float b[4];
 			float mean[4];
-			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, i, far, a);
-			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, i + 1, far, b);
+			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, i, far, a, true);
+			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, i + 1, far, b, true);
 			for (uint32_t c = 0; c < 4; c++)
 				mean[c] = (a[c] + b[c]) / 2.0f;
 			add_probe(scene, index, group_of(spec, i + 1, far, GROUP_FILTERED), left + (i + 1) * texel,
-				quad_y(index, QUAD_LINEAR) + far * texel + texel / 2, rgb_of(mean), tolerance);
-			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, far, i, a);
-			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, far, i + 1, b);
+				quad_y(index, QUAD_LINEAR) + far * texel + texel / 2, rgb_of(spec, mean), tolerance);
+			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, far, i, a, true);
+			(void)texel_value(spec, scene->staged + index * STAGED_BYTES, far, i + 1, b, true);
 			for (uint32_t c = 0; c < 4; c++)
 				mean[c] = (a[c] + b[c]) / 2.0f;
 			add_probe(scene, index, group_of(spec, far, i + 1, GROUP_FILTERED), left + far * texel + texel / 2,
-				quad_y(index, QUAD_LINEAR) + (i + 1) * texel, rgb_of(mean), tolerance);
+				quad_y(index, QUAD_LINEAR) + (i + 1) * texel, rgb_of(spec, mean), tolerance);
 		}
 	}
 }
 
-static const char *const group_names[GROUPS] = { "sampled", "filtered", "four-colour" };
+static const char *const group_names[GROUPS] = { "sampled", "filtered", "four-colour", "sRGB filtered" };
 
 // A HarnessCheck: every probe; misses are counted for their format and group, and the first few logged.
 static bool probes_hold(uint32_t address, const char *what, void *context)
@@ -735,7 +863,8 @@ static void record_blit(const Scene *scene, VkCommandBuffer commands, uint32_t i
 	};
 	barrier(commands, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	vkCmdBlitImage(commands, scene->images[index], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image,
-		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR);
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region,
+		filters(&specs[index]) ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
 	const VkBufferImageCopy blitted = whole(index * READ_BYTES + BLIT_AT, BLITTED);
 	vkCmdCopyImageToBuffer(commands, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, scene->readback, 1, &blitted);
 	const VkClearColorValue colour = { .float32 = {
@@ -787,18 +916,25 @@ static bool transfer(const Harness *harness, const Scene *scene, VkCommandBuffer
 	return submit(harness, commands);
 }
 
-// Whether two encodings of a channel are a step apart at most, as rounding may take either.
-static bool near_field(uint32_t got, uint32_t want)
+// Whether two encodings of a channel are a step apart at most, as rounding may take either; a signed one's as numbers.
+static bool near_field(const Spec *spec, uint32_t bits, uint32_t got, uint32_t want)
 {
-	return got + 1 >= want && got <= want + 1;
+	const int32_t sign = spec->number == SNORM ? (int32_t)(1u << bits) : 0;
+	const int32_t a = sign && got >> (bits - 1) ? (int32_t)got - sign : (int32_t)got;
+	const int32_t b = sign && want >> (bits - 1) ? (int32_t)want - sign : (int32_t)want;
+	return a + 1 >= b && a <= b + 1;
 }
 
+// A channel's encoding of a value, as Vulkan converts it: an sRGB colour through sRGB's curve.
 static uint32_t field_of(const Spec *spec, uint32_t channel, float value)
 {
+	const uint32_t bits = spec->bits[channel];
 	if (spec->number == HALF)
 		return to_half(value);
-	const float clamped = !(value > 0.0f) ? 0.0f : value > 1.0f ? 1.0f : value;
-	return (uint32_t)lrintf(clamped * (float)field_max(spec->bits[channel]));
+	if (spec->number == SNORM)
+		return (uint32_t)lrintf(clamp(value, -1.0f, 1.0f) * (float)field_max(bits - 1)) & field_max(bits);
+	const float unorm = spec->number == SRGB && channel < 3 ? srgb_encoded(clamp(value, 0.0f, 1.0f)) : value;
+	return (uint32_t)lrintf(clamp(unorm, 0.0f, 1.0f) * (float)field_max(bits));
 }
 
 // Each channel of a texel read back against the value it should hold.
@@ -809,7 +945,7 @@ static bool texel_holds(const Spec *spec, const uint8_t *texel, const float want
 		if (!spec->bits[c])
 			continue;
 		const uint32_t got = get_field(texel, spec->texel_bytes, spec->shifts[c], spec->bits[c]);
-		holds = holds && near_field(got, field_of(spec, c, want[c]));
+		holds = holds && near_field(spec, spec->bits[c], got, field_of(spec, c, want[c]));
 	}
 	return holds;
 }
@@ -832,10 +968,13 @@ static bool blitted_back(const Scene *scene, uint32_t index)
 			float mean[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 			for (uint32_t i = 0; i < 4; i++) {
 				float rgba[4];
-				(void)texel_value(spec, staged, 2 * x + i % 2, 2 * y + i / 2, rgba);
+				(void)texel_value(spec, staged, 2 * x + i % 2, 2 * y + i / 2, rgba, false);
 				for (uint32_t c = 0; c < 4; c++)
 					mean[c] += rgba[c] / 4.0f;
 			}
+			// A nearest blit takes the texel at the destination texel's centre (src/transfer.c).
+			if (!filters(spec))
+				(void)texel_value(spec, staged, 2 * x + 1, 2 * y + 1, mean, false);
 			const uint8_t *const texel =
 				scene->read + index * READ_BYTES + BLIT_AT + (y * BLITTED + x) * spec->texel_bytes;
 			holds = holds && texel_holds(spec, texel, mean);
@@ -871,7 +1010,10 @@ static void check_transfers(const Scene *scene, bool transferred)
 		clears = clears && this_cleared;
 	}
 	check("formats: each image copied back out to a buffer holds the bytes it was copied in from", copied);
-	check("formats: each uncompressed image blitted linearly from 4x4 to 2x2 holds the means of its texels", blits);
+	check(
+		"formats: each uncompressed image blitted from 4x4 to 2x2 holds the means of its texels, or the texels at its "
+		"centres where it's sampled nearest",
+		blits);
 	check("formats: each uncompressed image cleared holds the colour in every texel, as its format packs it", clears);
 }
 
@@ -896,7 +1038,10 @@ static void push_quad(VkCommandBuffer commands, VkPipelineLayout layout, uint32_
 		0.0f,
 		0.0f,
 	};
-	const float scale_bias[8] = { 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	// A signed format's -1 to 1 shows as 0 to 1.
+	const float scale = specs[index].number == SNORM ? 0.5f : 1.0f;
+	const float bias = specs[index].number == SNORM ? 0.5f : 0.0f;
+	const float scale_bias[8] = { scale, scale, scale, scale, bias, bias, bias, bias };
 	vkCmdPushConstants(commands, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof place, place);
 	vkCmdPushConstants(commands, layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof place, sizeof scale_bias, scale_bias);
 	vkCmdDraw(commands, 6, 1, 0, 0);
@@ -941,16 +1086,25 @@ static void check_sampling(const Scene *scene, uint32_t frames)
 	char name[160];
 	bool filtered = frames == FRAMES;
 	bool four_colours = frames == FRAMES;
+	bool srgb_filtered = frames == FRAMES;
 	for (uint32_t i = 0; i < SPECS; i++) {
 		(void)snprintf(name, sizeof name,
-			"formats: %s sampled nearest, every texel's red, green, blue and alpha as written", specs[i].name);
+			"formats: %s sampled nearest, every texel's red, green, blue and alpha as written%s", specs[i].name,
+			specs[i].number == SRGB ? ", its colours through Xenos's gamma curve" : "");
 		check(name, frames == FRAMES && !scene->missed[i][GROUP_SAMPLED]);
 		filtered = filtered && !scene->missed[i][GROUP_FILTERED];
 		four_colours = four_colours && !scene->missed[i][GROUP_FOUR_COLOUR];
+		srgb_filtered = srgb_filtered && !scene->missed[i][GROUP_SRGB_FILTERED];
 	}
-	check("formats: every format filtered linearly halfway between two texels gives their mean", filtered);
+	check(
+		"formats: every format but the half floats and 10-10-10-2 filtered linearly halfway between two texels "
+		"gives their mean",
+		filtered);
 	check(
 		"formats: BC2 and BC3 colour blocks whose first endpoint is below the second take four colours", four_colours);
+	check(
+		"formats: sRGB images filtered linearly blend their texels after Xenos's curve, as Vulkan's do after decoding",
+		srgb_filtered);
 }
 
 // The features each format reports, as docs/SUPPORT.md lists them.
@@ -971,7 +1125,8 @@ static void check_properties(const Harness *harness)
 		const bool linear =
 			vkGetPhysicalDeviceImageFormatProperties(harness->physical_device, spec->format, VK_IMAGE_TYPE_2D,
 				VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DST_BIT, 0, &image) == VK_SUCCESS;
-		const VkFormatFeatureFlags wanted = compressed(spec) ? filtered : filtered | blits;
+		const VkFormatFeatureFlags sampled = filters(spec) ? filtered : VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+		const VkFormatFeatureFlags wanted = compressed(spec) ? sampled : sampled | blits;
 		const bool this_reported = properties.optimalTilingFeatures == wanted && !properties.linearTilingFeatures &&
 			!attachment && linear != compressed(spec);
 		if (!this_reported)
@@ -982,8 +1137,8 @@ static void check_properties(const Harness *harness)
 	VkPhysicalDeviceFeatures features;
 	vkGetPhysicalDeviceFeatures(harness->physical_device, &features);
 	check(
-		"formats: each reports sampling and filtering, the uncompressed blits and linear images too, none colour "
-		"attachments, and textureCompressionBC is off",
+		"formats: each reports sampling, and filtering but the half floats and 10-10-10-2, the uncompressed blits and "
+		"linear images too, none colour attachments, and textureCompressionBC is off",
 		reported && !features.textureCompressionBC);
 }
 
@@ -1080,6 +1235,13 @@ void test_formats(const Harness *harness)
 		recorded ? harness_frames(harness, scene.commands, FRAMES, probes_hold, &scene, &misses) : 0;
 	xsdk_log_write(
 		"formats: %u probes a frame, %u frames held a wrong one", (unsigned)scene.probe_count, (unsigned)misses);
+	for (uint32_t i = 0; i < SPECS; i++) {
+		for (uint32_t group = 0; group < GROUPS; group++) {
+			if (scene.missed[i][group])
+				xsdk_log_write("formats: %s %s: %u probes missed over the frames", specs[i].name, group_names[group],
+					(unsigned)scene.missed[i][group]);
+		}
+	}
 	check_sampling(&scene, frames);
 	check("formats: the image on screen shows them too", harness_screen(harness, probes_hold, &scene));
 	check_properties(harness);

@@ -231,7 +231,7 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   else returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1. None is sparse, so
   `vkGetImageSparseMemoryRequirements` and `vkGetPhysicalDeviceSparseImageFormatProperties` find nothing.
 - Formats: each on the xsdk format that holds its bits as Vulkan does (Formats, "On xsdk").
-- Compressed images, BC1 to BC3, are optimal-tiled. Vulkan's blocks are the Khronos Data Format Specification's
+- Compressed images, BC1 to BC5, are optimal-tiled. Vulkan's blocks are the Khronos Data Format Specification's
   bytes, each 16-bit word least significant byte first, and xsdk's DXT formats take each word in the CPU's order
   (xsdk:include/xsdk/texture.h), so copies into and out of a compressed image swap each word's bytes, a row of blocks
   at a time (milestone 20). The image's memory holds xsdk's order, which is opaque to the app, as Vulkan has it.
@@ -321,12 +321,15 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   time. A copy between a compressed and an uncompressed format, which Vulkan allows, fails the command buffer, as
   their 16-bit words lie in different orders.
 - `vkCmdBlitImage` blits whole levels to whole levels, unflipped, between images of one format reporting
-  `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT` (Formats): every uncompressed format but `R32_SFLOAT`. Each
-  destination texel samples the source at its centre, nearest or between the four texels around it, edges clamped:
-  the CPU unpacks each texel's channels to floats, mixes them, and packs them again rounded to the nearest
-  (src/format.c). A chain of levels blitted down from the base makes an image's mips.
-- `vkCmdClearColorImage` fills whole levels with the colour, packed as the format holds it, each channel rounded to the
-  nearest. A compressed image's clear, which Vulkan doesn't allow, fails the command buffer.
+  `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT` (Formats): every uncompressed format but `R32_SFLOAT`, the half
+  floats and 10-10-10-2 nearest alone, as they don't report linear filtering. Each destination texel samples the
+  source at its centre, nearest or between the four texels around it, edges clamped:
+  the CPU unpacks each texel's channels to floats, an sRGB format's colours through sRGB's curve, mixes them, and
+  packs them again rounded to the nearest (src/format.c). A chain of levels blitted down from the base makes an
+  image's mips.
+- `vkCmdClearColorImage` fills whole levels with the colour, packed as the format holds it, an sRGB format's colours
+  through sRGB's curve, each channel rounded to the nearest. A compressed image's clear, which Vulkan doesn't allow,
+  fails the command buffer.
 - `vkCmdClearDepthStencilImage` clears depth and stencil together, as one register holds both; a range of one alone
   fails the command buffer. Its clear waits for the next pass to use the image (Render passes), and a sampled image's
   memory takes it at once (Images).
@@ -421,11 +424,13 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, nearest filtering only, as filtering depth hasn't been tried on the console |
 | `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
 | `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering, blit source and destination |
-| `VK_FORMAT_R5G6B5_UNORM_PACK16`, `B5G6R5_UNORM_PACK16`, `A1R5G5B5_UNORM_PACK16`, `R4G4B4A4_UNORM_PACK16`, `B4G4R4A4_UNORM_PACK16`, `A2B10G10R10_UNORM_PACK32`, `A2R10G10B10_UNORM_PACK32`, `R16_SFLOAT` | optimal tiling: sampled, linear filtering, blit source and destination (milestone 20) |
-| `VK_FORMAT_R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | optimal tiling: sampled, linear filtering, blit source and destination; buffer: vertex buffer (milestone 20) |
-| `VK_FORMAT_BC1_RGB_UNORM_BLOCK`, `BC1_RGBA_UNORM_BLOCK`, `BC2_UNORM_BLOCK`, `BC3_UNORM_BLOCK` | optimal tiling: sampled, linear filtering (milestone 20) |
+| `VK_FORMAT_R5G6B5_UNORM_PACK16`, `B5G6R5_UNORM_PACK16`, `A1R5G5B5_UNORM_PACK16`, `R4G4B4A4_UNORM_PACK16`, `B4G4R4A4_UNORM_PACK16`, `R16_UNORM`, `R16_SNORM`, `R8_SNORM`, `R8G8_SNORM`, `B8G8R8A8_SNORM`, `R8_SRGB`, `R8G8_SRGB`, `R8G8B8A8_SRGB`, `B8G8R8A8_SRGB` | optimal tiling: sampled, linear filtering, blit source and destination (milestone 20) |
+| `VK_FORMAT_R16G16_UNORM`, `R16G16B16A16_UNORM`, `R16G16_SNORM`, `R16G16B16A16_SNORM`, `R8G8B8A8_SNORM` | optimal tiling: sampled, linear filtering, blit source and destination; buffer: vertex buffer (milestone 20) |
+| `VK_FORMAT_A2B10G10R10_UNORM_PACK32`, `A2R10G10B10_UNORM_PACK32`, `A2B10G10R10_SNORM_PACK32`, `A2R10G10B10_SNORM_PACK32`, `R16_SFLOAT` | optimal tiling: sampled, nearest filtering only, as Xenos filtered them wrong on the console, far from the mean of two texels halfway between them (milestone 20); blit source and destination |
+| `VK_FORMAT_R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | optimal tiling: sampled, nearest filtering only, as above; blit source and destination; buffer: vertex buffer (milestone 20) |
+| `VK_FORMAT_BC1_RGB_UNORM_BLOCK`, `BC1_RGBA_UNORM_BLOCK`, `BC2_UNORM_BLOCK`, `BC3_UNORM_BLOCK`, `BC4_UNORM_BLOCK`, `BC5_UNORM_BLOCK`, `BC1_RGB_SRGB_BLOCK`, `BC1_RGBA_SRGB_BLOCK`, `BC2_SRGB_BLOCK`, `BC3_SRGB_BLOCK` | optimal tiling: sampled, linear filtering (milestone 20) |
 | `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
-| `VK_FORMAT_A8B8G8R8_SNORM_PACK32`, `A8B8G8R8_USCALED_PACK32`, `A8B8G8R8_SSCALED_PACK32`, `R8G8B8A8_SNORM`, `R8G8B8A8_USCALED`, `R8G8B8A8_SSCALED`, `R16G16_UNORM`, `R16G16_SNORM`, `R16G16_USCALED`, `R16G16_SSCALED`, `R16G16B16A16_UNORM`, `R16G16B16A16_SNORM`, `R16G16B16A16_USCALED`, `R16G16B16A16_SSCALED` | buffer: vertex buffer (milestone 20) |
+| `VK_FORMAT_A8B8G8R8_SNORM_PACK32`, `A8B8G8R8_USCALED_PACK32`, `A8B8G8R8_SSCALED_PACK32`, `R8G8B8A8_USCALED`, `R8G8B8A8_SSCALED`, `R16G16_USCALED`, `R16G16_SSCALED`, `R16G16B16A16_USCALED`, `R16G16B16A16_SSCALED` | buffer: vertex buffer (milestone 20) |
 
 **On xsdk:** each image format is the xsdk format that holds its bits as Vulkan does: a packed unit in the CPU's byte
 order, as xsdk's uploads take it and as Vulkan has a packed format's unit on a big-endian host, each channel where
@@ -442,10 +447,24 @@ otherwise, the fetch constant's swizzle picks them, which reads the same bits (s
 | `R16_SFLOAT`, `R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | `XSDK_FORMAT_R16F`, `R16G16F`, `R16G16B16A16F` | the same |
 | `BC1_RGB_UNORM_BLOCK`; `BC1_RGBA_UNORM_BLOCK` | `XSDK_FORMAT_DXT1` | red, green, blue and 1, as BC1 without alpha reads 1 where DXT1 has transparent black; the same |
 | `BC2_UNORM_BLOCK`, `BC3_UNORM_BLOCK` | `XSDK_FORMAT_DXT3`, `DXT5` | the same |
+| `BC4_UNORM_BLOCK`, `BC5_UNORM_BLOCK` | `XSDK_FORMAT_DXT5A`, `DXN` | the same |
+| `R16_UNORM`, `R16G16_UNORM`, `R16G16B16A16_UNORM`, and each one's `SNORM` | `XSDK_FORMAT_R16`, `R16G16`, `R16G16B16A16` | the same |
+| `R8_SNORM`, `R8G8_SNORM`, `R8G8B8A8_SNORM`, `B8G8R8A8_SNORM`; and each one's `SRGB` | `XSDK_FORMAT_R8`, `R8G8`, `R8G8B8A8`, `B8G8R8A8` | the same |
+| `A2B10G10R10_SNORM_PACK32`; `A2R10G10B10_SNORM_PACK32` | `XSDK_FORMAT_A2B10G10R10` | the same; blue, green, red, alpha |
+| `BC1_RGB_SRGB_BLOCK`; `BC1_RGBA_SRGB_BLOCK`, `BC2_SRGB_BLOCK`, `BC3_SRGB_BLOCK` | `XSDK_FORMAT_DXT1`, `DXT3`, `DXT5` | red, green, blue and 1; the same |
 
-Left out, as no Xenos format holds their bits: `R5G5B5A1_UNORM_PACK16` and `B5G5R5A1_UNORM_PACK16`, whose alpha is the
-lowest bit, where Xenos's 1-5-5-5 has it highest (xenia:src/xenia/gpu/shaders/pixel_formats.xesli,
-`XeR5G5B5A1ToB5G5R5A1`).
+A signed format reads every channel signed (`xsdk_texture_signs`), two's complement from -1 to 1, the most negative
+read as -1: Vulkan's `SNORM`, and Xenos's only signed mode (xenia:src/xenia/gpu/xenos.h:761-767, 1197-1201). An sRGB
+format reads its colours through Xenos's gamma, and its alpha as it is (Deviations).
+
+Left out, as no Xenos format holds their bits as Vulkan has them:
+- `R5G5B5A1_UNORM_PACK16` and `B5G5R5A1_UNORM_PACK16`, whose alpha is the lowest bit, where Xenos's 1-5-5-5 has it
+  highest (xenia:src/xenia/gpu/shaders/pixel_formats.xesli, `XeR5G5B5A1ToB5G5R5A1`);
+- `B10G11R11_UFLOAT_PACK32`, as Xenos's 10-11-11 and 11-11-10 are fixed point
+  (xenia:src/xenia/gpu/shaders/pixel_formats.xesli:450-484), which xsdk has as `XSDK_FORMAT_B10G11R11` and
+  `B11G11R10`;
+- `BC4_SNORM_BLOCK` and `BC5_SNORM_BLOCK`: Xenia reads DXT5A and DXN unsigned alone
+  (xenia:src/xenia/gpu/vulkan/vulkan_texture_cache.cc:333-337, 384-388), so nothing shows how Xenos signs them.
 
 Each vertex format is the xsdk vertex format of its components' size, number and count (xsdk:include/xsdk/shader.h):
 xsdk fetches 32-bit words, each component after the first in the bits above it, as xsdk milestone 17 settled, and a
@@ -469,13 +488,21 @@ alone, no integer reaching the GPU (xost:docs/xsc.md:239); formats of 1, 2, 3 or
 `R16G16B16_SFLOAT`, as xsdk fetches whole words; and the 10-bit types, which xsdk lacks.
 
 **Deviations:**
-- `textureCompressionBC` is false, as it promises BC4 to BC7 too, and Xenos has no BC6H or BC7
+- `textureCompressionBC` is false, as it promises BC6H and BC7 too, which Xenos lacks, and BC4 and BC5 `SNORM`
   (xenia:src/xenia/gpu/xenos.h:450-532). Vulkan has an app that doesn't find the feature read each BC format's features
   from `vkGetPhysicalDeviceFormatProperties`, which reports them (Vulkan spec, `VkPhysicalDeviceFeatures`). Vulkan also
   requires one of the BC, ETC2 and ASTC LDR suites in full; the layer has none in full.
-- BC2 and BC3 colour blocks whose first endpoint isn't above the second take four colours, as Vulkan has them. Whether
-  Xenos decodes them that way or as DXT1's three and transparent black is unsettled (xsdk:TODO.md, "Questions the
-  console hasn't answered"); milestone 20's checks settle it.
+- BC2 and BC3 colour blocks whose first endpoint isn't above the second take four colours, as Vulkan has them, and as
+  Xenos decoded them on the console (milestone 20), not as DXT1's three and transparent black.
+- sRGB images sample through Xenos's gamma, a piecewise-linear curve near sRGB's (xenia:src/xenia/gpu/xenos.cc:27): at
+  128 it gives 0.251, where sRGB's gives 0.216. Blits and clears of them, on the CPU, take sRGB's own curve, as Vulkan
+  has them, so what they write samples through Xenos's too. Xenos linearises a texel before filtering, as Vulkan
+  does, not after, as Xenia does (xenia:src/xenia/gpu/dxbc_shader_translator_fetch.cc:2076-2078): on the console,
+  filtered sRGB images blended their texels after the curve (milestone 20). sRGB images aren't colour attachments
+  (milestone 25).
+- The half floats and 10-10-10-2 sample nearest alone: Xenos filtered them wrong on the console, far from the mean of
+  two texels halfway between them, though it sampled them right (milestone 20; xsdk:docs/HARDWARE.md, "Texture and
+  vertex formats, vulkan4xenon milestone 20").
 
 Vulkan 1.0 requires many more formats and features; each missing one is a deviation.
 
