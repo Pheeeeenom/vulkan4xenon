@@ -1741,6 +1741,8 @@ no depth, as the WGSL's `ztex_source_stage` leaves them.
 
 Step 3 is done.
 
+**Step 4 is put off,** at the user's word (2026-10-16), to xsdk:TODO.md, "Destination alpha".
+
 ### The Guide, through xsdk (2026-10-15)
 
 xsdk's milestone 37 shows the Guide: `xsdk_present_end` hands each frame to the kernel's swap, and while the Guide is
