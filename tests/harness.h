@@ -73,6 +73,8 @@ typedef struct {
 	const VkPipelineColorBlendAttachmentState *blend;
 	// The viewport and scissor come from vkCmdSetViewport and vkCmdSetScissor.
 	bool dynamic_viewport;
+	// The line width comes from vkCmdSetLineWidth, the pipeline's own left 0 for the layer to ignore.
+	bool dynamic_line_width;
 } HarnessPipeline;
 
 // Whether an image the test drew holds what it should; failures are counted and the first few logged by the test.

@@ -20,20 +20,30 @@ required minimums.
 | Group | Functions |
 |---|---|
 | Instance | `vkCreateInstance`, `vkDestroyInstance`, `vkEnumerateInstanceExtensionProperties`, `vkEnumerateInstanceLayerProperties`, `vkGetInstanceProcAddr`, `vkEnumeratePhysicalDevices` |
-| Physical device | `vkGetPhysicalDeviceProperties`, `vkGetPhysicalDeviceFeatures`, `vkGetPhysicalDeviceQueueFamilyProperties`, `vkGetPhysicalDeviceMemoryProperties`, `vkGetPhysicalDeviceFormatProperties`, `vkGetPhysicalDeviceImageFormatProperties`, `vkEnumerateDeviceExtensionProperties`, `vkEnumerateDeviceLayerProperties` |
+| Physical device | `vkGetPhysicalDeviceProperties`, `vkGetPhysicalDeviceFeatures`, `vkGetPhysicalDeviceQueueFamilyProperties`, `vkGetPhysicalDeviceMemoryProperties`, `vkGetPhysicalDeviceFormatProperties`, `vkGetPhysicalDeviceImageFormatProperties`, `vkGetPhysicalDeviceSparseImageFormatProperties`, `vkEnumerateDeviceExtensionProperties`, `vkEnumerateDeviceLayerProperties` |
 | Device | `vkCreateDevice`, `vkDestroyDevice`, `vkGetDeviceProcAddr`, `vkGetDeviceQueue`, `vkDeviceWaitIdle` |
-| Memory and buffers | `vkAllocateMemory`, `vkFreeMemory`, `vkMapMemory`, `vkUnmapMemory`, `vkFlushMappedMemoryRanges`, `vkInvalidateMappedMemoryRanges`, `vkCreateBuffer`, `vkDestroyBuffer`, `vkGetBufferMemoryRequirements`, `vkBindBufferMemory` |
-| Pipelines | `vkCreateShaderModule`, `vkDestroyShaderModule`, `vkCreatePipelineLayout`, `vkDestroyPipelineLayout`, `vkCreateGraphicsPipelines`, `vkDestroyPipeline` |
-| Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
+| Memory and buffers | `vkAllocateMemory`, `vkFreeMemory`, `vkMapMemory`, `vkUnmapMemory`, `vkFlushMappedMemoryRanges`, `vkInvalidateMappedMemoryRanges`, `vkGetDeviceMemoryCommitment`, `vkCreateBuffer`, `vkDestroyBuffer`, `vkGetBufferMemoryRequirements`, `vkBindBufferMemory`, `vkCreateBufferView`, `vkDestroyBufferView` |
+| Pipelines | `vkCreateShaderModule`, `vkDestroyShaderModule`, `vkCreatePipelineLayout`, `vkDestroyPipelineLayout`, `vkCreateGraphicsPipelines`, `vkCreateComputePipelines`, `vkDestroyPipeline`, `vkCreatePipelineCache`, `vkDestroyPipelineCache`, `vkGetPipelineCacheData`, `vkMergePipelineCaches` |
+| Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkGetImageSparseMemoryRequirements`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
 | Descriptor sets | `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`, `vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`, `vkFreeDescriptorSets`, `vkUpdateDescriptorSets` |
-| Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer` |
-| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdCopyBufferToImage`, `vkCmdPipelineBarrier` |
-| Sync and submit | `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore` |
+| Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer`, `vkGetRenderAreaGranularity` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBounds`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
+| Sync and submit | `vkQueueSubmit`, `vkQueueBindSparse`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore`, `vkCreateEvent`, `vkDestroyEvent`, `vkGetEventStatus`, `vkSetEvent`, `vkResetEvent` |
 | Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
 | Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
 
 Apps call them directly. `vkGetInstanceProcAddr` finds global functions with a `NULL` instance and every function
 with one; `vkGetDeviceProcAddr` finds device functions only.
+
+Some are there to refuse, as the features they need aren't reported. Each logs what it refuses and returns
+`VK_ERROR_FEATURE_NOT_PRESENT`, or for a command fails its command buffer, so `vkEndCommandBuffer` returns it
+(milestone 19):
+- compute: `vkCreateComputePipelines`, which sets each pipeline to `VK_NULL_HANDLE`, `vkCmdDispatch` and
+  `vkCmdDispatchIndirect` (Device);
+- `vkCreateBufferView`, as no format has texel buffer features (Formats), so `vkDestroyBufferView` has nothing to do;
+- `vkCmdResolveImage`, as images have one sample;
+- `vkCmdSetDepthBounds`, with no depth bounds test (Pipelines);
+- `vkQueueBindSparse`, with no sparse binding (Device).
 
 ## Device
 
@@ -42,7 +52,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - One feature, `samplerAnisotropy` (Samplers). Requesting any other returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan
   1.0 requires `robustBufferAccess`; that's a deviation.
 - One queue family with one queue, `VK_QUEUE_GRAPHICS_BIT` only. Vulkan 1.0 requires a family with graphics and
-  compute together; Xenos has no compute stage, so that's a deviation.
+  compute together; Xenos has no compute stage, so that's a deviation. There's no sparse binding either: the GPU
+  addresses physical memory, and Xenia's registers show no GPU MMU (xenia:src/xenia/gpu/register_table.inc).
 
 ## Memory and buffers
 
@@ -61,6 +72,7 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   - reading it back is slow, as it isn't cached.
 - Coherence: `vkQueueSubmit` drains the CPU's write-combining (`sync`) before replaying, so flushing ranges does
   nothing and isn't needed.
+- No memory type is lazily allocated, so `vkGetDeviceMemoryCommitment` gives an allocation's whole size.
 - Buffers: 64-byte alignment, sizes rounded up to it, so the GPU can load uniform blocks straight from them. Sparse
   buffers return `VK_ERROR_FEATURE_NOT_PRESENT`.
 
@@ -111,7 +123,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
     4;
   - point lists, line lists and strips, and triangle lists, strips and fans, without primitive restart (an xsdk
     TODO);
-  - one viewport and scissor, set in the pipeline or dynamic; no other dynamic state;
+  - one viewport and scissor, set in the pipeline or dynamic; the line width dynamic too, the pipeline's then ignored
+    and `vkCmdSetLineWidth` taking 1 alone, as without `wideLines`; no other dynamic state;
   - filled polygons, line width 1, no depth clamp;
   - one sample;
   - one colour attachment.
@@ -134,7 +147,10 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
     way;
   - the colour write mask. No logic ops.
 - **Deviation:** points are 1 pixel, xsdk's `PA_SU_POINT_SIZE`; the shader's `gl_PointSize` is ignored.
-- The pipeline cache passed in is ignored; `vkCreatePipelineCache` isn't implemented.
+- Pipeline caches hold nothing, since pipelines come from the shader bundle and the layer's own cache of compiled
+  shaders (milestone 13). The data a cache is made with is ignored, `vkMergePipelineCaches` does nothing, and
+  `vkGetPipelineCacheData` gives the 32-byte header alone, its words least significant byte first as the spec says,
+  vendor, device and UUID 0.
 - Clip space is Vulkan's:
   - y points down, so the viewport is set from its bottom edge with a negative height, against xsdk's y-up
     (xsdk:src/gpu_draw.c:298);
@@ -167,7 +183,7 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   resolves depth. Depth images can't be copied.
 - Framebuffers: the render pass's attachments, their full size, up to 1280x720, one layer. Colour attachments are
   swapchain images or images made with `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`. The render area must be the whole
-  framebuffer.
+  framebuffer, so `vkGetRenderAreaGranularity` gives 1x1.
 - How it maps (docs/ROADMAP.md, milestone 4):
   - the pass draws into eDRAM, colour from tile 0 and depth where eDRAM holds its image's, or the clear it wants at
     its size; a depth eDRAM doesn't hold goes ending at tile 2048, or just under a depth image eDRAM holds there when
@@ -186,7 +202,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 ## Images
 
 - 2D, one layer, one sample, optimal tiling, used for sampling, copying in and as colour attachments; anything else
-  returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1.
+  returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1. None is sparse, so
+  `vkGetImageSparseMemoryRequirements` and `vkGetPhysicalDeviceSparseImageFormatProperties` find nothing.
 - Colour attachment images are `VK_FORMAT_R8G8B8A8_UNORM` or `VK_FORMAT_B8G8R8A8_UNORM`, with one level, and both
   sides over 16 texels: a smaller base level sits in the packed mip tail, where a resolve can't write
   (xsdk:src/gpu_resolve.c). Others return `VK_ERROR_FEATURE_NOT_PRESENT`.
@@ -258,6 +275,8 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - Fences are xsdk's fences: `vkQueueSubmit` always ends with one, and a `VkFence` passed to it signals when the GPU
   passes it.
 - Semaphores do nothing: there's one queue, and it replays in order.
+- Events are the host's: `vkSetEvent` and `vkResetEvent` set what `vkGetEventStatus` reads. Command buffers don't set
+  or wait on them yet (milestone 19, step 6).
 - `vkWaitForFences` with `waitAll` false waits on the earliest pending fence, since fences signal in submission order.
   A fence never submitted never signals, so waiting on it returns `VK_TIMEOUT` at once.
 

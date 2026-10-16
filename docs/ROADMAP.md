@@ -1754,6 +1754,70 @@ scene 3.4% faster, the differences growing with the draws though the swap comes 
 rebuilt code lies (`results/2026-10-15-guide/`; xsdk:docs/HARDWARE.md, "The Guide, milestone 37"). Dusklight shows the
 Guide over the whole frame and leaves through its Xbox Home cleanly.
 
+### Milestone 19: the rest of Vulkan 1.0's commands
+
+**Why.** The layer exports 85 of Vulkan 1.0's 137 commands (src/proc_addr.c, against the vendored headers' version
+363), and `vkGetDeviceProcAddr` finds nothing for the other 52, so a port that calls one calls a null pointer. Aurora's
+backend calls none of them (aurora-xenon:lib/vulkan4xenon), so they're for the ports and homebrew past Dusklight and
+Melee.
+
+**Agreed with the user (2026-10-16), in six steps,** each done on the console before the next. Every command is
+exported; one the layer can't do yet logs and returns `VK_ERROR_FEATURE_NOT_PRESENT`, as its other refusals do
+(CODE_GUIDELINES.md, "Errors").
+1. **What needs nothing of Xenos** (22 commands):
+   - what the spec allows without more behind it: the pipeline cache's four, its data a header alone;
+     `vkGetRenderAreaGranularity`; `vkGetDeviceMemoryCommitment`; the two sparse queries, which find nothing; and the
+     host's five event commands;
+   - refused, as the features they need aren't reported: `vkQueueBindSparse`, `vkCreateComputePipelines`,
+     `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdResolveImage`, `vkCreateBufferView`, `vkDestroyBufferView` and
+     `vkCmdSetDepthBounds`;
+   - `vkCmdSetLineWidth`, with the line width dynamic: 1 is the only width without `wideLines`.
+2. **Copies on the CPU at replay** (10), as `vkCmdCopyBufferToImage`'s are (section 3): `vkCmdCopyBuffer`,
+   `vkCmdFillBuffer`, `vkCmdUpdateBuffer`, `vkCmdClearColorImage`, `vkCmdCopyImage`, `vkCmdCopyImageToBuffer` and
+   `vkCmdBlitImage`, of whole levels; `vkCmdDrawIndirect` and `vkCmdDrawIndexedIndirect`, one draw each, their
+   parameters read at replay, since the host or a copy at replay writes every buffer; linear images, and
+   `vkGetImageSubresourceLayout` for them. xsdk reads a tiled texture back for it, where it has only
+   `xsdk_texture_upload`, and images take `TRANSFER_SRC`.
+3. **Dynamic state** (5): the stencil compare mask, write mask and reference, the depth bias, and blend constants, for
+   which xsdk gains the constant-colour factors and `RB_BLEND_RED` to `ALPHA`
+   (xenia:src/xenia/gpu/register_table.inc:506).
+4. **Clears** (2): `vkCmdClearAttachments`, a rectangle the layer draws, as it draws an image back (src/blit.c); and
+   `vkCmdClearDepthStencilImage`, kept until the next pass that loads the image, since depth lives in eDRAM.
+5. **Secondary command buffers and subpasses** (2): `vkCmdExecuteCommands` replays secondary command buffers in place;
+   `vkCmdNextSubpass` moves through render passes of several subpasses, each replayed as a pass of its own, without
+   input attachments.
+6. **Events, queries and time stamps the GPU writes** (11): `vkCmdSetEvent`, `vkCmdResetEvent` and `vkCmdWaitEvents` on
+   xsdk's fences, with `PM4_WAIT_REG_MEM` (xsdk:src/gpu_setup.c:173) for an event the host sets after the submit;
+   occlusion queries' seven on `EVENT_WRITE_ZPD` (xenia:src/xenia/gpu/command_processor.cc:1249), after a console
+   probe; and `vkCmdWriteTimestamp` on the GPU clock the console showed (xsdk:docs/HARDWARE.md, "A clock the GPU and
+   the CPU both read"), 64 bits if `RBBM_PERFCOUNTER1_HI` (xenia:src/xenia/gpu/register_table.inc:52) counts.
+
+**Done when,** for each step, vulkan4xenon_test checks each command the step adds, by pixel where it draws or copies
+and by value where it answers, every check failing with its break; and vulkan4xenon_test passes in full on the
+console.
+
+**Not in milestone 19,** each a milestone of its own, and refused until then:
+- `vkCmdResolveImage`, once the layer has multisampled images (milestone 17): Xenos multisamples in eDRAM and its
+  resolve averages the samples (xsdk:include/xsdk/gpu.h, `xsdk_gpu_set_target_samples`).
+- Buffer views: uniform texel buffers, read through a vertex fetch or a linear texture, with xost lowering the reads;
+  storage texel buffers need memexport.
+- Compute, emulated: a draw of points whose vertex shader writes through memexport (xenia:src/xenia/gpu/shader.h:59-62),
+  for shaders without shared memory or barriers.
+
+Two stay refused: depth bounds, as Xenia's registers have no depth bounds test and a pixel shader can't read eDRAM's
+depth; and sparse binding, as the GPU addresses physical memory and Xenia's registers have no GPU MMU. Neither is a
+console result.
+
+**Step 1 on the console** (2026-10-16; `results/2026-10-16-milestone-19-step-1/`). The 22 commands are exported and
+found by name. A pipeline cache's data is its 32-byte header, least significant byte first as the spec has it on a
+big-endian CPU; events are a flag the host sets, read atomically; the sparse queries find nothing; a pipeline may take
+its line width from `vkCmdSetLineWidth`, which takes 1 alone. The eight refusals log and return
+`VK_ERROR_FEATURE_NOT_PRESENT`. vulkan4xenon_test passed 138 of 138, twice, its 11 checks new in `test_commands.c`.
+Broken on purpose, one break a check (`breaks.py`), the 11 failed and the other 127 passed
+(`vulkan4xenon_test_broken.log`).
+
+Step 1 is done.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

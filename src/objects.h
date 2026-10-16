@@ -371,6 +371,15 @@ typedef struct {
 } Semaphore;
 
 typedef struct {
+	// vkGetEventStatus isn't externally synchronized against vkSetEvent, so it's read and written atomically.
+	bool set;
+} Event;
+
+typedef struct {
+	uint32_t unused;
+} PipelineCache;
+
+typedef struct {
 	uint32_t width;
 	uint32_t height;
 } Surface;

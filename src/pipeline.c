@@ -8,6 +8,11 @@
 #include "xsdk/log.h"
 #include "xsdk/shader.h"
 
+enum {
+	// A pipeline cache's header: its size, its version, vendor and device IDs, then the cache's UUID.
+	CACHE_HEADER_BYTES = 16 + VK_UUID_SIZE,
+};
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreatePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkPipelineLayout *pPipelineLayout)
 {
@@ -240,4 +245,71 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyPipeline(
 	if (!object)
 		return;
 	free_pipeline(v4x_host_device_allocator(device, pAllocator), object);
+}
+
+// Xenos has no compute stage, and the one queue family runs graphics alone (docs/SUPPORT.md, Device).
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateComputePipelines(VkDevice device, VkPipelineCache pipelineCache,
+	uint32_t createInfoCount, const VkComputePipelineCreateInfo *pCreateInfos, const VkAllocationCallbacks *pAllocator,
+	VkPipeline *pPipelines)
+{
+	(void)device;
+	(void)pipelineCache;
+	(void)pCreateInfos;
+	(void)pAllocator;
+	for (uint32_t i = 0; i < createInfoCount; i++)
+		pPipelines[i] = VK_NULL_HANDLE;
+	return v4x_host_unsupported("compute pipelines");
+}
+
+// Pipelines come from the shader bundle and the layer's own cache of compiled shaders (milestone 13), so a pipeline
+// cache holds nothing: its data is the header alone.
+VKAPI_ATTR VkResult VKAPI_CALL vkCreatePipelineCache(VkDevice device, const VkPipelineCacheCreateInfo *pCreateInfo,
+	const VkAllocationCallbacks *pAllocator, VkPipelineCache *pPipelineCache)
+{
+	(void)pCreateInfo;
+	PipelineCache *const cache =
+		v4x_host_alloc(v4x_host_device_allocator(device, pAllocator), sizeof *cache, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (!cache)
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
+	*pPipelineCache = v4x_handle(cache);
+	return VK_SUCCESS;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyPipelineCache(
+	VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks *pAllocator)
+{
+	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(pipelineCache));
+}
+
+// The header's words go least significant byte first, whatever the CPU's order; the vendor, device and UUID are the
+// zeros vkGetPhysicalDeviceProperties reports (Vulkan 1.0 spec, vkGetPipelineCacheData).
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPipelineCacheData(
+	VkDevice device, VkPipelineCache pipelineCache, size_t *pDataSize, void *pData)
+{
+	(void)device;
+	(void)pipelineCache;
+	if (!pData) {
+		*pDataSize = CACHE_HEADER_BYTES;
+		return VK_SUCCESS;
+	}
+	if (*pDataSize < CACHE_HEADER_BYTES) {
+		*pDataSize = 0;
+		return VK_INCOMPLETE;
+	}
+	uint8_t *const header = pData;
+	memset(header, 0, CACHE_HEADER_BYTES);
+	header[0] = CACHE_HEADER_BYTES;
+	header[4] = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
+	*pDataSize = CACHE_HEADER_BYTES;
+	return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkMergePipelineCaches(
+	VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount, const VkPipelineCache *pSrcCaches)
+{
+	(void)device;
+	(void)dstCache;
+	(void)srcCacheCount;
+	(void)pSrcCaches;
+	return VK_SUCCESS;
 }

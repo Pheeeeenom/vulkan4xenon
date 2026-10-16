@@ -144,6 +144,16 @@ VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements(
 	};
 }
 
+// Sparse images are refused (vkCreateImage), so an image has no sparse requirements.
+VKAPI_ATTR void VKAPI_CALL vkGetImageSparseMemoryRequirements(VkDevice device, VkImage image,
+	uint32_t *pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements *pSparseMemoryRequirements)
+{
+	(void)device;
+	(void)image;
+	(void)pSparseMemoryRequirements;
+	*pSparseMemoryRequirementCount = 0;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory(
 	VkDevice device, VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset)
 {

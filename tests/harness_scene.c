@@ -167,7 +167,7 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.polygonMode = VK_POLYGON_MODE_FILL,
 		.cullMode = VK_CULL_MODE_NONE,
 		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-		.lineWidth = 1.0f,
+		.lineWidth = spec->dynamic_line_width ? 0.0f : 1.0f,
 	};
 	const VkPipelineMultisampleStateCreateInfo multisample = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -182,11 +182,13 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.attachmentCount = 1,
 		.pAttachments = spec->blend ? spec->blend : &opaque,
 	};
-	const VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	const VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR };
+	const uint32_t dynamic_count = (spec->dynamic_line_width ? 1u : 0u) + (spec->dynamic_viewport ? 2u : 0u);
 	const VkPipelineDynamicStateCreateInfo dynamic = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-		.dynamicStateCount = 2,
-		.pDynamicStates = dynamic_states,
+		.dynamicStateCount = dynamic_count,
+		.pDynamicStates = spec->dynamic_line_width ? dynamic_states : dynamic_states + 1,
 	};
 	const VkPipelineShaderStageCreateInfo stages[] = {
 		{ .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -209,7 +211,7 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.pMultisampleState = &multisample,
 		.pDepthStencilState = spec->depth_stencil,
 		.pColorBlendState = &blend,
-		.pDynamicState = spec->dynamic_viewport ? &dynamic : NULL,
+		.pDynamicState = dynamic_count ? &dynamic : NULL,
 		.layout = spec->layout,
 		.renderPass = render_pass,
 	};

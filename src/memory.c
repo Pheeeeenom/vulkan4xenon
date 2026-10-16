@@ -95,6 +95,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkInvalidateMappedMemoryRanges(
 	return VK_SUCCESS;
 }
 
+// No memory type is lazily allocated, so all of an allocation is committed.
+VKAPI_ATTR void VKAPI_CALL vkGetDeviceMemoryCommitment(
+	VkDevice device, VkDeviceMemory memory, VkDeviceSize *pCommittedMemoryInBytes)
+{
+	(void)device;
+	*pCommittedMemoryInBytes = ((const DeviceMemory *)v4x_object(memory))->size_bytes;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateBuffer(
 	VkDevice device, const VkBufferCreateInfo *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkBuffer *pBuffer)
 {
@@ -143,4 +151,23 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory(
 	object->memory = bound;
 	object->offset_bytes = (uint32_t)memoryOffset;
 	return VK_SUCCESS;
+}
+
+// No format has texel buffer features (docs/SUPPORT.md, Formats), so no view is ever made.
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateBufferView(VkDevice device, const VkBufferViewCreateInfo *pCreateInfo,
+	const VkAllocationCallbacks *pAllocator, VkBufferView *pView)
+{
+	(void)device;
+	(void)pCreateInfo;
+	(void)pAllocator;
+	(void)pView;
+	return v4x_host_unsupported("buffer views");
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyBufferView(
+	VkDevice device, VkBufferView bufferView, const VkAllocationCallbacks *pAllocator)
+{
+	(void)device;
+	(void)bufferView;
+	(void)pAllocator;
 }

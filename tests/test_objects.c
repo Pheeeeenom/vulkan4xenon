@@ -23,7 +23,7 @@ static void check_proc_addresses(const Harness *harness)
 	check("objects: vkGetDeviceProcAddr finds device functions and not instance ones",
 		vkGetDeviceProcAddr(harness->device, "vkCmdDraw") == (PFN_vkVoidFunction)vkCmdDraw &&
 			!vkGetDeviceProcAddr(harness->device, "vkCreateDevice"));
-	check("objects: an unknown name finds nothing", !vkGetInstanceProcAddr(harness->instance, "vkCmdDispatch"));
+	check("objects: an unknown name finds nothing", !vkGetInstanceProcAddr(harness->instance, "vkCmdDrawMeshTasksEXT"));
 }
 
 static void check_memory(const Harness *harness)

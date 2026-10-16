@@ -434,6 +434,51 @@ VKAPI_ATTR void VKAPI_CALL vkCmdSetScissor(
 		command->state_at = at;
 }
 
+// Without wideLines, 1 is the only width, and lines are drawn 1 pixel wide (docs/SUPPORT.md, Pipelines).
+VKAPI_ATTR void VKAPI_CALL vkCmdSetLineWidth(VkCommandBuffer commandBuffer, float lineWidth)
+{
+	if (lineWidth != 1.0f)
+		commandBuffer->result = v4x_host_unsupported("line widths other than 1");
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetDepthBounds(
+	VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
+{
+	(void)minDepthBounds;
+	(void)maxDepthBounds;
+	commandBuffer->result = v4x_host_unsupported("depth bounds");
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdDispatch(
+	VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+	(void)groupCountX;
+	(void)groupCountY;
+	(void)groupCountZ;
+	commandBuffer->result = v4x_host_unsupported("compute dispatches");
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdDispatchIndirect(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
+{
+	(void)buffer;
+	(void)offset;
+	commandBuffer->result = v4x_host_unsupported("compute dispatches");
+}
+
+// Images have one sample (docs/SUPPORT.md, Images), so there's none to resolve.
+VKAPI_ATTR void VKAPI_CALL vkCmdResolveImage(VkCommandBuffer commandBuffer, VkImage srcImage,
+	VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount,
+	const VkImageResolve *pRegions)
+{
+	(void)srcImage;
+	(void)srcImageLayout;
+	(void)dstImage;
+	(void)dstImageLayout;
+	(void)regionCount;
+	(void)pRegions;
+	commandBuffer->result = v4x_host_unsupported("resolving multisampled images");
+}
+
 VKAPI_ATTR void VKAPI_CALL vkCmdBindIndexBuffer(
 	VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
 {

@@ -86,6 +86,15 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyRenderPass(
 	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(renderPass));
 }
 
+// A render area is the whole framebuffer (vkCmdBeginRenderPass refuses less), so no granularity is better than any.
+VKAPI_ATTR void VKAPI_CALL vkGetRenderAreaGranularity(
+	VkDevice device, VkRenderPass renderPass, VkExtent2D *pGranularity)
+{
+	(void)device;
+	(void)renderPass;
+	*pGranularity = (VkExtent2D){ 1, 1 };
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateFramebuffer(VkDevice device, const VkFramebufferCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkFramebuffer *pFramebuffer)
 {

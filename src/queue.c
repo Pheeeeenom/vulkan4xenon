@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "blit.h"
+#include "host.h"
 #include "objects.h"
 #include "sync.h"
 #include "xsdk/gpu.h"
@@ -648,6 +649,17 @@ VKAPI_ATTR VkResult VKAPI_CALL vkQueueSubmit(
 	queue->submit_fences[queue->serial % V4X_SUBMIT_FENCES] = submitted;
 	v4x_sync_submitted(v4x_object(fence), submitted);
 	return VK_SUCCESS;
+}
+
+// The queue family has no sparse binding, as the GPU addresses physical memory (docs/SUPPORT.md, Device).
+VKAPI_ATTR VkResult VKAPI_CALL vkQueueBindSparse(
+	VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo *pBindInfo, VkFence fence)
+{
+	(void)queue;
+	(void)bindInfoCount;
+	(void)pBindInfo;
+	(void)fence;
+	return v4x_host_unsupported("sparse binding");
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkQueueWaitIdle(VkQueue queue)

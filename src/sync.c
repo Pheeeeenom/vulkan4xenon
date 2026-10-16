@@ -126,3 +126,41 @@ VKAPI_ATTR void VKAPI_CALL vkDestroySemaphore(
 {
 	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(semaphore));
 }
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateEvent(
+	VkDevice device, const VkEventCreateInfo *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkEvent *pEvent)
+{
+	(void)pCreateInfo;
+	Event *const event =
+		v4x_host_alloc(v4x_host_device_allocator(device, pAllocator), sizeof *event, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (!event)
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
+	*pEvent = v4x_handle(event);
+	return VK_SUCCESS;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyEvent(VkDevice device, VkEvent event, const VkAllocationCallbacks *pAllocator)
+{
+	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(event));
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetEventStatus(VkDevice device, VkEvent event)
+{
+	(void)device;
+	const Event *const object = v4x_object(event);
+	return __atomic_load_n(&object->set, __ATOMIC_ACQUIRE) ? VK_EVENT_SET : VK_EVENT_RESET;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkSetEvent(VkDevice device, VkEvent event)
+{
+	(void)device;
+	__atomic_store_n(&((Event *)v4x_object(event))->set, true, __ATOMIC_RELEASE);
+	return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkResetEvent(VkDevice device, VkEvent event)
+{
+	(void)device;
+	__atomic_store_n(&((Event *)v4x_object(event))->set, false, __ATOMIC_RELEASE);
+	return VK_SUCCESS;
+}

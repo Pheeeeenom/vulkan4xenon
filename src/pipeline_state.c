@@ -53,10 +53,20 @@ static VkResult dynamic_state(const VkPipelineDynamicStateCreateInfo *dynamic, P
 			pipeline->dynamic_viewport = true;
 		else if (dynamic->pDynamicStates[i] == VK_DYNAMIC_STATE_SCISSOR)
 			pipeline->dynamic_scissor = true;
-		else
-			return v4x_host_unsupported("dynamic state other than the viewport and scissor");
+		else if (dynamic->pDynamicStates[i] != VK_DYNAMIC_STATE_LINE_WIDTH)
+			return v4x_host_unsupported("dynamic state other than the viewport, scissor and line width");
 	}
 	return VK_SUCCESS;
+}
+
+// Whether the pipeline takes a state from a command, so the create info's value is ignored.
+static bool is_dynamic(const VkPipelineDynamicStateCreateInfo *dynamic, VkDynamicState state)
+{
+	for (uint32_t i = 0; dynamic && i < dynamic->dynamicStateCount; i++) {
+		if (dynamic->pDynamicStates[i] == state)
+			return true;
+	}
+	return false;
 }
 
 static VkResult viewport_state(const VkPipelineViewportStateCreateInfo *state, Pipeline *pipeline)
@@ -70,10 +80,11 @@ static VkResult viewport_state(const VkPipelineViewportStateCreateInfo *state, P
 	return VK_SUCCESS;
 }
 
-static VkResult raster_state(const VkPipelineRasterizationStateCreateInfo *raster, Pipeline *pipeline)
+static VkResult raster_state(
+	const VkPipelineRasterizationStateCreateInfo *raster, bool dynamic_line_width, Pipeline *pipeline)
 {
 	if (raster->depthClampEnable || raster->rasterizerDiscardEnable || raster->polygonMode != VK_POLYGON_MODE_FILL ||
-		raster->cullMode == VK_CULL_MODE_FRONT_AND_BACK || raster->lineWidth != 1.0f ||
+		raster->cullMode == VK_CULL_MODE_FRONT_AND_BACK || (!dynamic_line_width && raster->lineWidth != 1.0f) ||
 		(raster->depthBiasEnable && raster->depthBiasClamp != 0.0f))
 		return v4x_host_unsupported("rasterization other than filled, culling one face or none, unclamped bias");
 	const XsdkRaster setting = {
@@ -216,7 +227,8 @@ VkResult v4x_pipeline_state(const VkGraphicsPipelineCreateInfo *info, const Rend
 	if (result == VK_SUCCESS)
 		result = viewport_state(info->pViewportState, pipeline);
 	if (result == VK_SUCCESS)
-		result = raster_state(info->pRasterizationState, pipeline);
+		result = raster_state(
+			info->pRasterizationState, is_dynamic(info->pDynamicState, VK_DYNAMIC_STATE_LINE_WIDTH), pipeline);
 	// Without a depth attachment the depth and stencil state is ignored (Vulkan 1.0 spec,
 	// VkGraphicsPipelineCreateInfo).
 	if (result == VK_SUCCESS)

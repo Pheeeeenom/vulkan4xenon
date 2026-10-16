@@ -210,6 +210,21 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 	return VK_SUCCESS;
 }
 
+// The features report no sparse residency, so no format has sparse properties.
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceSparseImageFormatProperties(VkPhysicalDevice physicalDevice,
+	VkFormat format, VkImageType type, VkSampleCountFlagBits samples, VkImageUsageFlags usage, VkImageTiling tiling,
+	uint32_t *pPropertyCount, VkSparseImageFormatProperties *pProperties)
+{
+	(void)physicalDevice;
+	(void)format;
+	(void)type;
+	(void)samples;
+	(void)usage;
+	(void)tiling;
+	(void)pProperties;
+	*pPropertyCount = 0;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice,
 	const char *pLayerName, uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
