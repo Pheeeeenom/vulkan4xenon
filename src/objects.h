@@ -39,12 +39,15 @@ enum {
 	V4X_MAX_PUSH_CONSTANT_BYTES = 128,
 	// Float constant registers a stage has, each four floats (xsdk:include/xsdk/gpu.h).
 	V4X_FLOAT_CONSTANTS = 256,
-	// Fetch constants a shader may sample from: below the ones the 16 vertex streams take (xsdk:src/gpu_draw.c).
+	// A stage's samplers, Vulkan's minimum; both stages' together share the fetch constants the streams leave
+	// (pipeline.c).
 	V4X_MAX_SAMPLERS = 16,
 	// Hardware loops a stage's shader has, each its own loop constant (xost:docs/xsc.md, "Loops a block counts"), and
 	// the passes a loop constant runs at most (xenia:src/xenia/gpu/xenos.h:1089).
 	V4X_MAX_LOOPS = 16,
 	V4X_MAX_LOOP_PASSES = 255,
+	// Fetch constant slots a texture can take (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_texture).
+	V4X_TEXTURE_SLOTS = 32,
 	V4X_MAX_SHADER_RESOURCES = 2 * (1 + V4X_MAX_DESCRIPTOR_SETS * V4X_MAX_DESCRIPTOR_BINDINGS + V4X_MAX_LOOPS),
 	// A render pass's subpasses and attachments: a budget, not a limit of Xenos's.
 	V4X_MAX_SUBPASSES = 8,

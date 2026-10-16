@@ -2231,6 +2231,26 @@ face that culling reads (xenia:src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc:625
   discard on !gl_FrontFacing, with no interpolator, so the parameters are in r0. A check for each pair: the front face
   shows its colour and the back face blue, or the clear colour where it's discarded.
 
+**Step 3: samplers in vertex shaders, the fetch constants shared out.** xost lowers a vertex shader's samples after its
+vertex fetches, at the LOD it gives, as a vertex shader works none out
+(xenia:src/xenia/gpu/spirv_shader_translator_fetch.cc:639-641): glslang gives `texture()` there LOD 0. Each fetches for
+every vertex, and two precautions the console has to judge go with it: an exec's vertex cache bits mark its vertex
+fetches and none of its texture fetches, and a fetch reading what another fetch wrote in its exec is serialized
+(xost:docs/xsc.md, "Vertex textures"). Both stages' samplers take fetch constants from 0, so xsdk gains `xsdk_shader_move_textures`, which moves
+a shader's texture fetches up by a base: the layer moves the vertex shader's past the fragment shader's when a
+pipeline is made, and the streams keep a slot for every three bindings from 31 down, 31 always, as the layer's blits
+and clears draw from stream 0. A pipeline that needs more is refused with a log line of the counts; the per-stage
+limit stays 16, so two stages of 16 are within the limits and refused, a deviation (docs/SUPPORT.md, Pipelines).
+- **The checks:** vulkan4xenon_test's `test_vertex_textures.c` draws two rows of eight columns. Its vertex shader
+  samples a height map, the first row's heights 48 to 188 pixels, the second's 0, and moves each vertex up by its
+  height; it colours the second row by textureLod of a texture whose eight levels are each a colour, at each column's
+  level a quarter past, the first row by its own colour; the fragment shader multiplies by a white texture of its own.
+  So the vertex shader's two samplers sit at slots 1 and 2, the fragment shader's at 0, and a stage reading another's
+  texture moves or colours a column wrong. The checks: each column of the first row stands its height above where it's
+  drawn, which stays the clear colour; each column of the second row shows its level; and a pipeline of 16 samplers in
+  each stage is refused, one of 15 and 16 made. xsdk_test's texture test moves its pixel shader's fetch to slot 5 and
+  back, finding that dword alone changed, leaves its vertex shader as it was and refuses a move past slot 31.
+
 ### Milestone 23: cube and volume textures, and the rest of sampling
 
 **Why.** Skies and reflections sample cube maps, and a port's samplers clamp to a border, mirror once, or compare

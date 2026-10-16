@@ -137,7 +137,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   (xost:docs/xsc.md, "Interface conventions"):
   - push constants take the shader's first float constant registers, then each uniform block in (set, binding) order,
     each holding the block's std140 bytes from its first;
-  - combined image samplers take fetch constants from 0 in (set, binding) order.
+  - combined image samplers take fetch constants from 0 in (set, binding) order, in each stage; the layer moves the
+    vertex shader's past the fragment shader's (Pipelines).
 
 ## Pipelines
 
@@ -145,8 +146,17 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - A pipeline's shaders read only what its layout has, for their stage. A resource the layout lacks makes
   `vkCreateGraphicsPipelines` log it and return `VK_ERROR_INITIALIZATION_FAILED`, which it doesn't list: that's invalid
   use, refused rather than drawn wrong.
-- Fragment shaders sample; a sampler in a vertex shader returns `VK_ERROR_FEATURE_NOT_PRESENT`, since both stages share
-  the fetch constants. Each stage's blocks must fit its 256 float constants.
+- Both stages sample, up to 16 samplers each, and each stage's blocks must fit its 256 float constants. A vertex shader
+  samples at the LOD it gives: `texture()` there samples level 0, as glslang gives it LOD 0 (milestone 22;
+  xost:docs/xsc.md, "Vertex textures").
+- **The fetch constants shared out:** both stages and the vertex streams draw on the same 32
+  (xsdk:include/xsdk/gpu.h, `xsdk_gpu_set_texture` and `xsdk_gpu_set_vertices`). The fragment shader's samplers keep
+  xost's slots from 0, the vertex shader's take the slots after them, its microcode moved to match when the pipeline is
+  made (`xsdk_shader_move_textures`), and the bindings' streams take a slot for every three from 31 down, slot 31
+  always, as the layer's own blits and clears draw from stream 0. **Deviation:** a pipeline whose samplers and
+  bindings need more returns `VK_ERROR_FEATURE_NOT_PRESENT` and logs the counts, though within
+  `maxPerStageDescriptorSamplers`: 16 samplers in each stage never fit, and with all 16 bindings the two stages share
+  26.
 - Graphics pipelines, otherwise `VK_ERROR_FEATURE_NOT_PRESENT`:
   - a vertex and a fragment stage, entry point `main`, no specialization constants;
   - per-vertex bindings with strides a multiple of 4, up to 1020 bytes;
@@ -592,7 +602,7 @@ Set limits below Vulkan 1.0's minimum:
 | `maxFramebufferLayers` 1 (256) | No layered rendering. |
 | `maxImageArrayLayers` 1 (256) | No image arrays yet. |
 | `maxUniformBufferRange` 4096 (16384) | A block is copied into a stage's 256 float constants of 16 bytes. |
-| `maxPerStageResources` 28 (128) | 12 uniform buffers and 16 samplers: a stage's constants and the fetch constants below the vertex streams'. |
+| `maxPerStageResources` 28 (128) | 12 uniform buffers and 16 samplers: a stage's constants, and the fetch constants the two stages share with the vertex streams (Pipelines). |
 
 `subPixelPrecisionBits` is 4 because vertices land on 1/16 pixel under xsdk's `PA_SU_VTX_CNTL`
 (xenia:src/xenia/gpu/xenos.h:877-884). The device is `Xenos (vulkan4xenon)`, an integrated GPU, vendor and device ID

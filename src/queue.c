@@ -19,8 +19,6 @@ enum {
 	IDLE_TIMEOUT_MS = 10000,
 	// All of physical memory, as libxenon invalidates it (libxenon:drivers/xenos/xe.c:992).
 	ALL_MEMORY_BYTES = 0x20000000,
-	// Fetch constant slots a texture can take (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_texture).
-	TEXTURE_SLOTS = 32,
 	// The GPU loads constants in whole groups of 4 from a multiple of 4, from 64-byte aligned memory
 	// (xsdk:include/xsdk/gpu.h); xost gives each uniform block such groups to itself.
 	CONSTANT_GROUP = 4,
@@ -70,7 +68,7 @@ typedef struct {
 	float push[V4X_MAX_PUSH_CONSTANT_BYTES / 4];
 	// What each stream and texture slot points at, so a draw points only what changed; zero where it isn't known.
 	VertexBinding pointed_streams[XSDK_VERTEX_STREAMS];
-	PointedTexture pointed_textures[TEXTURE_SLOTS];
+	PointedTexture pointed_textures[V4X_TEXTURE_SLOTS];
 } Replay;
 
 // A block's registers on their way into the constants; the queue is externally synchronized, so one copy will do.
@@ -198,7 +196,7 @@ static bool load_uniform_buffer(const Replay *replay, const V4xShaderResource *r
 // that samples an image marks it.
 static void point_texture(Replay *replay, uint32_t slot, const Descriptor *descriptor)
 {
-	assert(slot < TEXTURE_SLOTS);
+	assert(slot < V4X_TEXTURE_SLOTS);
 	PointedTexture *const pointed = &replay->pointed_textures[slot];
 	if (pointed->texture == descriptor->texture && pointed->sampler == descriptor->sampler)
 		return;

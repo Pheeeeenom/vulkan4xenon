@@ -69,6 +69,8 @@ void test_loops(const Harness *harness);
 void test_shader_lod(const Harness *harness);
 // Quads of both windings coloured by gl_FrontFacing under each frontFace, and back faces discarded (milestone 22).
 void test_facing(const Harness *harness);
+// Columns moved by heights and coloured by levels a vertex shader samples, and the fetch constants' limit (milestone 22).
+void test_vertex_textures(const Harness *harness);
 // Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
 void test_shader_cache_start(void);
 // The files the layer kept, and a second device reading the triangle's shaders back; called after the first goes.

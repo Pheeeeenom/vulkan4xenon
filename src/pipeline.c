@@ -13,6 +13,9 @@
 enum {
 	// A pipeline cache's header: its size, its version, vendor and device IDs, then the cache's UUID.
 	CACHE_HEADER_BYTES = 16 + VK_UUID_SIZE,
+	// Vertex streams take a texture slot's group of fetch constants three at a time, from slot 31 down
+	// (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_vertices).
+	STREAMS_A_SLOT = 3,
 };
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreatePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo *pCreateInfo,
@@ -158,8 +161,8 @@ static VkResult gather_resources(const PipelineLayout *layout, const V4xShader *
 		const bool loop = resource->kind == V4X_RESOURCE_PUSH_LOOP || resource->kind == V4X_RESOURCE_UNIFORM_LOOP;
 		const bool block =
 			resource->kind == V4X_RESOURCE_PUSH_CONSTANTS || resource->kind == V4X_RESOURCE_UNIFORM_BUFFER;
-		if (resource->kind == V4X_RESOURCE_SAMPLER && (vertex || resource->first >= V4X_MAX_SAMPLERS))
-			return v4x_host_unsupported("sampling in vertex shaders, and more than 16 samplers");
+		if (resource->kind == V4X_RESOURCE_SAMPLER && resource->first >= V4X_MAX_SAMPLERS)
+			return v4x_host_unsupported("more than 16 samplers a stage");
 		if (block && resource->first + resource->count > V4X_FLOAT_CONSTANTS)
 			return v4x_host_unsupported("blocks past the 256 float constants");
 		if (loop &&
@@ -168,6 +171,50 @@ static VkResult gather_resources(const PipelineLayout *layout, const V4xShader *
 			return v4x_host_unsupported("a loop counted past the push constants or the loop constants");
 		pipeline->loop_count += loop;
 		pipeline->resources[pipeline->resource_count++] = (StageResource){ .resource = *resource, .vertex = vertex };
+	}
+	return VK_SUCCESS;
+}
+
+// The fetch constants each stage's samplers take: one past the highest xost gave it.
+static uint32_t sampler_slots(const Pipeline *pipeline, bool vertex)
+{
+	uint32_t slots = 0;
+	for (uint32_t i = 0; i < pipeline->resource_count; i++) {
+		const StageResource *const r = &pipeline->resources[i];
+		if (r->resource.kind == V4X_RESOURCE_SAMPLER && r->vertex == vertex && r->resource.first >= slots)
+			slots = r->resource.first + 1u;
+	}
+	return slots;
+}
+
+// The 32 fetch constants shared out: the fragment shader's samplers keep xost's slots from 0, the vertex shader's
+// follow them, moved in its microcode, and the streams take a slot for every three bindings from 31 down, stream 0's
+// always, as the layer's blits and clears draw from it (src/blit.c).
+static VkResult share_fetch_constants(Pipeline *pipeline)
+{
+	const uint32_t fragment_slots = sampler_slots(pipeline, false);
+	const uint32_t vertex_slots = sampler_slots(pipeline, true);
+	const uint32_t streams = pipeline->stream_count ? pipeline->stream_count : 1;
+	const uint32_t stream_slots = (streams + STREAMS_A_SLOT - 1) / STREAMS_A_SLOT;
+	if (fragment_slots + vertex_slots + stream_slots > V4X_TEXTURE_SLOTS) {
+		xsdk_log_write(
+			"vulkan4xenon: not supported: %u fragment and %u vertex sampler slots with %u vertex bindings, "
+			"past the %u fetch constants",
+			(unsigned)fragment_slots, (unsigned)vertex_slots, (unsigned)pipeline->stream_count,
+			(unsigned)V4X_TEXTURE_SLOTS);
+		return VK_ERROR_FEATURE_NOT_PRESENT;
+	}
+	if (!vertex_slots)
+		return VK_SUCCESS;
+	const NTSTATUS status = xsdk_shader_move_textures(&pipeline->vertex, fragment_slots);
+	if (!NT_SUCCESS(status)) {
+		xsdk_log_write("vulkan4xenon: xsdk_shader_move_textures failed: 0x%08X", (unsigned)status);
+		return VK_ERROR_INITIALIZATION_FAILED;
+	}
+	for (uint32_t i = 0; i < pipeline->resource_count; i++) {
+		StageResource *const r = &pipeline->resources[i];
+		if (r->resource.kind == V4X_RESOURCE_SAMPLER && r->vertex)
+			r->resource.first = (uint16_t)(r->resource.first + fragment_slots);
 	}
 	return VK_SUCCESS;
 }
@@ -200,6 +247,8 @@ static VkResult create_pipeline(
 		result = load_shaders(pipeline);
 	if (result == VK_SUCCESS)
 		result = lay_out_vertices(info->pVertexInputState, pipeline);
+	if (result == VK_SUCCESS)
+		result = share_fetch_constants(pipeline);
 	if (result != VK_SUCCESS) {
 		free_pipeline(allocator, pipeline);
 		return result;

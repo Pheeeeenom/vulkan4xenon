@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 25, part of 8 and none of 14. Xenos has all but three: occlusion queries hang it today,
+Of the 47 rows, the layer has 26, part of 8 and none of 13. Xenos has all but three: occlusion queries hang it today,
 its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is
 software.
 
@@ -28,7 +28,7 @@ software.
 | A computed LOD and gradients (`texldl`, `texldd`) | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md, "LOD and gradients") | Yes |
 | The pixel's position and facing (`vPos`, `vFace`) | Yes | Yes: `gl_FragCoord.xy`, and `gl_FrontFacing`, not yet confirmed on the console (xost:docs/xsc.md:72, "Facing") | Yes |
 | Depth output | Yes | Yes: outside any `if`, or in both arms of one; written on one path alone, refused, as nothing else gives the pixel a depth (xost:docs/xsc.md, "Control flow") | Yes |
-| Vertex texture fetch | Yes | Not checked | No: both stages share the fetch constants (SUPPORT.md, Pipelines) |
+| Vertex texture fetch | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md, "Vertex textures") | Yes, sharing the fetch constants with the fragment shader and the vertex streams (SUPPORT.md, Pipelines) |
 | 32 temporary registers | Yes | Partial: 16 a pixel shader | Partial |
 
 ## Vertex input and draws
