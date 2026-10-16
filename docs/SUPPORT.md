@@ -206,9 +206,12 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
 - Anisotropy, on a device made with `samplerAnisotropy`: `maxAnisotropy` from 1 to 16, which xsdk's sampler rounds
   down to a power of two (xsdk:include/xsdk/texture.h). Without the feature, or past 16, it returns
   `VK_ERROR_FEATURE_NOT_PRESENT`.
-- Clamp to border, comparison, unnormalized coordinates and a minimum LOD above 0 return
-  `VK_ERROR_FEATURE_NOT_PRESENT`; they're xsdk TODO items.
-- **Deviation:** the maximum LOD is ignored, so a mipped image samples all its levels.
+- `minLod` and `maxLod` from 0 to 15, a `maxLod` past 15 keeping every level; past that, or a `maxLod` below the
+  `minLod`, `VK_ERROR_FEATURE_NOT_PRESENT` (milestone 18).
+- Clamp to border, comparison and unnormalized coordinates return `VK_ERROR_FEATURE_NOT_PRESENT`; they're xsdk TODO
+  items.
+- **Deviation:** Xenos clamps to whole levels (xenia:src/xenia/gpu/xenos.h:1265-1266), so `minLod` and `maxLod` go to
+  the nearest; a fraction of a level past either isn't sampled.
 
 ## Descriptor sets
 

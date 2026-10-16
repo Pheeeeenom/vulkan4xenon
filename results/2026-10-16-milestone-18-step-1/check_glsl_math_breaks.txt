@@ -1,0 +1,36 @@
+caught: emboss, the emboss light: light 1 for light 2
+    FAIL emboss: map 0 sampled at [[1.0975602865219116, 1.4818416833877563]], want [[1.464615485331417, 1.0209722404403967]]
+    FAIL emboss: colour [0.7189021110534668, 0.30363166332244873, 0.20279069244861603, 0.75], want [0.8840769683991377, 0.3958055519119207, 0.16995570402013488, 0.7
+caught: emboss, the tangent's x row taken from the binormal
+    FAIL emboss: map 0 sampled at [[1.3515186309814453, 1.0209722518920898]], want [[1.464615485331417, 1.0209722404403967]]
+    FAIL emboss: colour [0.8331833481788635, 0.39580556750297546, 0.1303718090057373, 0.75], want [0.8840769683991377, 0.3958055519119207, 0.16995570402013488, 0.75
+caught: emboss, the binormal read for the tangent
+    FAIL emboss: map 0 sampled at [[0.7209722399711609, 1.0209722518920898]], want [[1.464615485331417, 1.0209722404403967]]
+    FAIL emboss: colour [0.5494375228881836, 0.39580556750297546, 0.6096805930137634, 0.75], want [0.8840769683991377, 0.3958055519119207, 0.16995570402013488, 0.75
+caught: texgen_binormal, the binormal's w of 1
+    FAIL texgen_binormal: map 0 sampled at [[0.550000011920929, -0.17000000178813934]], want [[0.7, -0.06999999999999998]]
+    FAIL texgen_binormal: colour [0.4724999666213989, 0.6340000033378601, 0.13300000131130219, 0.75], want [0.54, 0.614, 0.22049999999999997, 0.75]
+caught: texgen_tangent, the tangent's components
+    FAIL texgen_tangent: map 0 sampled at [[0.5400000214576721, 0.04000000283122063]], want [[0.06, 0.6100000000000001]]
+    FAIL texgen_tangent: colour [0.46799996495246887, 0.5920000076293945, 0.203000009059906, 0.75], want [0.25200000000000006, 0.478, 0.23450000000000004, 0.75]
+caught: texgen_prior, the prior source's z
+    FAIL texgen_prior: map 0 sampled at [[0.4099999964237213, 0.5174999833106995], [0.4950000047683716, 0.6674999594688416]], want [[0.495, 0.6675000000000001], [0.
+    FAIL texgen_prior: colour [0.22636249661445618, 0.3619019687175751, 0.26955467462539673, 0.75], want [0.22636249999999997, 0.34732382812499996, 0.29861718750000
+caught: texgen_prior_inline, the inlined prior source's z
+    FAIL texgen_prior_inline: map 0 sampled at [[0.4099999964237213, 0.5174999833106995]], want [[0.41, 0.6175]]
+    FAIL texgen_prior_inline: colour [0.40949997305870056, 0.49650001525878906, 0.3246249854564667, 0.75], want [0.4095, 0.4765, 0.35962500000000003, 0.75]
+caught: texgen_zero, the normalize guard
+    FAIL texgen_zero: map 0 sampled at [[nan, nan]], want [[0.0, 0.0]]
+    FAIL texgen_zero: colour [0.0, 0.0, 0.0, 0.75], want [0.225, 0.6000000000000001, 0.0, 0.75]
+caught: texgen_q_zero, the pixel's q guard
+    FAIL texgen_q_zero: map 0 sampled at [[inf, inf]], want [[0.3225, 0.19250000000000003]]
+    FAIL texgen_q_zero: colour [1.0, 0.0, 0.0, 0.75], want [0.37012500000000004, 0.5615, 0.18025, 0.75]
+caught: texgen_q_zero, the vertex's q guard
+    FAIL texgen_q_zero: map 0 sampled at [[0.6449999809265137, 0.38499996066093445]], want [[0.3225, 0.19250000000000003]]
+    FAIL texgen_q_zero: colour [0.5152499675750732, 0.5230000019073486, 0.3604999780654907, 0.75], want [0.37012500000000004, 0.5615, 0.18025, 0.75]
+caught: attr_defaults, the missing position read from its slot
+    FAIL attr_defaults: position [8.432175636291504, -22.838626861572266, 1.3450000286102295, -2.9000000953674316], want [-0.5449999999999999, -0.14999999999999997,
+caught: attr_defaults, the missing TEX1's value
+    FAIL attr_defaults: map 0 sampled at [[0.550000011920929, 0.15000000596046448]], want [[0.15000000000000002, 0.25]]
+    FAIL attr_defaults: colour [0.4724999666213989, 0.5699999928474426, 0.24500001966953278, 0.75], want [0.29250000000000004, 0.55, 0.13999999999999999, 0.75]
+12 of 12 breaks caught

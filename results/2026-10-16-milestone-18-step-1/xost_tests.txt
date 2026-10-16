@@ -1,0 +1,5 @@
+  PASS vk_composite_extract.frag, floats of vector values: [1.2, -0.3125, 0.6, 1.0]
+OK
+  PASS vk_many_fetches.frag lowers inside xsdk's 64 registers
+  PASS refused under 16 registers: pixel shader needs 22 registers (r0..r21), over the 16 it may use; it would hang the GPU
+OK

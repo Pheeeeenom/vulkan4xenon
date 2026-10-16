@@ -1,0 +1,3 @@
+coverage: 6574 configs (4074 swept), 6644 distinct programs, 0 wrong
+[  PASSED  ] 1 test.
+6644 of 6644 programs compile and lower, for 6266 configs

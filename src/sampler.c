@@ -7,7 +7,15 @@
 enum {
 	// The fetch constant's LOD bias runs from -16 to under 16 (xsdk:include/xsdk/texture.h).
 	MAX_LOD_BIAS = 15,
+	// The levels it clamps to, whole ones from 0 to 15 (xsdk:include/xsdk/texture.h, XsdkSampler).
+	MAX_LEVEL = 15,
 };
+
+// A LOD clamp's level: Xenos clamps to whole levels, so the nearest.
+static uint32_t nearest_level(float lod)
+{
+	return (uint32_t)(lod + 0.5f);
+}
 
 static bool address_mode(VkSamplerAddressMode mode, uint32_t *xsdk_mode)
 {
@@ -51,8 +59,15 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSampler(VkDevice device, const VkSamplerC
 			return v4x_host_unsupported("anisotropy without the device's samplerAnisotropy, or past 1 to 16");
 		setting.max_anisotropy = (uint32_t)info->maxAnisotropy;
 	}
-	if (info->minLod != 0.0f || info->mipLodBias < -MAX_LOD_BIAS || info->mipLodBias > MAX_LOD_BIAS)
-		return v4x_host_unsupported("a minimum LOD above 0, and LOD biases beyond 15");
+	if (info->mipLodBias < -MAX_LOD_BIAS || info->mipLodBias > MAX_LOD_BIAS)
+		return v4x_host_unsupported("LOD biases beyond 15");
+	// minLod and maxLod to the nearest levels; a maxLod past the last level, VK_LOD_CLAMP_NONE's included, keeps
+	// them all.
+	if (info->minLod < 0.0f || info->minLod > (float)MAX_LEVEL || info->maxLod < info->minLod)
+		return v4x_host_unsupported("a minimum LOD past 15, or a maximum below it");
+	setting.min_level = nearest_level(info->minLod);
+	if (info->maxLod < (float)MAX_LEVEL + 0.5f)
+		setting.level_count = nearest_level(info->maxLod) + 1;
 	Sampler *const sampler = v4x_host_alloc(
 		v4x_host_device_allocator(device, pAllocator), sizeof *sampler, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!sampler)

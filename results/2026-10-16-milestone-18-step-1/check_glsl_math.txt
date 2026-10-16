@@ -1,0 +1,31 @@
+[  PASSED  ] 46 tests.
+named: 56
+  PASS attr_defaults
+  PASS depth_peek
+  PASS depth_z16
+  PASS depth_z8
+  PASS emboss
+  PASS fog_lin_range
+  PASS fog_ortho_exp
+  PASS fog_revexp2
+  PASS indirect_bump
+  PASS indirect_dynamic_s
+  PASS indirect_mtx
+  PASS line_current
+  PASS line_picked
+  PASS lit_none
+  PASS lit_spec_sign_alpha
+  PASS lit_spot_ambient_vtx
+  PASS lit_spot_clamp
+  PASS pnmtx_lit
+  PASS points
+  PASS scene
+  PASS texgen_binormal
+  PASS texgen_prior
+  PASS texgen_prior_inline
+  PASS texgen_q_zero
+  PASS texgen_tangent
+  PASS texgen_zero
+  PASS texmtx_fixed
+  PASS texmtx_picked
+OK: 28 cases

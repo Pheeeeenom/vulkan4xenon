@@ -41,6 +41,8 @@ int main(void)
 		test_thin_textures(&harness);
 		test_sampled_depth(&harness);
 		test_anisotropy(&harness);
+		test_aurora_points(&harness);
+		test_lod(&harness);
 	}
 	harness_destroy(&harness);
 	if (made)

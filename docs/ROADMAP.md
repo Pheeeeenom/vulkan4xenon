@@ -20,6 +20,8 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
   This is the GameCube and Wii compatibility layer Dusklight is built on, not the Aurora dashboard titles launch from.
 - **Aurora's fork** (xenosworks/aurora-xenon, branch `xenon`, on `3227d76`), with the backend interface, the null
   backend and the vulkan4xenon backend, cited as `aurora-xenon:<path>`.
+- **Aurora for Melee** (xenosworks/aurora-xenon, branch `melee-xenon`: encounter's Aurora at `40cf48f`, melee-pc's
+  vendored Aurora and the `xenon` branch merged), where milestone 18 is built, cited as `aurora-melee:<path>`.
 - **xost** (xsdk's `xenos-toolchain/`), cited as `xost:<path>:<line>`.
 
 ## 1. How the layer is built
@@ -1584,6 +1586,126 @@ milestone 32 (xsdk:SCOPE.md), but at 1280x720 a 2-sample colour and depth target
 the frame has to be drawn in tiles, as Xenos's predicated tiling does (xsdk:SCOPE.md, "predicated tiling").
 
 **Agreed with the user (2026-10-14)** as a milestone after 14 and 15; its scope is settled when it starts.
+
+### Milestone 18: every GX pipeline in GLSL
+
+**Why.** The backend draws a GX pipeline only once the GLSL generator (aurora-melee:lib/vulkan4xenon/glsl.cpp) has
+written programs for it, and each port finds the generator's gaps one config at a time: Melee's attract mode and menus
+refused 38 configs in twelve minutes on the console, every one an emboss texgen ("no GLSL yet ... an emboss texgen
+(TEXCOORD2)", 360-ports melee run of 2026-10-16). Aurora's WGSL generator for Dawn draws every GX pipeline its games
+use (aurora-melee:lib/gx/shader.cpp, build_shader_source, 972-2195), so the gaps are known, and closing all of them
+now ends those surprises for every port. They fall in three kinds:
+- **Refused, and logged:** emboss texgens (glsl.cpp:116-117; WGSL 1286-1298), binormal and tangent loads and sources
+  (123-124; WGSL 762-786, 1100-1117; decode.cpp:219-233 decodes them already), a prior texcoord as a texgen's source
+  (125-127; WGSL 1302-1303), more than 10 interpolants (27, 140-142; GX can need 11, two colours, eight texcoords and
+  fog, and Xenos has 16, xenia:src/xenia/gpu/xenos.h:802), and destination alpha, refused per pipeline
+  (pipeline.cpp:334-336; WGSL 1724-1761).
+- **Wrong without a word:** a texgen whose texcoord the vertex lacks stops the title (glsl.cpp:242, `FATAL`) where
+  melee-pc's WGSL reads 0, as it does for a missing position or matrix index (WGSL 560-583); texture LOD bias is
+  dropped (WGSL 1630, 1434; `gfx::SamplerConfig`, lib/gfx/texture.hpp:152-161, has no bias, and the samplers set none,
+  backend.cpp:241-254); single-level textures aren't sampled at level 0 (WGSL 1619-1632); Z textures are ignored, so
+  those draws keep polygon depth (WGSL 1743-1801; glsl.cpp never reads `zTexOp`, `zTexFmt`, `zTexBias` or
+  `zCompLocBeforeTex`); `normalize` has no guard for a zero vector, and an MTX3x4 texgen none for q near 0 (WGSL
+  1347-1350, 1358-1364, 1384-1387; glsl.cpp:498-500); TEV registers no stage has written yet start unwrapped, so a
+  `GXSetTevColorS10` value past 0..1 passes as it is (glsl.cpp:686, 688; WGSL 1170-1171).
+- **Done, differently, and kept:** vertex formats (decoded on the CPU), matrix indices, MTX2x4/MTX3x4/SRTG texgens,
+  lighting, TEV, indirect texturing, alpha compare, fog, and lines and points as quads.
+
+**Agreed with the user (2026-10-16), in four steps,** each done on the console before the next:
+1. **Vertex inputs and texgens.** Missing attributes read 0 as WGSL's do, and no valid config reaches a `FATAL`;
+   binormals and tangents in the vertex layout and as texgen sources; emboss texgens BUMP0-7 from the light and the
+   binormal and tangent through the normal matrix; a prior texcoord as a source; the normalize and q guards; the
+   interpolant cap raised to what xost allocates. This is the step Melee needs now.
+2. **TEV and sampling.** Unwritten TEV registers wrap as WGSL's do; texture and indirect LOD bias, and the texture's
+   LOD clamps, which the layer refuses past a `minLod` of 0 and ignores the most of (aurora-melee:
+   lib/vulkan4xenon/backend.cpp:235), in Xenos's texture fetch constant, which holds a LOD bias and the levels sampled
+   (xenia:src/xenia/gpu/xenos.h:1265-1270), rather than in the program as WGSL applies them; single-level textures
+   sampled at level 0. Widened to the clamps with the user (2026-10-16).
+3. **Z textures.** First in xost: `gl_FragDepth`, which it doesn't lower today (src/xsc_resolve.c knows position,
+   vertex and instance IDs and FragCoord only), exported as Xenos's pixel shaders export depth; then ADD and REPLACE,
+   U8 and U24, with the bias, gated on `zCompLocBeforeTex` as WGSL is. A draw that writes depth can't be tested early,
+   so xsdk's HiZ and early Z have to be off for it; how xsdk's layer tells is part of this step.
+4. **Destination alpha,** as Dawn's backend draws it: the constant written as alpha, and, when the blend reads source
+   alpha, a second pass for the alpha where Xenos has no dual-source blending. Through Vulkan's blend constants, which
+   need whatever xsdk's GPU layer lacks for them; the largest step.
+
+**Done when,** for each step, with a deliberate break each check catches:
+- `tools/check_glsl_math.py` has a named config for each new feature, run on xost's simulator against the WGSL
+  reference's maths, as milestone 11's step 5 set up;
+- a coverage check on the PC goes through every value of every `ShaderConfig` field WGSL reads, one at a time on a
+  plain config, and a few thousand random valid configs, and every one gets a plan, compiles in glslang and lowers in
+  xost inside its register budget; a refusal anywhere fails it and names the field;
+- vulkan4xenon_test draws a scene for the step on the console, pixels checked;
+- Melee's attract mode and a played match log no "no GLSL yet", and Dusklight's title scene draws as it did.
+At the end, the refusal path is left only for configs that aren't valid GX.
+
+**Left out:** what WGSL doesn't do either: `indTexUseOrigLOD` (WGSL only logs it, 1017), half-aspect lines
+(`line_aspect_y` is declared and never used), and the unit spot and distance terms (`unitSpotLights`,
+`unitDistanceLights`, set only when `limits().unitLightTerms` is on, off by default, backend.hpp:143). Palette and
+format conversions are passes of their own, done already, and the normal attachment has no target here.
+
+**Which Aurora.** Z textures, the guards, the attribute defaults and the level-0 sampling are melee-pc's, merged into
+aurora-melee's melee-xenon branch (upstream 40cf48f with melee-pc and the xenon work); aurora-xenon, Dusklight's, is
+older and lacks them (its `ShaderConfig` has no `zTexOp`). Agreed with the user (2026-10-16): built in aurora-melee,
+the tree that has all of the WGSL reference; aurora-xenon comes up to it when Dusklight moves to that upstream, a step
+of its own.
+
+**Step 1 on the console** (2026-10-16; `results/2026-10-16-milestone-18-step-1/`). The generator
+(aurora-melee:lib/vulkan4xenon/glsl.cpp) writes emboss texgens, binormals and tangents in the vertex layout and as
+sources, a prior texcoord as a source, and the attribute defaults, with no `FATAL` left for a valid config; the
+normalize and q guards; and up to 15 interpolants. decode.cpp writes zeros for an attribute the vertex lacks.
+- **On the PC:** vulkan4xenon_glsl_tests passed 46 of 46. `tools/check_glsl_math.py` passed 28 of 28, 8 of them step
+  1's, and caught 12 of 12 breaks of them. The coverage check (aurora-melee:tests/vulkan4xenon_glsl_coverage.cpp and
+  tools/check_glsl_coverage.py) swept 4,074 configs one field at a time and 2,500 at random: every one got programs,
+  but the first time 2,244 of their 6,644 programs didn't lower in xost (`check_glsl_coverage_before.txt`); now all
+  6,644 do (`check_glsl_coverage.txt`).
+- **Found by the coverage check, and fixed:** an emboss texgen of an emboss texgen read the first one's vertex output,
+  which xost doesn't load back (1,067 programs); xost lowered a float extracted from a vector value only where a scalar
+  was wanted, so the TEV's compares of a splatted alpha were refused (1,175 programs; xsdk:src/xsc_lower.c,
+  `scalar_value`); and seven programs of 16 stages needed past xost's 64 registers once milestone 36's fetch grouping
+  laid their 10 to 15 fetches out together, and stopped in the encoder (`dest=64 does not fit in 6 unsigned bits`)
+  before the budget's check could refuse them. xost now refuses a shader past its budget before encoding, and
+  `xsdk_xsc_compile` compiles a pixel shader refused so again with its fetches apart: one took 72 registers together
+  and 22 apart (xenos-toolchain:tests/test_register_fallback.py). The generator now samples each stage's texture just
+  before the stage too, rather than all first. xost's suite passed, two tests new, and caught 3 of 3 breaks.
+- **On the console:** vulkan4xenon_test's new `test_aurora_points.c` draws each of step 1's 8 cases as a GX point,
+  whose six corners come from one vertex, so every interpolant holds that vertex's value across it, and checks its
+  middle against the colour `tools/gen_aurora_points.py` works out from check_glsl_math.py's reference, map 0 a
+  triangle wave sampled bilinear, continuous across the wrap, so no coordinate lands on a texel's edge.
+  vulkan4xenon_test passed 121 of 121, twice; broken on purpose in three of the cases, those three failed and the
+  others passed (`vulkan4xenon_test_broken.log`). xsdk_test passed 315 of 315 with the user at the pad, its new
+  `open` and `sysconf` checks among them (`xsdk_test_pad.log`; 313 before that, with no one at the pad,
+  `xsdk_test.log`); broken on purpose, both new checks failed (`xsdk_test_broken.log`). Melee's attract mode logged no "no GLSL yet", where it had refused 38 emboss configs,
+  and the console compiled all 78 programs it lacked (`melee_attract.log`).
+- **Changed on the way:** texgen_tangent's matrix is texture matrix 4, as matrix 2's first row is at right angles to
+  the tangent. Programs for an alpha compare that fails every pixel are taken as right, as they discard every pixel.
+- **Not affected:** Dusklight runs aurora-xenon, which hasn't the generator's changes; xost's are taken only by
+  programs it refused before.
+
+Step 1 is done.
+
+**Step 2 on the console** (2026-10-16; `results/2026-10-16-milestone-18-step-2/`). The generator
+starts each TEV register the game set as not yet wrapped, so a stage reading one as a, b or c takes its low 8 bits, as
+the WGSL does; seven of vulkan4xenon_glsl_tests' compare tests expected the operands unwrapped and now read the
+wrapped locals. Aurora's `SamplerConfig` carries the texture's LOD bias (gfx/texture.hpp), which the backend hands the
+layer with its `minLod` and `maxLod` as they are. The layer takes both clamps, to the nearest whole level, where it
+refused a `minLod` past 0 and ignored `maxLod` (docs/SUPPORT.md, Samplers); xsdk's sampler has a lowest level and a
+count of levels (xsdk:include/xsdk/texture.h), and `xsdk_gpu_set_texture` takes the lower last level of the texture's
+and the sampler's (xsdk:src/texture.c, `xsdk_texture_levels`). Single-level textures needed nothing: melee-pc's
+level-0 sampling (its c213063) works round Intel's Vulkan driver, and Xenos samples an image of one level at level 0
+under any bias, as the console shows.
+- **On the PC:** vulkan4xenon_glsl_tests passed 46 of 46; check_glsl_math.py 29 of 29, `tev_reg_wrap` new, with 14 of
+  14 breaks caught; the coverage check's 6,644 programs all lower.
+- **On the console:** vulkan4xenon_test's new `test_lod.c` draws a 256x256 image of a colour a level at LOD 2 through
+  nine samplers, its bias up and down a level and half a level with linear mips, `minLod` 4, `maxLod` 1 and 0, both
+  clamps at 2 with a bias of 3, and an image of one level biased up 3; each showed its level. vulkan4xenon_test passed
+  123 of 123, twice. Broken on purpose, the layer dropping the bias and `minLod` failed those four cells, and xsdk
+  ORing the levels as before failed the four clamped ones (`vulkan4xenon_test_layer_broken.log`,
+  `vulkan4xenon_test_levels_broken.log`). xsdk_test's sampling check has two cells new, a lowest level and a count of
+  levels; it passed 315 of 315 with the user at the pad, and broken so, both cells failed (`xsdk_test_levels_broken.log`).
+  Dusklight, built against this xsdk, ran its title scene at 29.8 to 30 fps, with nothing refused (`dusklight.log`).
+
+Step 2 is done.
 
 ### The Guide, through xsdk (2026-10-15)
 

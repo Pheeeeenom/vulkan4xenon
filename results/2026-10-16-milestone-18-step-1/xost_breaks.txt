@@ -1,0 +1,4 @@
+caught: a float extracted from a vector value (tests/test_composite_extract.py): xsc.lower.LowerError: v1 fragment: unhandled op CompositeExtract
+caught: the retry with fetches apart (tests/test_register_fallback.py): xasm.program.RegisterBudgetError: pixel shader needs 72 registers (r0..r71), over the 64 it may use; it would hang the GPU
+caught: the refusal before encoding past r63 (tests/test_register_fallback.py): ValueError: scalar_dest=64 does not fit in 6 unsigned bits
+3 of 3 breaks caught

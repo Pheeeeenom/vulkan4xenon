@@ -1,0 +1,911 @@
+log: game:\melee.log
+log: named after \Device\Harddisk0\Partition1\Melee\melee.xex
+sbrk: the heap may grow to 454 MB from 0x00070000, the title's free memory
+[    0.000] env: applied melee-env.txt
+[info] [aurora::os] Allocated MEM1 (96 MB) at 0x40000000
+mkdir: NtCreateFile(game:\melee-pc) failed: 0xC0000035
+mkdir: NtCreateFile(game:\melee-pc) failed: 0xC0000035
+[  120.234] [INFO] aurora: Aurora initializing
+[  124.707] [INFO] aurora::system_info: CPU model: Unknown
+[  130.205] [INFO] aurora::system_info: Memory: 0 MiB
+[  143.324] [INFO] aurora::system_info: Architecture: Unknown
+[  154.442] [INFO] aurora::system_info: OS: Unknown
+display: 1280x720 scaled to the 1920x1080 output
+display: the line counter reached 720 after 24213 us
+[  880.609] [INFO] aurora::vulkan4xenon: CMPR textures as RGBA8: vulkan4xenon has no BC1
+[  888.407] [INFO] aurora::thread: Aurora GPU waiter on hardware thread 1
+[  895.517] [INFO] aurora::vulkan4xenon: Shader pack: 0 programs
+[  901.618] [INFO] aurora::vulkan4xenon: Programs the pack doesn't hold are kept in game:\melee-pc\/shaders/glslang-16.3.0
+[  912.898] [INFO] aurora::vulkan4xenon: Read 39662e66d545c874.vert from the disk; 0 compiled and 1 read this run
+[  923.252] [INFO] aurora::vulkan4xenon: Read f544e71db9210106.frag from the disk; 0 compiled and 2 read this run
+vulkan4xenon: compiled SPIR-V 2C8E96C7FA5499CC, 1292 bytes, in 324 us
+vulkan4xenon: compiled SPIR-V EFE9BDE46639AE1D, 684 bytes, in 136 us
+[ 1095.641] [WARN] aurora::vulkan4xenon: The EFB is 1280x720, not the window's 1280x960: vulkan4xenon draws at most 1280x720
+[ 1121.771] [INFO] aurora::vulkan4xenon: vulkan4xenon backend: 1280x720 EFB
+[ 1132.866] [INFO] aurora::thread: Main thread on hardware thread 0
+[ 1144.053] [INFO] aurora::gfx::pipeline_cache: Compiling pipelines on 3 thread(s)
+[ 1151.295] [INFO] aurora::thread: Aurora render worker on hardware thread 2
+[ 1166[ 1167.336] [INFO] aurora::thread: Pipeline compilation thread on hardware thread 3
+.[ 1167.354] [INFO] aurora::thread: Pipeline compilation thread on hardware thread 3
+330[ 1167.360] [INFO] aurora::thread: Pipeline compilation thread on hardware thread 3
+] [ERROR] aurora::gfx::pipeline_cache: Failed to open pipeline cache database: out of memory
+[ 1214.747] [INFO] aurora::gfx::pipeline_cache: Queueing 0 known pipeline configs for render target layout 7cf165b3002e7f60
+[ 1226.387] [INFO] aurora: Using framebuffer size 1280x960 scale 1
+[ 1232.322] [INFO] aurora::thread: Aurora FIFO processor on hardware thread 4
+open: NtCreateFile(game:\melee-pc\gamecontrollerdb.txt) failed: 0xC0000034
+[ 1363.784] graphics backend: vulkan (auto), adapter:  [0000:0000], driver: 
+[ 2243.477] [INFO] aurora::rmlui: Loaded font face 'Liberation Sans' [regular] from 'game:\/resources/font.ttf'.
+[ 2306.361] [INFO] aurora::rmlui: Loaded font face 'Liberation Sans' [bold] from 'game:\/resources/font-bold.ttf'.
+mkdir: NtCreateFile(game:\melee-pc) failed: 0xC0000035
+[ 2454.117] [WARN] aurora::gfx::texture_replacement: Texture packs and dumps are supported only by the Dawn backend
+Custom textures: loaded 0 replacement(s) from game:\melee-pc\/textures
+[open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+ 2478.699] 1000 Hz input polling thread started (1 ms polling interval)
+open: NtCreateFile(game:\melee-pc\keyboard_bindings.dat) failed: 0xC0000034
+[ 2511.566] [INFO] aurora::card: CARD API Initialized BUILT <Oct 16 2026 01:51:26>
+[ 2551.250] [INFO] aurora::card: Loaded GC Card Image: game:\melee-pc\/USA/Card A
+[ 2590.939] [WARN] aurora::vulkan4xenon: The EFB is 1168x720, not the window's 1168x960: vulkan4xenon draws at most 1280x720
+[FileCache] Starting prewarm [Profile: Low-RAM (<=2GB), Budget: 24 MB]...
+[FileCache] STORED: PlCo.dat (149101 bytes, pinned, total: 0.14 MB)
+voices t=0.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=20/63
+voices t=1.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=1.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[FileCache] STORED: EfCoData.dat (1334111 bytes, pinned, total: 1.41 MB)
+voices t=2.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[FileCache] STORED: EfMnData.dat (1665 bytes, pinned, total: 1.42 MB) [from ARAM]
+voices t=2.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=3.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=3.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[FileCache] STORED: MnMaAll.usd (2155311 bytes, pinned, total: 3.47 MB)
+voices t=4.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=4.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=5.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[FileCache] STORED: MnMaAll.dat (2150919 bytes, pinned, total: 5.52 MB)
+voices t=5.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=6.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=6.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=7.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=7.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[FileCache] STORED: MnSlChr.usd (3811401 bytes, pinned, total: 9.16 MB)
+voices t=8.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=# ---------------------------------------------
+0#    Super Smash Bros. Melee
+/#
+0# Distribution 1
+
+# Language 1
+# DbLevel 0
+# Arena Size 95 MB
+# ARAM Free Size 9 MB
+# DATE Feb 13 2002  TIME 22:06:27
+open: NtCreateFile(\etc\timezone) failed: 0xC000003A
+open: NtCreateFile(\var\db\zoneinfo) failed: 0xC000003A
+open: NtCreateFile(\etc\sysconfig\clock) failed: 0xC000003A
+# GC Calendar Year 2026 Month 10 Day 16
+#             Hour 5 Min 53 Sec 52 
+#
+
+[FileCache] STORED: MnSlChr.dat (3812581 bytes, pinned, total: 12.79 MB)
+[FileCache] STORED: LbMcGame.usd (20158 bytes, pinned, total: 12.81 MB)
+ARCHIVE ok LbMcGame.: length=20158 header=20158 public=5
+[FileCache] STORED: MnSlMap.usd (636811 bytes, pinned, total: 13.42 MB)
+[FileCache] STORED: NtMemAc.usd (4159 bytes, pinned, total: 13.42 MB)
+ARCHIVE ok NtMemAc: length=4159 header=4159 public=1
+[FileCache] STORED: NtMsgWin.dat (11887 bytes, total: 13.44 MB)
+ARCHIVE ok NtMsgWin.dat: length=11887 header=11887 public=1
+[FileCache] STORED: MnSlMap.dat (681443 bytes, pinned, total: 14.09 MB)
+[FileCache] STORED: SdMsgBox.usd (2876 bytes, total: 14.09 MB)
+ARCHIVE ok SdMsgBox.usd: length=2876 header=2876 public=1
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[16536.829] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 1 indices 0 storage 0 texture 0
+[FileCache] STORED: MnExtAll.usd (1315321 bytes, pinned, total: 15.34 MB)
+[FileCache] STORED: MnExtAll.dat (1309449 bytes, pinned, total: 16.59 MB)
+[FileCache] STORED: GmTtAll.usd (276257 bytes, total: 16.85 MB)
+[FileCache] STORED: SdSlChr.usd (10900 bytes, pinned, total: 16.87 MB)
+ARCHIVE ok GmTtAll.usd: length=276257 header=276257 public=13
+mkdir: NtCreateFile(game:\melee-pc) failed: 0xC0000035
+[FileCache] STORED: SdSlChr.dat (67348 bytes, pinned, total: 16.93 MB)
+voices t=8.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=2 loop=2 old=0 aux=0/0
+[FileCache] STORED: IfAll.usd (901564 bytes, pinned, total: 17.79 MB)
+[FileCache] STORED: IfAll.dat (901564 bytes, pinned, total: 18.65 MB)
+[FileCache] STORED: ItCo.dat (2949760 bytes, pinned, total: 21.46 MB)
+[FileCache] STORED: LbRb.dat (1045 bytes, pinned, total: 21.46 MB)
+[FileCache] STORED: PlFx.dat (259850 bytes, total: 21.71 MB)
+[17559.230] [INFO] aurora::vulkan4xenon: Read 172ccfa9a454e318.vert from the disk; 0 compiled and 3 read this run
+[17576.665] [INFO] aurora::vulkan4xenon: Read e5c535debebde1ed.frag from the disk; 0 compiled and 4 read this run
+vulkan4xenon: compiled SPIR-V 90CFEC8FB11C27FA, 3132 bytes, in 1122 us
+vulkan4xenon: compiled SPIR-V FCF55BAA5252F929, 960 bytes, in 333 us
+[17637.992] [INFO] aurora::thread: Aurora tex preconv on hardware thread 3
+[17644.587] [INFO] aurora::vulkan4xenon: Read 6e690d475f0af5fe.vert from the disk; 0 compiled and 5 read this run
+[FileCache] STORED: PlFxNr.dat (362978 bytes, total: 22.06 MB)
+[17835.097] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+voices t=9.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[FileCache] STORED: EfFxData.dat (123588 bytes, total: 22.17 MB)
+[FileCache] STORED: PlMs.dat (175023 bytes, total: 22.34 MB)
+voices t=9.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[FileCache] STORED: PlMsNr.dat (594960 bytes, total: 22.91 MB)
+[FileCache] STORED: EfMsData.dat (23977 bytes, total: 22.93 MB)
+[18837.917] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+[FileCache] STORED: PlFc.dat (237784 bytes, total: 23.16 MB)
+voices t=10.[FileCache] STORED: PlFcNr.dat (243994 bytes, total: 23.39 MB)
+0[19290.851] [INFO] aurora::vulkan4xenon: Compiled 0a950494ec37a79a.frag in 1593.0 ms, with 136468 KB of heap in use; 1 compiled and 5 read this run
+s used=2 running=2 stopped=0 zero_mix=0vulkan4xenon: compiled SPIR-V 21063085D1E16A97, 3836 bytes, in 2637 us
+ zero_ratio=0 loop=2 old=vulkan4xenon: compiled SPIR-V 4E7890B8BAD91FE8, 4012 bytes, in 5176 us
+0 aux=0/0
+[19542.416] [INFO] aurora::vulkan4xenon: Read 020233a3aaada7e9.vert from the disk; 1 compiled and 6 read this run
+[19562.815] [INFO] aurora::vulkan4xenon: Read a148138e9d6e7e7f.frag from the disk; 1 compiled and 7 read this run
+vulkan4xenon: compiled SPIR-V 15F08405A672007C, 3276 bytes, in 1347 us
+vulkan4xenon: compiled SPIR-V B26A77F451E7017B, 3056 bytes, in 2068 us
+[19614.194] [INFO] aurora::vulkan4xenon: Read 31a68f629d5f5360.vert from the disk; 1 compiled and 8 read this run
+[19664.331] [INFO] aurora::vulkan4xenon: Compiled 462005e0a7ad958a.frag in 21.4 ms, with 136721 KB of heap in use; 2 compiled and 8 read this run
+vulkan4xenon: compiled SPIR-V 28D4A9648918E531, 3948 bytes, in 1753 us
+[FileCache] STORED: PlCa.dat (161726 bytes, total: 23.55 MB)
+vulkan4xenon: compiled SPIR-V 2DD20573C79953F1, 5980 bytes, in 19050 us
+[19885.627] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+[FileCache] LRU EVICTED: NtMsgWin.dat (freed 11887 bytes, current total: 23.53 MB)
+[FileCache] LRU EVICTED: SdMsgBox.usd (freed 2876 bytes, current total: 23.53 MB)
+[FileCache] LRU EVICTED: GmTtAll.usd (freed 276257 bytes, current total: 23.27 MB)
+[FileCache] STORED: PlCaNr.dat (525805 bytes, total: 23.77 MB)
+voices t=10.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[FileCache] STORED: EfCaData.dat (162876 bytes, total: 23.92 MB)
+[FileCache] LRU EVICTED: PlFx.dat (freed 259850 bytes, current total: 23.68 MB)
+[FileCache] STORED: PlPr.dat (114528 bytes, total: 23.79 MB)
+[FileCache] LRU EVICTED: PlFxNr.dat (freed 362978 bytes, current total: 23.44 MB)
+[FileCache] STORED: PlPrNr.dat (244518 bytes, total: 23.67 MB)
+[FileCache] STORED: EfPrData.dat (26834 bytes, total: 23.70 MB)
+voices t=11.0s used=2 running=[20904.874] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[FileCache] STORED: PlPc.dat (240228 bytes, total: 23.93 MB)
+[FileCache] LRU EVICTED: EfFxData.dat (freed 123588 bytes, current total: 23.81 MB)
+[FileCache] STORED: PlPcNr.dat (168974 bytes, total: 23.97 MB)
+[FileCache] LRU EVICTED: PlMs.dat (freed 175023 bytes, current total: 23.80 MB)
+[FileCache] LRU EVICTED: PlMsNr.dat (freed 594960 bytes, current total: 23.24 MB)
+[FileCache] STORED: GrNLa.dat (611125 bytes, total: 23.82 MB)
+voices t=11.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[FileCache] LRU EVICTED: EfMsData.dat (freed 23977 bytes, current total: 23.80 MB)
+[FileCache] LRU EVICTED: PlFc.dat (freed 237784 bytes, current total: 23.57 MB)
+[FileCache] LRU EVICTED: PlFcNr.dat (freed 243994 bytes, current total: 23.34 MB)
+[21923.056] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+[FileCache] LRU EVICTED: PlCa.dat (freed 161726 bytes, current total: 23.18 MB)
+[FileCache] STORED: GrSt.dat (824648 bytes, total: 23.97 MB)
+[FileCache] LRU EVICTED: PlCaNr.dat (freed 525805 bytes, current total: 23.47 MB)
+[FileCache] LRU EVICTED: EfCaData.dat (freed 162876 bytes, current total: 23.31 MB)
+[FileCache] LRU EVICTED: PlPr.dat (freed 114528 bytes, current total: 23.20 MB)
+[FileCache] LRU EVICTED: PlPrNr.dat (freed 244518 bytes, current total: 22.97 MB)
+[FileCache] LRU EVICTED: EfPrData.dat (freed 26834 bytes, current total: 22.95 MB)
+[FileCache] LRU EVICTED: PlPc.dat (freed 240228 bytes, current total: 22.72 MB)
+[FileCache] LRU EVICTED: PlPcNr.dat (freed 168974 bytes, current total: 22.55 MB)
+[FileCache] STORED: GrPs.dat (1468544 bytes, total: 23.96 MB)
+voices t=12.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[FileCache] LRU EVICTED: GrNLa.dat (freed 611125 bytes, current total: 23.37 MB)
+[FileCache] STORED: GrOp.dat (656823 bytes, total: 24.00 MB)
+[FileCache] Prewarm finished: 22 archives (23 MB) cached in 19646 ms
+[22953.997] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+voices t=12.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+voices t=13.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[23991.054] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+voices t=13.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[25022.766] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+voices t=14.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[26044.497] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 13 indices 0 storage 0 texture 825
+voices t=14.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[26448.310] [INFO] aurora::vulkan4xenon: Read 412f75e329bbe3a2.vert from the disk; 2 compiled and 9 read this run
+[26460.256] [INFO] aurora::vulkan4xenon: Read 4b7e44dd56d7abe7.frag from the disk; 2 compiled and 10 read this run
+vulkan4xenon: compiled SPIR-V 973D2CED53738699, 3468 bytes, in 2430 us
+vulkan4xenon: compiled SPIR-V 6688E7B2083517D6, 3996 bytes, in 2674 us
+[26550.582] [INFO] aurora::vulkan4xenon: Read d5d99e338acc096e.vert from the disk; 2 compiled and 11 read this run
+[26561.914] [INFO] aurora::vulkan4xenon: Read 0d8cd2552c0edb00.frag from the disk; 2 compiled and 12 read this run
+vulkan4xenon: compiled SPIR-V A70001999A9AF2F6, 3356 bytes, in 1194 us
+vulkan4xenon: compiled SPIR-V 42CF38161B3110CF, 2012 bytes, in 592 us
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=15.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[27070.722] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+voices t=15.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[28092.165] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+voices t=16.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[29128.299] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+voices t=16.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+voices t=17.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[30203.362] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+voices t=17.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[31213.214] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+voices t=18.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=0/0
+[32230.893] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+stuck voice 0: state=1 fmt=0 loop=1 ratio=65536 cur=12687534 end=12729663 loopaddr=12795202 vol=32638 prio=29
+stuck voice 1: state=1 fmt=0 loop=1 ratio=65536 cur=12753436 end=12795199 loopaddr=12860738 vol=32638 prio=29
+voices t=18.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=19.0s used=2 running=[33264.825] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=19.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[34304.439] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+voices t=20.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[35328.235] [INFO] aurora::gfx::frame: staging peak KiB: verts 0 uniforms 14 indices 0 storage 0 texture 825
+voices t=20.5s used=2 running=2 stopped=[35578.823] [INFO] aurora::vulkan4xenon: Read 97ee1d70ec14cc24.vert from the disk; 2 compiled and 13 read this run
+0 zero_mix=[35638.933] [INFO] aurora::vulkan4xenon: Compiled 84e1de0000676716.frag in 18.6 ms, with 153416 KB of heap in use; 3 compiled and 13 read this run
+0 zero_ratio=0 loop=2 old=vulkan4xenon: compiled SPIR-V 6A9CD6A84E4DFB93, 3936 bytes, in 2826 us
+2 aux=0/0vulkan4xenon: compiled SPIR-V 4A703C5C36FA9EE4, 4788 bytes, in 4865 us
+
+[35914.779] [INFO] aurora::vulkan4xenon: Read 73ff4594f09c0c5b.vert from the disk; 3 compiled and 14 read this run
+[35960.449] [INFO] aurora::vulkan4xenon: Compiled d2c259d52920cb07.frag in 18.0 ms, with 153455 KB of heap in use; 4 compiled and 14 read this run
+vulkan4xenon: compiled SPIR-V E0F080D3F6B6A55B, 4312 bytes, in 11363 us
+vulkan4xenon: compiled SPIR-V 37D837608352AB4E, 4404 bytes, in 4088 us
+[36087.434] [INFO] aurora::vulkan4xenon: Compiled 4ee57c484bd0ca44.frag in 19.0 ms, with 153772 KB of heap in use; 5 compiled and 14 read this run
+vulkan4xenon: compiled SPIR-V 457E9A230A3346DF, 4800 bytes, in 3966 us
+[36164.146] [INFO] aurora::vulkan4xenon: Read 84d18e240766fbf4.vert from the disk; 5 compiled and 15 read this run
+[36213.924] [INFO] aurora::vulkan4xenon: Compiled 48460fc2f0397341.frag in 24.7 ms, with 153931 KB of heap in use; 6 compiled and 15 read this run
+vulkan4xenon: compiled SPIR-V EB8B3AC67E8F9ED6, 4940 bytes, in 3594 us
+vulkan4xenon: compiled SPIR-V 778EBC7176C6E3B5, 5092 bytes, in 5640 us
+[36275.624] [INFO] aurora::vulkan4xenon: Read 03439cc269d4c68f.frag from the disk; 6 compiled and 16 read this run
+vulkan4xenon: compiled SPIR-V E491E78B1D16AE18, 3984 bytes, in 4136 us
+[36362.796] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=21.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=21.5s used=2 running=[37401.386] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=22.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[38401.604] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=22.5s used=open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[39444.875] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=23.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=23.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=[40501.856] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+0 loop=2 old=2 aux=0/0
+voices t=24.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[41539.010] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=24.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[42583.734] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=25.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=25.5s used=2 running=2 stopped=[43593.000] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=26.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[44607.728] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=26.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[45651.854] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=27.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=27.5s used=2 running=[46677.340] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=28.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[47731.745] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=28.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[48752.169] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=29.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=29.[49757.645] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+5[49822.663] [INFO] aurora::gfx::pipeline_cache: pipelines: 13 created in 8681 ms (avg 667.8 ms, max 1987.6 ms), 13 needed by a draw before ready
+s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=30.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[50796.891] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=30.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[51843.316] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=31.0s used=open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=31.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[52896.542] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=32.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[53932.262] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=32.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=33.0s used=2 running=2[54965.060] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=33.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[55979.433] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=34.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[56985.678] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=34.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=35.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=[58003.348] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=35.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[59057.302] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=36.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[60079.583] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=36.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=37.0s used=2 running=2 stopped=0 zero_mix=[61113.516] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=37.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[62152.134] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=38.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[63190.900] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=38.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=39.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2[64247.324] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=39.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[65256.717] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=40.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[66279.376] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=40.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=41.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/[67303.480] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+0
+voices t=41.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[68338.080] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=42.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[69354.888] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=42.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=43.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[70407.285] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=43.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[71414.524] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=44.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=44.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=[72443.227] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+2 old=2 aux=0/0
+voices t=45.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[73464.723] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=45.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[74488.022] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=46.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=46.5s used=2 running=2 stopped=0 zero_mix=0[75511.496] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=47.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[76556.493] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=47.5s used=2 running=open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=48.0s used=2[77674.041] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=48.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[78713.613] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=49.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[79756.294] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=49.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=50.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2[80777.303] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ old=2 aux=0/0
+voices t=50.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[81795.730] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=51.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[82840.328] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=51.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=52.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[83885.793] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=52.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[84912.152] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=53.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[85916.879] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=53.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=54.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[86918.954] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=54.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[87954.728] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=55.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[88984.613] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=55.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=56.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[90015.624] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=56.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[91069.069] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=57.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=57.5s used=2[92119.366] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=58.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[93143.493] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=58.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[94148.020] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=59.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=59.5s used=2 running=2[95165.062] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+ stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=60.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[96200.287] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=60.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[97223.614] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=61.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=61.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0[98255.178] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ loop=2 old=2 aux=0/0
+voices t=62.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[99306.440] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=62.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[100317.548] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=63.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=63.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0[101344.439] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ loop=2 old=2 aux=open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+0/0
+voices t=64.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[102359.404] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=64.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[103380.288] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=65.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=65.5s used=2 running=2 stopped=0 zero_mix=0[104441.958] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=66.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[105490.579] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=66.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[106495.803] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=67.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[107507.543] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=67.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=68.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[108561.246] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=68.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[109606.497] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=69.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=69.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[110662.924] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=70.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[111719.264] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=70.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=71.0s used=2 running=2 stopped=0 zero_mix=0[112764.820] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+ zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=71.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[113818.324] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=72.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[114825.610] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=72.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[115831.178] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+voices t=73.0s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=56/56
+voices t=73.5s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100[116836.746] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 47 indices 1 storage 5 texture 825
+
+open: NtCreateFile(\etc\timezone) failed: 0xC000003A
+open: NtCreateFile(\var\db\zoneinfo) failed: 0xC000003A
+open: NtCreateFile(\etc\sysconfig\clock) failed: 0xC000003A
+[117198.049] [INFO] aurora::thread: Aurora decode helper on hardware thread 5
+[117205.940] [INFO] aurora::vulkan4xenon: Read 5a91958689dce1c0.vert from the disk; 6 compiled and 17 read this run
+[117229.545] [INFO] aurora::vulkan4xenon: Read 51b7bb7bcfc157ca.frag from the disk; 6 compiled and 18 read this run
+vulkan4xenon: compiled SPIR-V 8414F182C198F6CF, 2900 bytes, in 6068 us
+vulkan4xenon: compiled SPIR-V 692DBBF465A7FE64, 3460 bytes, in 2246 us
+[117378.925] [INFO] aurora::vulkan4xenon: Compiled 8324e4a9109b0c89.frag in 27.3 ms, with 158147 KB of heap in use; 7 compiled and 18 read this run
+vulkan4xenon: compiled SPIR-V 3DBA6CACAE72619B, 4820 bytes, in 3779 us
+voices t=74.0s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[117838.780] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 49 indices 1 storage 5 texture 952
+voices t=74.5s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[118882.015] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 49 indices 1 storage 5 texture 952
+voices t=75.0s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+2 aux=100/100
+voices t=75.5s used=3[119904.158] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 49 indices 1 storage 5 texture 952
+ running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+voices t=76.0s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=[120939.687] [INFO] aurora::gfx::frame: staging peak KiB: verts 2 uniforms 49 indices 1 storage 5 texture 952
+100/100
+voices t=76.5s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=[121710.587] [INFO] aurora::vulkan4xenon: Compiled ba853d014922c0bd.frag in 22.7 ms, with 158582 KB of heap in use; 8 compiled and 18 read this run
+100/100
+vulkan4xenon: compiled SPIR-V F8E5E4617EB94857, 5892 bytes, in 7427 us
+[121889.432] [INFO] aurora::vulkan4xenon: Compiled 8d8e04b9c29b9501.frag in 18.6 ms, with 158589 KB of heap in use; 9 compiled and 18 read this run
+vulkan4xenon: compiled SPIR-V 59FD90C54B83E3E6, 4692 bytes, in 4692 us
+[121981.542] [INFO] aurora::gfx::frame: staging peak KiB: verts 14 uniforms 63 indices 7 storage 24 texture 952
+[122025.915] [INFO] aurora::vulkan4xenon: Compiled 7d6ba3e9fe9e4955.frag in 22.9 ms, with 158601 KB of heap in use; 10 compiled and 18 read this run
+vulkan4xenon: compiled SPIR-V BD3D342B9F879437, 5980 bytes, in 7895 us
+voices t=77.0s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[122597.447] [INFO] aurora::vulkan4xenon: Read 912c87f4c22b3dd7.frag from the disk; 10 compiled and 19 read this run
+vulkan4xenon: compiled SPIR-V AB4519DC7A198716, 3916 bytes, in 2762 us
+[122999.924] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=77.5s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+voices t=78.0[124005.212] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+s used=3 running=open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+voices t=78.5s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[125043.533] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=79.0s used=3 running=3 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[126062.022] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=79.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+voices t=80.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[127065.229] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=80.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/66
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=81.0s used=2 running=2 stopped=0 zero_mix=[128074.262] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+0 zero_ratio=0 loop=2 old=2 aux=100/0
+voices t=81.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=1/0
+[129074.736] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=82.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=82.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[130091.746] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=83.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=83.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[131107.264] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=84.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=84.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[132108.874] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=85.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+[133124.360] [INFO] aurora::gfx::frame: staging peak KiB: verts 15 uniforms 65 indices 8 storage 24 texture 952
+voices t=85.5s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=86.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=0/0
+voices t=86.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=87.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=87.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=88.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=88.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[FileCache] STORED: LbRf.dat (86 bytes, total: 24.00 MB)
+ARCHIVE ok LbRf.dat: length=86 header=86 public=1
+[FileCache] STORED: PdPm.dat (453 bytes, total: 24.00 MB)
+ARCHIVE ok PdPm.dat: length=453 header=453 public=1
+[FileCache] LRU EVICTED: GrSt.dat (freed 824648 bytes, current total: 23.21 MB)
+[FileCache] STORED: TyDatai.usd (19347 bytes, total: 23.23 MB)
+ARCHIVE ok TyDatai.usd: length=19347 header=19347 public=7
+[FileCache] HIT: PlCo.dat (149101 bytes, 0ms)
+ARCHIVE ok PlCo.dat: length=149101 header=149101 public=1
+voices t=89.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[FileCache] STORED: GmPause.usd (32894 bytes, pinned, total: 23.26 MB)
+ARCHIVE ok GmPause: length=32894 header=32894 public=1
+[FileCache] STORED: SdIntro.dat (374 bytes, pinned, total: 23.26 MB)
+ARCHIVE ok SdIntro.dat: length=374 header=374 public=1
+[FileCache] STORED: IfCoGet.dat (11716 bytes, pinned, total: 23.27 MB)
+ARCHIVE ok IfCoGet.dat: length=11716 header=11716 public=1
+[FileCache] STORED: LbBf.dat (833 bytes, pinned, total: 23.28 MB)
+ARCHIVE ok LbBf.dat: length=833 header=833 public=1
+mkdir: NtCreateFile(game:\melee-pc) failed: 0xC0000035
+voices t=89.5s used=2 running=2 stopped=0 zero_mix=[139102.105] [INFO] aurora::vulkan4xenon: Read e3098cb0e6e8e314.vert from the disk; 10 compiled and 20 read this run
+0 zero_ratio=vulkan4xenon: compiled SPIR-V 416A775ED809E3BD, 3256 bytes, in 1098 us
+0 loop=2[139176.303] [INFO] aurora::vulkan4xenon: Read cbed2c9db6f723a5.frag from the disk; 10 compiled and 21 read this run
+ old=vulkan4xenon: compiled SPIR-V A7797037D69630AC, 1028 bytes, in 619 us
+0[139223.631] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+ aux=0/[139269.527] [INFO] aurora::vulkan4xenon: Read 8e52808c1a7e4f4a.vert from the disk; 10 compiled and 22 read this run
+0
+vulkan4xenon: compiled SPIR-V 8FFA5EE5645BF915, 3680 bytes, in 2485 us
+[139295.885] [INFO] aurora::vulkan4xenon: Read a48b96d69ff86daf.vert from the disk; 10 compiled and 23 read this run
+[139308.127] [INFO] aurora::vulkan4xenon: Read ce4bffbb0b973310.frag from the disk; 10 compiled and 24 read this run
+vulkan4xenon: compiled SPIR-V 19427688A7666C0C, 824 bytes, in 326 us
+vulkan4xenon: compiled SPIR-V 5414DA6B8BEE8B24, 500 bytes, in 236 us
+[139362.939] [INFO] aurora::vulkan4xenon: Read 653501d0ccf8730a.frag from the disk; 10 compiled and 25 read this run
+vulkan4xenon: compiled SPIR-V 58470F709E7749B3, 3512 bytes, in 2775 us
+[139453.659] [INFO] aurora::vulkan4xenon: Compiled e5fc256c0574b182.vert in 31.8 ms, with 165285 KB of heap in use; 11 compiled and 25 read this run
+[139564.769] [INFO] aurora::vulkan4xenon: Compiled a6c0a90f8b81a64b.frag in 46.0 ms, with 174476 KB of heap in use; 12 compiled and 25 read this run
+vulkan4xenon: compiled SPIR-V 2E9822446BF4FD48, 10516 bytes, in 60182 us
+vulkan4xenon: compiled SPIR-V BEB84CF421FD66DF, 7256 bytes, in 18090 us
+[139750.421] [INFO] aurora::gfx::pipeline_cache: pipelines: 41 created in 12262 ms (avg 299.1 ms, max 1987.6 ms), 131 needed by a draw before ready
+[139765.118] [INFO] aurora::vulkan4xenon: Read e611f68ca0a9990c.vert from the disk; 12 compiled and 26 read this run
+[139797.551] [INFO] aurora::vulkan4xenon: Read 25456248c70d58e6.frag from the disk; 12 compiled and 27 read this run
+vulkan4xenon: compiled SPIR-V AE2066189735C4CD, 9128 bytes, in 13008 us
+voices t=90.0vulkan4xenon: compiled SPIR-V 8A79DC5687986770, 4512 bytes, in 4723 us
+s used=10 running=10 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[139938.302] [INFO] aurora::vulkan4xenon: Read d23b954d90a63d37.frag from the disk; 12 compiled and 28 read this run
+vulkan4xenon: compiled SPIR-V 72D9E78BE6B3FCE2, 4828 bytes, in 4429 us
+[140021.636] [INFO] aurora::vulkan4xenon: Read 33b7c7a41d42912e.frag from the disk; 12 compiled and 29 read this run
+vulkan4xenon: compiled SPIR-V C2E152901CA476D1, 3944 bytes, in 6365 us
+[140108.642] [INFO] aurora::vulkan4xenon: Compiled 41107d29ba37045c.frag in 18.9 ms, with 169959 KB of heap in use; 13 compiled and 29 read this run
+vulkan4xenon: compiled SPIR-V C4B045E258B14D6F, 4672 bytes, in 5835 us
+[140174.885] [INFO] aurora::vulkan4xenon: Read ece2618e566d8623.frag from the disk; 13 compiled and 30 read this run
+vulkan4xenon: compiled SPIR-V DDFAD77BD87458D0, 836 bytes, in 262 us
+[140208.538] [INFO] aurora::vulkan4xenon: Read 7de4d642765b6056.vert from the disk; 13 compiled and 31 read this run
+[140223.549] [INFO] aurora::vulkan4xenon: Read 3850d6bb7638f087.frag from the disk; 13 compiled and 32 read this run
+vulkan4xenon: compiled SPIR-V 73A4DCF0B865156E, 7768 bytes, in 1696 us
+[140310.518] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+vulkan4xenon: compiled SPIR-V D78FDC5B159DBE99, 4028 bytes, in 4349 us
+[140424.087] [INFO] aurora::vulkan4xenon: Compiled 93d9e51621e2438e.frag in 31.7 ms, with 170330 KB of heap in use; 14 compiled and 32 read this run
+voices t=vulkan4xenon: compiled SPIR-V 8C1CB46E4764725A, 5208 bytes, in 5565 us
+90.5s used=8 running=5 stopped=3 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[140535.683] [INFO] aurora::vulkan4xenon: Compiled 402005e65cf708fc.vert in 51.1 ms, with 169639 KB of heap in use; 15 compiled and 32 read this run
+[140574.009] [INFO] aurora::vulkan4xenon: Compiled 8e494d5c5df37150.frag in 20.0 ms, with 172749 KB of heap in use; 16 compiled and 32 read this run
+vulkan4xenon: compiled SPIR-V B7D5F91FE1711F28, 9944 bytes, in 16998 us
+vulkan4xenon: compiled SPIR-V B30BA1B0179289C3, 5180 bytes, in 7219 us
+[140672.532] [INFO] aurora::vulkan4xenon: Read c814487784d22b9b.vert from the disk; 16 compiled and 33 read this run
+vulkan4xenon: compiled SPIR-V A644A00583F37562, 7144 bytes, in 7110 us
+[140725.878] [INFO] aurora::vulkan4xenon: Read 1273a97830a730d0.vert from the disk; 16 compiled and 34 read this run
+[140790.118] [INFO] aurora::vulkan4xenon: Compiled c1ec595225e73d47.frag in 38.2 ms, with 174840 KB of heap in use; 17 compiled and 34 read this run
+vulkan4xenon: compiled SPIR-V 0B013F32140512B3, 10116 bytes, in 17497 us
+vulkan4xenon: compiled SPIR-V 3D34D4FCC3D807AD, 5464 bytes, in 5008 us
+[140980.009] [INFO] aurora::vulkan4xenon: Read cf0a26daa306f8f7.vert from the disk; 17 compiled and 35 read this run
+vulkan4xenon: compiled SPIR-V D4B458652A92F79B, 9752 bytes, in 1998 us
+[141025.700] [INFO] aurora::vulkan4xenon: Read 7606b26a2abb2a8b.vert from the disk; 17 compiled and 36 read this run
+[141060.444] [INFO] aurora::vulkan4xenon: Compiled 55da9df865f506bf.frag in 20.6 ms, with 169918 KB of heap in use; 18 compiled and 36 read this run
+vulkan4xenon: compiled SPIR-V 4AEE400432E57DE9, 10740 bytes, in 2275 us
+vulkan4xenon: compiled SPIR-V C5F02165D77B5009, 5184 bytes, in 5995 us
+voices t=91.0s used=8 running=7 stopped=1 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[141197.148] [INFO] aurora::vulkan4xenon: Compiled 8387f2e366101ab3.vert in 42.7 ms, with 176116 KB of heap in use; 19 compiled and 36 read this run
+[141274.850] [INFO] aurora::vulkan4xenon: Compiled 37cf674731e00b22.frag in 34.2 ms, with 166430 KB of heap in use; 20 compiled and 36 read this run
+vulkan4xenon: compiled SPIR-V ED5E9EF4357DAC8F, 12152 bytes, in 2588 us
+[141323.748] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+vulkan4xenon: compiled SPIR-V F483A9167BF25B11, 6316 bytes, in 6963 us
+[141416.985] [INFO] aurora::vulkan4xenon: Compiled c69fb527562fd8ad.vert in 45.2 ms, with 165961 KB of heap in use; 21 compiled and 36 read this run
+[141455.543] [INFO] aurora::vulkan4xenon: Compiled 6854c9acf76b35d2.frag in 20.3 ms, with 170227 KB of heap in use; 22 compiled and 36 read this run
+vulkan4xenon: compiled SPIR-V 9B337E3DE7E018BA, 4852 bytes, in 4645 us
+vulkan4xenon: compiled SPIR-V 69DB35B3012CABB7, 4132 bytes, in 3700 us
+[141652.047] [INFO] aurora::vulkan4xenon: Compiled 05a7b7f8a4f48cdb.vert in 40.0 ms, with 169796 KB of heap in use; 23 compiled and 36 read this run
+vulkan4xenon: compiled SPIR-V 9F558E54DDE56564, 11532 bytes, in 2604 us
+[141715.021] [INFO] aurora::vulkan4xenon: Read 827b958235911f6e.frag from the disk; 23 compiled and 37 read this run
+vulkan4xenon: compiled SPIR-V 6B89F0958CDB6E6C, 4132 bytes, in 3675 us
+voices t=91.5s used=19 running=[141764.575] [INFO] aurora::vulkan4xenon: Read d9b2bc2f75139e6f.frag from the disk; 23 compiled and 38 read this run
+19 stopped=0 zero_mix=vulkan4xenon: compiled SPIR-V A80B6B92071451C9, 3580 bytes, in 2624 us
+0 zero_ratio=0 loop=2 old=0 aux=100/100
+[141843.162] [INFO] aurora::vulkan4xenon: Compiled ab2621984e8b8aff.frag in 29.7 ms, with 171705 KB of heap in use; 24 compiled and 38 read this run
+vulkan4xenon: compiled SPIR-V 6FC09676878AEC82, 5192 bytes, in 4272 us
+[141962.090] [INFO] aurora::vulkan4xenon: Compiled 14780ff143729760.frag in 28.1 ms, with 170025 KB of heap in use; 25 compiled and 38 read this run
+vulkan4xenon: compiled SPIR-V 99E58394B53653E5, 5424 bytes, in 7754 us
+[142031.655] [INFO] aurora::vulkan4xenon: Read 7ca428490ab72ef9.frag from the disk; 25 compiled and 39 read this run
+vulkan4xenon: compiled SPIR-V 48B28AC8BD92AD55, 4480 bytes, in 4198 us
+[142072.471] [INFO] aurora::vulkan4xenon: Read d76b11364fba8d24.vert from the disk; 25 compiled and 40 read this run
+[142154.248] [INFO] aurora::vulkan4xenon: Read 6cf1eaad7f93280a.frag from the disk; 25 compiled and 41 read this run
+vulkan4xenon: compiled SPIR-V F9810F9A27DC6297, 3560 bytes, in 1238 us
+vulkan4xenon: compiled SPIR-V 2227BE019C158B9E, 2528 bytes, in 1521 us
+[142230.064] [INFO] aurora::vulkan4xenon: Read 88a3de8e328f385a.vert from the disk; 25 compiled and 42 read this run
+[142243.433] [INFO] aurora::vulkan4xenon: Read d17925da1e2e82ac.frag from the disk; 25 compiled and 43 read this run
+vulkan4xenon: compiled SPIR-V A71231B4106DECAA, 2756 bytes, in 1013 us
+vulkan4xenon: compiled SPIR-V 3A3708C363CF9CD8, 1460 bytes, in 1602 us
+[142310.572] [INFO] aurora::vulkan4xenon: Read 58cc650b809ba6d7.vert from the disk; 25 compiled and 44 read this run
+[142324.698] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=92[142407.617] [INFO] aurora::vulkan4xenon: Compiled ac11b42de541bd79.frag in 17.4 ms, with 166312 KB of heap in use; 26 compiled and 44 read this run
+.0s used=16 running=vulkan4xenon: compiled SPIR-V 09BF10D3264228B9, 3824 bytes, in 1416 us
+14 stopped=2 zero_mix=vulkan4xenon: compiled SPIR-V 26B89AFC3C9B103E, 2832 bytes, in 1091 us
+0 zero_ratio=0 loop=2 old=[142554.688] [INFO] aurora::vulkan4xenon: Read 5863acb10e1183f5.frag from the disk; 26 compiled and 45 read this run
+0 aux=100/vulkan4xenon: compiled SPIR-V 1D74056A64C9105A, 2016 bytes, in 1606 us
+100
+[142620.750] [INFO] aurora::vulkan4xenon: Read da2593920df168c8.vert from the disk; 26 compiled and 46 read this run
+vulkan4xenon: compiled SPIR-V 196838F6ABFFD139, 3112 bytes, in 1088 us
+[142652.197] [INFO] aurora::vulkan4xenon: Read edf5d10499e95144.vert from the disk; 26 compiled and 47 read this run
+vulkan4xenon: compiled SPIR-V BC7425CF32322D89, 3536 bytes, in 803 us
+[142797.325] [INFO] aurora::vulkan4xenon: Compiled 9713785d02ae691d.frag in 13.8 ms, with 166289 KB of heap in use; 27 compiled and 47 read this run
+vulkan4xenon: compiled SPIR-V 188127A0985E0306, 2340 bytes, in 990 us
+[142842.331] [INFO] aurora::vulkan4xenon: Read 9b1cfd4bb501618a.vert from the disk; 27 compiled and 48 read this run
+[142856.183] [INFO] aurora::vulkan4xenon: Read 6a111d7fac408f91.frag from the disk; 27 compiled and 49 read this run
+vulkan4xenon: compiled SPIR-V 34F53F7F9C2EFB60, 3936 bytes, in 1576 us
+vulkan4xenon: compiled SPIR-V 39EF43533AD50514, 2992 bytes, in 2280 us
+[142923.538] [INFO] aurora::vulkan4xenon: Read a904c16833cf87cf.frag from the disk; 27 compiled and 50 read this run
+vulkan4xenon: compiled SPIR-V 6456286F8688E8F9, 4788 bytes, in 5715 us
+[142966.769] [INFO] aurora::vulkan4xenon: Read 315c3a540b19baff.frag from the disk; 27 compiled and 51 read this run
+vulkan4xenon: compiled SPIR-V 6F27BFBB21381E06, 5272 bytes, in 7154 us
+[143070.812] [INFO] aurora::vulkan4xenon: Compiled 1945f5d384da5507.frag in 35.9 ms, with 173855 KB of heap in use; 28 compiled and 51 read this run
+vulkan4xenon: compiled SPIR-V 1365AB24820D9C00, 5936 bytes, in 7319 us
+[143155.600] [INFO] aurora::vulkan4xenon: Compiled c0e3abd2d2edc528.frag in 42.3 ms, with 173313 KB of heap in use; 29 compiled and 51 read this run
+voices t=92.5s used=7 running=5 stopped=2 zero_mix=0 zero_ratio=0open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+vulkan4xenon: compiled SPIR-V F921F191D2DAD669, 5908 bytes, in 9757 us
+ loop=2 old=0 aux=100/100
+[143272.481] [INFO] aurora::vulkan4xenon: Compiled fd6a75d55843434f.frag in 25.5 ms, with 169519 KB of heap in use; 30 compiled and 51 read this run
+vulkan4xenon: compiled SPIR-V CC5D4EFE31AF83F3, 6192 bytes, in 8943 us
+[143356.780] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[143410.054] [INFO] aurora::vulkan4xenon: Compiled ea8c6a9d236e987c.vert in 31.5 ms, with 169369 KB of heap in use; 31 compiled and 51 read this run
+[143487.561] [INFO] aurora::vulkan4xenon: Compiled c9654e90ef39ed1b.frag in 48.4 ms, with 169174 KB of heap in use; 32 compiled and 51 read this run
+vulkan4xenon: compiled SPIR-V F2D2C9E0466D0078, 9024 bytes, in 22144 us
+vulkan4xenon: compiled SPIR-V 134CD662503724E9, 6328 bytes, in 13403 us
+[143645.786] [INFO] aurora::vulkan4xenon: Compiled d6292ff951f2f81d.frag in 21.7 ms, with 173384 KB of heap in use; 33 compiled and 51 read this run
+vulkan4xenon: compiled SPIR-V D4E6DF01D461B53D, 5912 bytes, in 9058 us
+[143753.114] [INFO] aurora::vulkan4xenon: Read 77e08a86df0bb7ec.vert from the disk; 33 compiled and 52 read this run
+[143764.545] [INFO] aurora::vulkan4xenon: Read fa598883be3e9f60.frag from the disk; 33 compiled and 53 read this run
+vulkan4xenon: compiled SPIR-V 8AF25FC873B22C7E, 7656 bytes, in 1577 us
+vulkan4xenon: compiled SPIR-V B7978C8D80D989EE, 2060 bytes, in 780 us
+voices t=93.0s used=11 running=10 stopped=[143842.914] [INFO] aurora::vulkan4xenon: Read 0c27a8e1e23e0751.vert from the disk; 33 compiled and 54 read this run
+1 zero_mix=vulkan4xenon: compiled SPIR-V 20511FDC07DF35BE, 7032 bytes, in 5758 us
+0 zero_ratio=0 loop=2 old=0 aux=100/100
+[144012.731] [INFO] aurora::vulkan4xenon: Compiled ef06fb0e4fe20195.vert in 32.0 ms, with 168454 KB of heap in use; 34 compiled and 54 read this run
+[144076.159] [INFO] aurora::vulkan4xenon: Compiled d6f4a745abc29593.frag in 23.8 ms, with 166861 KB of heap in use; 35 compiled and 54 read this run
+vulkan4xenon: compiled SPIR-V EDEC4C1B3516F779, 9816 bytes, in 16457 us
+vulkan4xenon: compiled SPIR-V B4A5B639A6C24E91, 3228 bytes, in 2577 us
+[144296.564] [INFO] aurora::vulkan4xenon: Compiled 86ac1b3619eb4b23.frag in 25.1 ms, with 170536 KB of heap in use; 36 compiled and 54 read this run
+vulkan4xenon: compiled SPIR-V 4FD777D144ACE9FB, 2228 bytes, in 830 us
+[144373.963] [INFO] aurora::vulkan4xenon: Compiled 987d0df4de74cb05.frag in 22.4 ms, with 168478 KB of heap in use; 37 compiled and 54 read this run
+vulkan4xenon: compiled SPIR-V B423DC3C7FF94E05, 4936 bytes, in 16487 us
+[144423.028] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[144494.946] [INFO] aurora::vulkan4xenon: Compiled 13355433df6bc3b6.frag in 19.9 ms, with 168244 KB of heap in use; 38 compiled and 54 read this run
+vulkan4xenon: compiled SPIR-V D485BDE9D9A20B94, 4308 bytes, in 4629 us
+[144598.648] [INFO] aurora::vulkan4xenon: Compiled 5072c0691271968c.frag in 30.6 ms, with 170121 KB of heap in use; 39 compiled and 54 read this run
+voices t=93.5s used=9vulkan4xenon: compiled SPIR-V 4B030AC047B1FCEE, 3224 bytes, in 1366 us
+ running=9 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[144741.262] [INFO] aurora::vulkan4xenon: Compiled f57f6091e6e7f3dc.frag in 32.9 ms, with 173486 KB of heap in use; 40 compiled and 54 read this run
+vulkan4xenon: compiled SPIR-V 202AB40BB88924EE, 4892 bytes, in 6379 us
+[144834.785] [INFO] aurora::vulkan4xenon: Compiled c176279b80a58825.frag in 27.6 ms, with 168741 KB of heap in use; 41 compiled and 54 read this run
+vulkan4xenon: compiled SPIR-V F7D4B6496E99CA84, 7044 bytes, in 17458 us
+[144921.541] [INFO] aurora::vulkan4xenon: Read 76f15267a164ec96.frag from the disk; 41 compiled and 55 read this run
+vulkan4xenon: compiled SPIR-V B9BF58724888D441, 5240 bytes, in 8509 us
+[145023.086] [INFO] aurora::vulkan4xenon: Read d30e2e81bde19d99.frag from the disk; 41 compiled and 56 read this run
+vulkan4xenon: compiled SPIR-V 5D09EFB5430AE862, 2836 bytes, in 1725 us
+[145160.580] [INFO] aurora::vulkan4xenon: Compiled ffaf45083421436e.frag in 24.1 ms, with 168242 KB of heap in use; 42 compiled and 56 read this run
+voices t=vulkan4xenon: compiled SPIR-V 132697DF49872DA4, 4724 bytes, in 3907 us
+94.0s used=10 running=10 stopped=0[145324.187] [INFO] aurora::vulkan4xenon: Compiled 18357f4c98ed84dc.frag in 19.4 ms, with 168265 KB of heap in use; 43 compiled and 56 read this run
+ zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100vulkan4xenon: compiled SPIR-V 91979DAA4D30A472, 3956 bytes, in 4085 us
+/100
+[145444.834] [INFO] aurora::vulkan4xenon: Compiled ee23652fdbd274ce.vert in 53.5 ms, with 174358 KB of heap in use; 44 compiled and 56 read this run
+[145493.673] [INFO] aurora::vulkan4xenon: Compiled 15b03822dbf084a3.frag in 23.8 ms, with 176073 KB of heap in use; 45 compiled and 56 read this run
+[145535.856] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+vulkan4xenon: compiled SPIR-V 1DA3F9485E7445E6, 10948 bytes, in 44601 us
+vulkan4xenon: compiled SPIR-V 1A92D08A74D23B23, 6252 bytes, in 8636 us
+[145655.307] [INFO] aurora::vulkan4xenon: Compiled e016e63821f6f1d0.frag in 17.5 ms, with 167033 KB of heap in use; 46 compiled and 56 read this run
+vulkan4xenon: compiled SPIR-V 844CF72636A1DC02, 4196 bytes, in 2869 us
+[145708.130] [INFO] aurora::vulkan4xenon: Read 2f2f6e44d016e5ef.vert from the disk; 46 compiled and 57 read this run
+[145741.460] [INFO] aurora::vulkan4xenon: Compiled 895624696f38d331.frag in 19.1 ms, with 169829 KB of heap in use; 47 compiled and 57 read this run
+vulkan4xenon: compiled SPIR-V 47E8282024478423, 4828 bytes, in 2276 us
+vulkan4xenon: compiled SPIR-V 0F2AF90A3E545CF7, 3596 bytes, in 2245 us
+voices t=94.5s used=14 running=14 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+voices t=95.0s used=13 running=12 stopped=1 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[146577.206] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=95.5s used=16 running=14 stopped=2 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[147158.574] [INFO] aurora::vulkan4xenon: Read 55a0066e2650ed99.vert from the disk; 47 compiled and 58 read this run
+[147207.973] [INFO] aurora::vulkan4xenon: Compiled b4da447dbe82fb5b.frag in 20.5 ms, with 173962 KB of heap in use; 48 compiled and 58 read this run
+vulkan4xenon: compiled SPIR-V DC78C70D616F4D0A, 4200 bytes, in 2039 us
+vulkan4xenon: compiled SPIR-V 724AE58C6368DCAE, 2376 bytes, in 991 us
+[147593.937] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=96.0s used=15 running=14 stopped=1 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=96.5s used=4 running=4 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[148261.404] [INFO] aurora::vulkan4xenon: Compiled c921ddbc68ac3326.vert in 31.2 ms, with 170646 KB of heap in use; 49 compiled and 58 read this run
+[148326.954] [INFO] aurora::vulkan4xenon: Compiled a089577e95a923d1.frag in 22.6 ms, with 167281 KB of heap in use; 50 compiled and 58 read this run
+vulkan4xenon: compiled SPIR-V 8E3F5215E1D414BE, 7532 bytes, in 11985 us
+vulkan4xenon: compiled SPIR-V 0DC81E4CB2D46536, 5400 bytes, in 7846 us
+[148609.637] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=97.0s used=4 running=4 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+voices t=97.5s used=5 running=4 stopped=1 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[149580.446] [INFO] aurora::vulkan4xenon: Compiled f213697a9f9a7541.vert in 22.2 ms, with 168664 KB of heap in use; 51 compiled and 58 read this run
+[149639.709] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[149659.270] [INFO] aurora::vulkan4xenon: Compiled 55a4c16a282bb33b.frag in 19.9 ms, with 168683 KB of heap in use; 52 compiled and 58 read this run
+vulkan4xenon: compiled SPIR-V 6C6B6B4B9C8C63DB, 6040 bytes, in 5251 us
+vulkan4xenon: compiled SPIR-V 4F1B949E49AB26A9, 4472 bytes, in 4812 us
+voices t=98.0s used=2 running=2 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[150230.506] [INFO] aurora::vulkan4xenon: Compiled 8cb3834cb5e564d3.frag in 17.3 ms, with 168544 KB of heap in use; 53 compiled and 58 read this run
+vulkan4xenon: compiled SPIR-V B634CC55DB5CA296, 2296 bytes, in 913 us
+voices t=98.5s used=10 running=10 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[150646.375] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=99.0s used=9 running=9 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=0 aux=100/100
+[151594.408] [INFO] aurora::vulkan4xenon: Read 8692185b97b0bfbe.frag from the disk; 53 compiled and 59 read this run
+vulkan4xenon: compiled SPIR-V D9E80D2CD1950A66, 3420 bytes, in 2941 us
+[151625.327] [INFO] aurora::vulkan4xenon: Read cedaf9837fdc22e4.vert from the disk; 53 compiled and 60 read this run
+[151670.793] [INFO] aurora::vulkan4xenon: Compiled 748dd982a6b90d0b.frag in 32.2 ms, with 170121 KB of heap in use; 54 compiled and 60 read this run
+[151676.925] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+vulkan4xenon: compiled SPIR-V 2C77FB7B02A96604, 9016 bytes, in 10628 us
+stuck voice 0: state=1 fmt=0 loop=vulkan4xenon: compiled SPIR-V 6F87E28E44B020A8, 4468 bytes, in 4594 us
+1 ratio=65536 cur=[151800.974] [INFO] aurora::vulkan4xenon: Read 1b3111a7eca65b35.frag from the disk; 54 compiled and 61 read this run
+12701614 end=12729663vulkan4xenon: compiled SPIR-V 64D97C93DC861803, 2148 bytes, in 2476 us
+ loopaddr=12795202 vol=32638 prio=29
+stuck voice 1: state=1 fmt=0 loop=1 ratio=65536 cur=12767700 end=12795199 loopaddr=12860738 vol=32638 prio=29
+voices t=99.5s used=8 running=8 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[152142.355] [INFO] aurora::vulkan4xenon: Compiled 0a68b29dd2e22efd.frag in 30.4 ms, with 171494 KB of heap in use; 55 compiled and 61 read this run
+vulkan4xenon: compiled SPIR-V 29EECA0505A8A664, 5452 bytes, in 7965 us
+[152227.958] [INFO] aurora::vulkan4xenon: Read 7241ca98554fedc9.vert from the disk; 55 compiled and 62 read this run
+vulkan4xenon: compiled SPIR-V 2FA587415DE76788, 4248 bytes, in 959 us
+[152324.834] [INFO] aurora::vulkan4xenon: Read a951eb530336a60f.frag from the disk; 55 compiled and 63 read this run
+vulkan4xenon: compiled SPIR-V 45877A2D2F3A617E, 2528 bytes, in 1519 us
+voices t=100.0s used=7 running=7 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[152708.028] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[152841.195] [INFO] aurora::vulkan4xenon: Read d5e924e4f3b96b75.frag from the disk; 55 compiled and 64 read this run
+vulkan4xenon: compiled SPIR-V 43D10A97F4B16770, 2148 bytes, in 1037 us
+[152916.434] [INFO] aurora::vulkan4xenon: Read 58ecd81ff764d80c.frag from the disk; 55 compiled and 65 read this run
+vulkan4xenon: compiled SPIR-V 05CC155FD5F8BAF0, 2544 bytes, in 1580 us
+[152972.050] [INFO] aurora::vulkan4xenon: Read 60176fa4656ddb92.frag from the disk; 55 compiled and 66 read this run
+vulkan4xenon: compiled SPIR-V B4A0BED1F02E37A7, 1516 bytes, in 733 us
+voices t=100.5s used=13 running=13 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+voices t=101.0s used=8 running=5 stopped=3 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[153777.976] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=101.5s used=11 running=9 stopped=2 zero_mix=0 zero_ratio=0 loop=3 old=2 aux=100/100
+voices t=102.0s used=14 running=12 stopped=2 zero_mix=0 zero_ratio=0 loop=3 old=2 aux=100/100
+[154810.771] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[155141.166] [INFO] aurora::vulkan4xenon: Compiled 0199d957345fdbca.vert in 31.5 ms, with 168898 KB of heap in use; 56 compiled and 66 read this run
+[155203.362] [INFO] aurora::vulkan4xenon: Compiled 9ae4f0aed3262302.frag in 19.8 ms, with 174387 KB of heap in use; 57 compiled and 66 read this run
+vulkan4xenon: compiled SPIR-V 910E52FCC19C5CCB, 9420 bytes, in 3397 us
+vulkan4xenon: compiled SPIR-V D47BE656FFA0CA0D, 2300 bytes, in 4237 us
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[155303.347] [INFO] aurora::vulkan4xenon: Read 103b6aa0010d4ac9.vert from the disk; 57 compiled and 67 read this run
+[155336.562] [INFO] aurora::vulkan4xenon: Read f8ad9838ab3179e2.frag from the disk; 57 compiled and 68 read this run
+vulkan4xenon: compiled SPIR-V 657262B6D545B9C6, 9640 bytes, in 1943 us
+vulkan4xenon: compiled SPIR-V 597294462C9389CA, 2560 bytes, in 1035 us
+voices t=102.5s used=8 running=8 stopped=0 zero_mix=0 zero_ratio=0[155405.154] [INFO] aurora::vulkan4xenon: Compiled 9aec009dfc7894da.frag in 17.7 ms, with 171575 KB of heap in use; 58 compiled and 68 read this run
+ loop=3 old=2 aux=vulkan4xenon: compiled SPIR-V 00701D234AA48B97, 2772 bytes, in 1090 us
+100/100
+[155852.938] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[156038.211] [INFO] aurora::vulkan4xenon: Compiled 7db240f6e08d0f31.frag in 19.8 ms, with 171200 KB of heap in use; 59 compiled and 68 read this run
+vulkan4xenon: compiled SPIR-V FB01E742F2C22CE6, 4968 bytes, in 16256 us
+voices t=103.[156110.774] [INFO] aurora::vulkan4xenon: Compiled 762369c929d53185.frag in 20.6 ms, with 169158 KB of heap in use; 60 compiled and 68 read this run
+0s used=5 running=4 stopped=1 zero_mix=0 zero_ratio=0 loop=3 old=2 aux=vulkan4xenon: compiled SPIR-V 292007C283840780, 5720 bytes, in 16252 us
+100/100
+[156315.175] [INFO] aurora::vulkan4xenon: Compiled 86c24dfb3202e007.frag in 40.9 ms, with 173597 KB of heap in use; 61 compiled and 68 read this run
+vulkan4xenon: compiled SPIR-V 1FA85CC786391B45, 7784 bytes, in 30131 us
+[156527.371] [INFO] aurora::vulkan4xenon: Compiled a43d93afc0916609.frag in 63.3 ms, with 170415 KB of heap in use; 62 compiled and 68 read this run
+vulkan4xenon: compiled SPIR-V 53356F933D7CDF0E, 8712 bytes, in 55890 us
+voices t=103.5s used=8 running=8 stopped=0 zero_mix=0 zero_ratio=0 loop=3 old=2 aux=100/100
+[156880.640] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=104.0s used=8 running=8 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[157596.945] [INFO] aurora::vulkan4xenon: Compiled 1929d0a44db36085.frag in 32.6 ms, with 176119 KB of heap in use; 63 compiled and 68 read this run
+vulkan4xenon: compiled SPIR-V 8802F91385A26C2D, 3076 bytes, in 2662 us
+[157664.380] [INFO] aurora::vulkan4xenon: Read 10bbf6557cd2e65d.frag from the disk; 63 compiled and 69 read this run
+vulkan4xenon: compiled SPIR-V 21F59FEA919754EF, 3320 bytes, in 2149 us
+[157712.541] [INFO] aurora::vulkan4xenon: Compiled c46922e5ba573801.frag in 22.4 ms, with 173255 KB of heap in use; 64 compiled and 69 read this run
+vulkan4xenon: compiled SPIR-V 29A619887B8A77DA, 3500 bytes, in 2150 us
+[157909.431] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=104.5s used=9 running=9 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+[158566.280] [INFO] aurora::vulkan4xenon: Read 6dec9e9c2a7487f4.vert from the disk; 64 compiled and 70 read this run
+[158596.488] [INFO] aurora::vulkan4xenon: Read cc7dbfd456b3e83d.frag from the disk; 64 compiled and 71 read this run
+voices t=105vulkan4xenon: compiled SPIR-V DBFAE4472AE8D232, 8124 bytes, in 19627 us
+.vulkan4xenon: compiled SPIR-V EA4EF42AFC7D0895, 4160 bytes, in 3754 us
+0s used=7 running=7 stopped=0 zero_mix=0 zero_ratio=[158771.099] [INFO] aurora::vulkan4xenon: Compiled 2ce7323edbdf2060.frag in 25.8 ms, with 172615 KB of heap in use; 65 compiled and 71 read this run
+0 loop=2 old=2 aux=100/100vulkan4xenon: compiled SPIR-V DB97DBD1729731D3, 5652 bytes, in 15342 us
+
+[158912.727] [INFO] aurora::vulkan4xenon: Compiled 12afc3cf5ac8cdf9.vert in 40.5 ms, with 172981 KB of heap in use; 66 compiled and 71 read this run
+[158961.351] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[158992.436] [INFO] aurora::vulkan4xenon: Compiled 84b351413266747c.frag in 52.5 ms, with 172966 KB of heap in use; 67 compiled and 71 read this run
+vulkan4xenon: compiled SPIR-V BC8AB4BCB7F8A12D, 11352 bytes, in 27112 us
+vulkan4xenon: compiled SPIR-V C0BF1E3130423F55, 6520 bytes, in 7644 us
+[159186.740] [INFO] aurora::vulkan4xenon: Compiled 9e6238959618ff1b.frag in 29.1 ms, with 174156 KB of heap in use; 68 compiled and 71 read this run
+vulkan4xenon: compiled SPIR-V 50CFB672607B0CFA, 5168 bytes, in 6227 us
+voices t=105.5s used=9 running=9 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+voices t=[159980.538] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+106.0s used=9 running=8 stopped=1 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+voices t=106.5s used=18 running=18 stopped=0 zero_mix=0 zero_ratio=0 loop=2 old=2 aux=100/100
+[FileCache] STORED: GmTtAll.usd (276257 bytes, total: 23.54 MB)
+ARCHIVE ok GmTtAll.usd: length=276257 header=276257 public=13
+open: NtCreateFile(\etc\timezone) failed: 0xC000003A
+open: NtCreateFile(\var\db\zoneinfo) failed: 0xC000003A
+open: NtCreateFile(\etc\sysconfig\clock) failed: 0xC000003A
+[161112.558] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=107.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=100/100
+voices t=107.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=100/100
+[162123.709] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=108.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=17/89
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=108.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[163125.259] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=109.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=109.5s used=0 running=[164141.279] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=110.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[165003.694] [INFO] aurora::gfx::pipeline_cache: pipelines: 265 created in 37861 ms (avg 142.9 ms, max 1987.6 ms), 265 needed by a draw before ready
+[165238.584] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=110.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=111.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[166241.039] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=111.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=112.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[167241.125] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=112.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=113.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[168340.067] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=113.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[169341.153] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=114.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=114.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[170358.484] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=115.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=115.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[171375.060] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=116.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=116.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=117.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+voices t=117.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[FileCache] HIT: LbRf.dat (86 bytes, 0ms)
+ARCHIVE ok LbRf.dat: length=86 header=86 public=1
+[FileCache] HIT: PdPm.dat (453 bytes, 0ms)
+ARCHIVE ok PdPm.dat: length=453 header=453 public=1
+[FileCache] HIT: TyDatai.usd (19347 bytes, 0ms)
+ARCHIVE ok TyDatai.usd: length=19347 header=19347 public=7
+[FileCache] HIT: PlCo.dat (149101 bytes, 0ms)
+ARCHIVE ok PlCo.dat: length=149101 header=149101 public=1
+voices t=118.0s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+open: NtCreateFile(\sys\bus\usb\devices) failed: 0xC000003A
+voices t=118.5s used=0 running=0 stopped=0 zero_mix=0 zero_ratio=0 loop=0 old=0 aux=0/0
+[FileCache] HIT: GmPause.usd (32894 bytes, 0ms)
+ARCHIVE ok GmPause: length=32894 header=32894 public=1
+[FileCache] HIT: SdIntro.dat (374 bytes, 0ms)
+ARCHIVE ok SdIntro.dat: length=374 header=374 public=1
+[FileCache] HIT: IfCoGet.dat (11716 bytes, 0ms)
+ARCHIVE ok IfCoGet.dat: length=11716 header=11716 public=1
+[FileCache] HIT: LbBf.dat (833 bytes, 0ms)
+ARCHIVE ok LbBf.dat: length=833 header=833 public=1
+mkdir: NtCreateFile(game:\melee-pc) failed: 0xC0000035
+[176038.843] [INFO] aurora::vulkan4xenon: Read 16c63dd63d173f5d.frag from the disk; 68 compiled and 72 read this run
+vulkan4xenon: compiled SPIR-V C6385E86C5BCF3A7, 2036 bytes, in 637 us
+[176124.062] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+[176135.513] [INFO] aurora::vulkan4xenon: Read 9c2ac0bde91631c2.vert from the disk; 68 compiled and 73 read this run
+voices t=119.0s used=6 running=6 stopped=0 zero_mix=0 zero_ratio=0 loop=4 old=0 aux=70/69
+vulkan4xenon: compiled SPIR-V EC12BF58D40B57C3, 12164 bytes, in 29039 us
+[176196.787] [INFO] aurora::vulkan4xenon: Read a6f25141f884f3b1.vert from the disk; 68 compiled and 74 read this run
+[176272.454] [INFO] aurora::vulkan4xenon: Compiled d8e1189f7822fb08.frag in 26.2 ms, with 168756 KB of heap in use; 69 compiled and 74 read this run
+vulkan4xenon: compiled SPIR-V F1595D91B2C76937, 13152 bytes, in 38603 us
+vulkan4xenon: compiled SPIR-V B63B93E9F50DB80C, 6212 bytes, in 6631 us
+[176580.794] [INFO] aurora::vulkan4xenon: Compiled eb89f6324b0ebeb4.vert in 56.6 ms, with 171177 KB of heap in use; 70 compiled and 74 read this run
+[176734.995] [INFO] aurora::vulkan4xenon: Compiled c257f7f70165ab54.frag in 34.7 ms, with 167567 KB of heap in use; 71 compiled and 74 read this run
+voices t=119.5s used=11 running=11 stopped=0 zero_mix=0 zero_ratio=0 loop=4 old=0 aux=100/100
+vulkan4xenon: compiled SPIR-V 4329EAB87BA2E8D8, 18176 bytes, in 107457 us
+vulkan4xenon: compiled SPIR-V E95390372591208E, 8952 bytes, in 26348 us
+[177080.615] [INFO] aurora::vulkan4xenon: Compiled 6a5ee7fb16fb52a8.vert in 85.4 ms, with 174770 KB of heap in use; 72 compiled and 74 read this run
+[177162.613] [INFO] aurora::vulkan4xenon: Compiled 4274d02204eb7261.frag in 61.4 ms, with 175900 KB of heap in use; 73 compiled and 74 read this run
+[177187.711] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+voices t=120.0s used=10 running=10 stopped=0 zero_mix=0 zero_ratio=0 loop=4 old=0 aux=100/100
+vulkan4xenon: compiled SPIR-V A829AFD15881D71C, 19164 bytes, in 138922 us
+vulkan4xenon: compiled SPIR-V FB94E70F4F36763C, 8708 bytes, in 22244 us
+[177475.006] [INFO] aurora::vulkan4xenon: Compiled d1f0159928568594.frag in 28.6 ms, with 171423 KB of heap in use; 74 compiled and 74 read this run
+vulkan4xenon: compiled SPIR-V BF1B69352DC83329, 4964 bytes, in 5815 us
+[177661.830] [INFO] aurora::vulkan4xenon: Compiled 4001b5e9eae4bb33.vert in 101.9 ms, with 170605 KB of heap in use; 75 compiled and 74 read this run
+[177768.682] [INFO] aurora::vulkan4xenon: Compiled 6069f5a90644a1b2.frag in 47.5 ms, with 173498 KB of heap in use; 76 compiled and 74 read this run
+voices t=120.5s used=14 running=13 stopped=1 zero_mix=0 zero_ratio=0 loop=4 old=0 aux=100/100
+vulkan4xenon: compiled SPIR-V AA0E7D57A0A43385, 20168 bytes, in 160029 us
+vulkan4xenon: compiled SPIR-V B74B99D17B74A048, 9688 bytes, in 31405 us
+[178240.134] [INFO] aurora::vulkan4xenon: Compiled 8e513694c89af165.vert in 72.7 ms, with 173508 KB of heap in use; 77 compiled and 74 read this run
+[178268.986] [INFO] aurora::gfx::frame: staging peak KiB: verts 616 uniforms 1689 indices 413 storage 516 texture 8191
+part check: kind 0 animated as kind 33: joint 16 -> part -1 (parts 61 and 53), jobj 0x4017000c, parts 0x40886980, blending 0
+[178311.845] [INFO] aurora::vulkan4xenon: Compiled c4682a75e6551ae0.frag in 30.4 ms, with 167796 KB of heap in use; 78 compiled and 74 read this run
+copy check: chain 0x82424818 0x8243B388 0x8243B434 0x82427118 0x8248DA3C 0x8248C52C 0x8248C67C 0x8248C850 0x824735DC 0x82427C58 0x826ECECC 0x825390BC 0x825395B0 0x825270A4 0x82527688 0x8252D388
+exit: signal 6
+exit: status 134
