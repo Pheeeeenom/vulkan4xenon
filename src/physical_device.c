@@ -29,7 +29,13 @@ enum {
 	// xsdk sets VGT_MAX_VTX_INDX to 24 bits (xsdk:src/gpu_draw.c).
 	MAX_INDEX_VALUE = 0x00FFFFFF,
 	DEPTH_IMAGE_BYTES = 4096,
+	// The GPU clock's 64 bits, which time stamps copy (xsdk:docs/HARDWARE.md, "Queries and events").
+	TIMESTAMP_BITS = 64,
 };
+
+// Nanoseconds a tick of the GPU's clock, which counts 498.75 a microsecond against the CPU's
+// (xsdk:docs/HARDWARE.md, "Queries and events").
+static const float timestamp_period_ns = 1000.0f / 498.75f;
 
 static const VkExtensionProperties device_extensions[] = {
 	{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SWAPCHAIN_SPEC_VERSION },
@@ -98,6 +104,8 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.optimalBufferCopyOffsetAlignment = 1,
 			.optimalBufferCopyRowPitchAlignment = 1,
 			.nonCoherentAtomSize = CACHE_LINE_BYTES,
+			.timestampComputeAndGraphics = VK_TRUE,
+			.timestampPeriod = timestamp_period_ns,
 		},
 	};
 }
@@ -116,6 +124,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDe
 	const VkQueueFamilyProperties family = {
 		.queueFlags = VK_QUEUE_GRAPHICS_BIT,
 		.queueCount = 1,
+		.timestampValidBits = TIMESTAMP_BITS,
 		.minImageTransferGranularity = { 1, 1, 1 },
 	};
 	(void)v4x_host_enumerate(pQueueFamilyPropertyCount, pQueueFamilyProperties, &family, 1, sizeof family);

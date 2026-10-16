@@ -1792,6 +1792,12 @@ exported; one the layer can't do yet logs and returns `VK_ERROR_FEATURE_NOT_PRES
    probe; and `vkCmdWriteTimestamp` on the GPU clock the console showed (xsdk:docs/HARDWARE.md, "A clock the GPU and
    the CPU both read"), 64 bits if `RBBM_PERFCOUNTER1_HI` (xenia:src/xenia/gpu/register_table.inc:52) counts.
 
+   Changed with the user (2026-10-16), after the probe: the high word counts and the command processor waits on memory
+   the CPU writes, but `ZPASS_DONE` hung the GPU in six runs and wrote no counts (xsdk:docs/HARDWARE.md, "Queries and
+   events"). So step 6 does events and time stamps, and the query pool's commands for time stamp pools; occlusion query
+   pools are refused, and with them `vkCmdBeginQuery` and `vkCmdEndQuery`, until a sequence that writes the counts is
+   found (xsdk:TODO.md, "Occlusion queries").
+
 **Done when,** for each step, vulkan4xenon_test checks each command the step adds, by pixel where it draws or copies
 and by value where it answers, every check failing with its break; and vulkan4xenon_test passes in full on the
 console.
@@ -1803,6 +1809,7 @@ console.
   storage texel buffers need memexport.
 - Compute, emulated: a draw of points whose vertex shader writes through memexport (xenia:src/xenia/gpu/shader.h:59-62),
   for shaders without shared memory or barriers.
+- Occlusion queries, once a probe finds how Xenos writes its sample counts (step 6).
 
 Two stay refused: depth bounds, as Xenia's registers have no depth bounds test and a pixel shader can't read eDRAM's
 depth; and sparse binding, as the GPU addresses physical memory and Xenia's registers have no GPU MMU. Neither is a
@@ -1919,6 +1926,46 @@ and a render area short of the framebuffer are refused.
   Guide's Xbox Home (`dusklight_m19.log`).
 
 Step 5 is done.
+
+**Step 6 on the console** (2026-10-16; `results/2026-10-16-milestone-19-step-6/`, and xsdk's probe in
+xsdk:results/2026-10-16-queries-probe/). The probe found what events and time stamps need, and that `ZPASS_DONE` hangs
+the GPU, so occlusion queries were put off with the user (the plan, above). xsdk gained `xsdk_gpu_write_word`, a word
+written once the work before is done, as fences are; `xsdk_gpu_wait_word`, the command processor waiting on a word
+in memory; and `xsdk_gpu_write_clock`, `xsdk_gpu_clock_value` and `xsdk_gpu_clock`, the clock's 64 bits as the GPU
+copies them and as the CPU reads them, the counter on from set-up (xsdk:docs/HARDWARE.md, "Queries and events").
+- **Events:** each a word in GPU memory, 1 when set. `vkCmdSetEvent` and `vkCmdResetEvent` write it after the work
+  before; `vkCmdWaitEvents` has the GPU wait on it, then takes memory out of its caches. What the replay does on the CPU
+  at the submit doesn't wait for an event the host sets later (docs/SUPPORT.md, Sync).
+- **Time stamps:** a pool's queries are slots the clock is copied into, at once at the top of the pipe and once the GPU
+  is idle at any other stage; `timestampPeriod` 2.005 ns and 64 valid bits. Resets and copies of results run on the CPU
+  at replay, after the pool's last submission, as the copies do; occlusion and pipeline statistics pools are refused,
+  and with them `vkCmdBeginQuery` and `vkCmdEndQuery`.
+- **The checks:** vulkan4xenon_test's `test_events.c`, run last so the clock is past its first 2^32 ticks, sets and
+  resets events from a command buffer; waits on an event the GPU set and on one the host sets 20 ms after the submit,
+  the fence after held till then; brackets two time stamps by the CPU's reads of the clock, 50 ms apart by the CPU's
+  clock; takes a time stamp at the top of the pipe and one at the bottom after a draw over the screen; copies results at
+  64 bits with availability, at 32, and for an unwritten query; and checks a pool's queries unavailable when made and
+  again once reset, the period and bits, and the refusals.
+- **On the console:** vulkan4xenon_test passed 187 of 187, twice, its 11 checks new. The two time stamps' high word was
+  2, and they were 52345.1 us apart by the period against 52346.0 by the CPU's clock; the draw's top time stamp came
+  664 clocks after it, the bottom one 134574. The first run had the time stamps around a render pass's end, and the top
+  one waited for the pass's resolve as the bottom did (`vulkan4xenon_test_after_a_pass.log`): the command processor
+  waits for it itself. The period was 2.004 ns at first, from milestone 34's 498.9 a microsecond; xsdk_test measured
+  498.75, so it's 2.005 (`vulkan4xenon_test_period_2.004.log` and `_2`, 52190.5 us against 52207.0).
+- **Broken on purpose,** in three builds (`breaks.py`): nine breaks, one a check, failed those nine
+  (`vulkan4xenon_test_broken_a.log`); the period at 1 ns failed the period check and the 50 ms one, which reads it
+  (`_b`); `vkCreateEvent` failing failed the scene's making and step 1's host event check, and the checks after didn't
+  run (`_c`). xsdk_test passed 321 of 321 with the user at the pad, and its three new checks failed with their breaks
+  (xsdk:docs/HARDWARE.md, "Queries and events").
+- **Dusklight,** built clean against both before the period's correction, which it never reads, ran its title scene's
+  attract loop, the title and the opening movie over and over, for an hour at 29.7 to 30 fps between stage loads, 69
+  to 72 MB free, refusing only the 20x11 copy, as since milestone 14. The console agent's run ended it at its 3600 s
+  limit. `dusklight_m19.log` is the copy taken while it ran, 59 minutes in: the copy fetched at its end was lost, written
+  over by a second fetch to the same path.
+
+Step 6 is done, and with it milestone 19: the layer exports all 137 of Vulkan 1.0's commands, and docs/SUPPORT.md
+(Functions) lists the ones that refuse and why. Occlusion queries wait for a sequence that makes Xenos write its sample
+counts (xsdk:TODO.md).
 
 ## 5. The Dusklight track
 

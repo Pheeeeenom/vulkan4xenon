@@ -645,6 +645,21 @@ VKAPI_ATTR void VKAPI_CALL vkCmdFillBuffer(
 // Replay is in order and copies wait for the GPU, so barriers need nothing. But a sampled depth image's depth reaches
 // its texture only from a render pass that leaves it to be read (render_pass.c), so a barrier that moves it from an
 // attachment to be read is refused rather than sampling what it held before.
+static void check_image_barriers(
+	VkCommandBuffer commandBuffer, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier *pImageMemoryBarriers)
+{
+	for (uint32_t i = 0; i < imageMemoryBarrierCount; i++) {
+		const VkImageMemoryBarrier *const barrier = &pImageMemoryBarriers[i];
+		const Image *const image = v4x_object(barrier->image);
+		if (image->is_sampled_depth && barrier->oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
+			v4x_read_layout(barrier->newLayout)) {
+			commandBuffer->result = v4x_host_unsupported(
+				"barriers moving a sampled depth image from an attachment to be read; a render pass must leave it so");
+			return;
+		}
+	}
+}
+
 VKAPI_ATTR void VKAPI_CALL vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask,
 	VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount,
 	const VkMemoryBarrier *pMemoryBarriers, uint32_t bufferMemoryBarrierCount,
@@ -658,16 +673,116 @@ VKAPI_ATTR void VKAPI_CALL vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, V
 	(void)pMemoryBarriers;
 	(void)bufferMemoryBarrierCount;
 	(void)pBufferMemoryBarriers;
-	for (uint32_t i = 0; i < imageMemoryBarrierCount; i++) {
-		const VkImageMemoryBarrier *const barrier = &pImageMemoryBarriers[i];
-		const Image *const image = v4x_object(barrier->image);
-		if (image->is_sampled_depth && barrier->oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
-			v4x_read_layout(barrier->newLayout)) {
-			commandBuffer->result = v4x_host_unsupported(
-				"barriers moving a sampled depth image from an attachment to be read; a render pass must leave it so");
-			return;
-		}
-	}
+	check_image_barriers(commandBuffer, imageMemoryBarrierCount, pImageMemoryBarriers);
+}
+
+// The GPU writes the event's word once the work before it is done, whatever the stages.
+static void record_event(VkCommandBuffer commandBuffer, VkEvent event, uint32_t value)
+{
+	Command *const command = record(commandBuffer, COMMAND_WRITE_EVENT);
+	if (!command)
+		return;
+	command->event.address = ((const Event *)v4x_object(event))->address;
+	command->event.value = value;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetEvent(VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+{
+	(void)stageMask;
+	record_event(commandBuffer, event, 1);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdResetEvent(VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+{
+	(void)stageMask;
+	record_event(commandBuffer, event, 0);
+}
+
+// The GPU waits on each event's word; the barriers are a pipeline barrier's.
+VKAPI_ATTR void VKAPI_CALL vkCmdWaitEvents(VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent *pEvents,
+	VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount,
+	const VkMemoryBarrier *pMemoryBarriers, uint32_t bufferMemoryBarrierCount,
+	const VkBufferMemoryBarrier *pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount,
+	const VkImageMemoryBarrier *pImageMemoryBarriers)
+{
+	(void)srcStageMask;
+	(void)dstStageMask;
+	(void)memoryBarrierCount;
+	(void)pMemoryBarriers;
+	(void)bufferMemoryBarrierCount;
+	(void)pBufferMemoryBarriers;
+	check_image_barriers(commandBuffer, imageMemoryBarrierCount, pImageMemoryBarriers);
+	uint32_t at = 0;
+	if (!record_data(commandBuffer, pEvents, eventCount * sizeof *pEvents, &at))
+		return;
+	Command *const command = record(commandBuffer, COMMAND_WAIT_EVENTS);
+	if (!command)
+		return;
+	command->wait_events.events_at = at;
+	command->wait_events.count = eventCount;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdResetQueryPool(
+	VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
+{
+	Command *const command = record(commandBuffer, COMMAND_RESET_QUERIES);
+	if (!command)
+		return;
+	command->queries.pool = v4x_object(queryPool);
+	command->queries.first = firstQuery;
+	command->queries.count = queryCount;
+}
+
+// Only time stamp pools can be made (query.c), and they're never begun.
+VKAPI_ATTR void VKAPI_CALL vkCmdBeginQuery(
+	VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
+{
+	(void)queryPool;
+	(void)query;
+	(void)flags;
+	commandBuffer->result = v4x_host_unsupported("occlusion queries");
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdEndQuery(VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
+{
+	(void)queryPool;
+	(void)query;
+	commandBuffer->result = v4x_host_unsupported("occlusion queries");
+}
+
+// At the top of the pipe the clock is copied as the command processor reaches it; at any later stage once the GPU is
+// idle, the latest any stage finishes.
+VKAPI_ATTR void VKAPI_CALL vkCmdWriteTimestamp(
+	VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query)
+{
+	Command *const command = record(commandBuffer, COMMAND_WRITE_TIMESTAMP);
+	if (!command)
+		return;
+	command->timestamp.pool = v4x_object(queryPool);
+	command->timestamp.query = query;
+	command->timestamp.after_work = pipelineStage != VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQueryPool queryPool,
+	uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride,
+	VkQueryResultFlags flags)
+{
+	const Buffer *const buffer = v4x_object(dstBuffer);
+	const QueryCopy copy = {
+		.pool = v4x_object(queryPool),
+		.first = firstQuery,
+		.count = queryCount,
+		.destination = buffer_bytes(buffer, dstOffset),
+		.address = buffer_address(buffer, dstOffset),
+		.stride_bytes = (uint32_t)stride,
+		.flags = flags,
+	};
+	uint32_t at = 0;
+	if (!record_data(commandBuffer, &copy, sizeof copy, &at))
+		return;
+	Command *const command = record(commandBuffer, COMMAND_COPY_QUERY_RESULTS);
+	if (command)
+		command->state_at = at;
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdSetViewport(

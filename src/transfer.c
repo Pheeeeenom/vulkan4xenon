@@ -7,6 +7,8 @@
 
 #include "image.h"
 #include "objects.h"
+#include "query.h"
+#include "sync.h"
 #include "xsdk/gpu.h"
 #include "xsdk/log.h"
 #include "xsdk/texture.h"
@@ -32,25 +34,23 @@ static uint32_t level_size(uint32_t size, uint32_t level)
 	return size >> level ? size >> level : 1;
 }
 
-// The CPU reads or writes the image, so the GPU must be done with what used it: nothing to wait for if no submission
+// The CPU reads or writes what a submission used, so the GPU must be done with it: nothing to wait for if no submission
 // has; the fence the last one that did ended with; a fence now if this one did (docs/ROADMAP.md, milestones 2 and 12).
-static void wait_for_image(VkQueue queue, const Image *image)
+static void wait_for_serial(VkQueue queue, uint32_t serial, const char *what)
 {
-	if (!image->used_serial)
+	if (!serial)
 		return;
-	uint32_t fence;
-	if (image->used_serial == queue->serial)
-		fence = xsdk_gpu_fence();
-	else if (queue->serial - image->used_serial < V4X_SUBMIT_FENCES)
-		fence = queue->submit_fences[image->used_serial % V4X_SUBMIT_FENCES];
-	else
-		// Older than the fences kept: the last submission's covers it.
-		fence = queue->submit_fences[(queue->serial - 1) % V4X_SUBMIT_FENCES];
+	const uint32_t fence = serial == queue->serial ? xsdk_gpu_fence() : v4x_sync_fence_of(queue, serial);
 	if (xsdk_gpu_fence_done(fence))
 		return;
 	const NTSTATUS status = xsdk_gpu_wait(fence, IDLE_TIMEOUT_MS);
 	if (!NT_SUCCESS(status))
-		xsdk_log_write("vulkan4xenon: the GPU didn't finish with an image for a copy: 0x%08X", (unsigned)status);
+		xsdk_log_write("vulkan4xenon: the GPU didn't finish with %s: 0x%08X", what, (unsigned)status);
+}
+
+static void wait_for_image(VkQueue queue, const Image *image)
+{
+	wait_for_serial(queue, image->used_serial, "an image for a copy");
 }
 
 // The CPU writes the buffer, so the GPU must be done with the draws before, which may read it.
@@ -232,4 +232,47 @@ void v4x_transfer_fill_depth(VkQueue queue, Image *image, float depth, uint8_t s
 	for (uint32_t i = 0; i < image->texture.size_bytes / 4; i++)
 		texels[i] = word;
 	image_written(queue, image);
+}
+
+// The CPU marks the slots unwritten, so the GPU must be done with what wrote them.
+void v4x_transfer_reset_queries(VkQueue queue, const Command *command)
+{
+	QueryPool *const pool = command->queries.pool;
+	wait_for_serial(queue, pool->used_serial, "queries for a reset");
+	for (uint32_t i = 0; i < command->queries.count; i++) {
+		volatile uint32_t *const slot = &pool->slots[(command->queries.first + i) * V4X_QUERY_SLOT_WORDS];
+		for (uint32_t word = 0; word < XSDK_GPU_CLOCK_WORDS; word++)
+			slot[word] = V4X_QUERY_UNWRITTEN;
+	}
+	__asm__ volatile("sync" ::: "memory");
+}
+
+// A result's value or availability, the index-th of a query's, at 32 or 64 bits, most significant word first.
+static void put_result(volatile uint32_t *out, uint32_t index, uint64_t value, bool wide)
+{
+	if (wide) {
+		out[2 * index] = (uint32_t)(value >> 32);
+		out[2 * index + 1] = (uint32_t)value;
+	} else {
+		out[index] = (uint32_t)value;
+	}
+}
+
+// The GPU must be done writing the queries, and with the draws before, which may read the buffer; then every query
+// written before is available, so waiting adds nothing.
+void v4x_transfer_copy_queries(VkQueue queue, const QueryCopy *copy)
+{
+	wait_for_serial(queue, copy->pool->used_serial, "queries for a copy");
+	wait_for_draws(queue);
+	const bool wide = copy->flags & VK_QUERY_RESULT_64_BIT;
+	for (uint32_t i = 0; i < copy->count; i++) {
+		volatile uint32_t *const out = (volatile uint32_t *)(copy->destination + i * copy->stride_bytes);
+		uint64_t value = 0;
+		const bool available = v4x_query_value(copy->pool, copy->first + i, &value);
+		if (available || copy->flags & VK_QUERY_RESULT_PARTIAL_BIT)
+			put_result(out, 0, value, wide);
+		if (copy->flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)
+			put_result(out, 1, available, wide);
+	}
+	buffer_written(copy->address, copy->count * copy->stride_bytes);
 }

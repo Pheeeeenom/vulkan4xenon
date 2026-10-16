@@ -649,6 +649,27 @@ static void clear_attachments(VkQueue queue, Replay *replay, const ClearRect *cl
 	replay->pointed_streams[0] = (VertexBinding){ 0 };
 }
 
+// The GPU waits for each event's word, then its caches take what the host wrote before it set one.
+// shortcut: what the replay reads on the CPU at vkQueueSubmit (copies, indirect draws' parameters, uniform buffers the
+// GPU can't load) doesn't wait for an event the host sets later; hold that work back for the event if a port needs it.
+static void wait_events(VkCommandBuffer buffer, const Command *command)
+{
+	for (uint32_t i = 0; i < command->wait_events.count; i++) {
+		VkEvent event;
+		memcpy(&event, buffer->data + command->wait_events.events_at + i * sizeof event, sizeof event);
+		xsdk_gpu_wait_word(((const Event *)v4x_object(event))->address, 1);
+	}
+	xsdk_gpu_invalidate(0, ALL_MEMORY_BYTES);
+}
+
+static void write_timestamp(const Replay *replay, const Command *command)
+{
+	QueryPool *const pool = command->timestamp.pool;
+	const uint32_t slot_bytes = V4X_QUERY_SLOT_WORDS * sizeof(uint32_t);
+	xsdk_gpu_write_clock(pool->address + command->timestamp.query * slot_bytes, command->timestamp.after_work);
+	pool->used_serial = replay->serial;
+}
+
 static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay, uint32_t index)
 {
 	const Command *const command = &buffer->commands[index];
@@ -740,6 +761,21 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 		break;
 	case COMMAND_DRAW_INDEXED_INDIRECT:
 		draw_indexed_indirect(replay, command->parameters);
+		break;
+	case COMMAND_WRITE_EVENT:
+		xsdk_gpu_write_word(command->event.address, command->event.value);
+		break;
+	case COMMAND_WAIT_EVENTS:
+		wait_events(buffer, command);
+		break;
+	case COMMAND_RESET_QUERIES:
+		v4x_transfer_reset_queries(queue, command);
+		break;
+	case COMMAND_WRITE_TIMESTAMP:
+		write_timestamp(replay, command);
+		break;
+	case COMMAND_COPY_QUERY_RESULTS:
+		v4x_transfer_copy_queries(queue, (const QueryCopy *)(buffer->data + command->state_at));
 		break;
 	}
 }

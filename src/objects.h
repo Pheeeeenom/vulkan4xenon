@@ -347,6 +347,11 @@ typedef enum {
 	COMMAND_CLEAR_ATTACHMENTS,
 	COMMAND_CLEAR_DEPTH_IMAGE,
 	COMMAND_EXECUTE_COMMANDS,
+	COMMAND_WRITE_EVENT,
+	COMMAND_WAIT_EVENTS,
+	COMMAND_RESET_QUERIES,
+	COMMAND_WRITE_TIMESTAMP,
+	COMMAND_COPY_QUERY_RESULTS,
 } CommandType;
 
 // The dynamic state a command buffer sets past the viewport and scissor, as it last set it in a replay.
@@ -443,6 +448,27 @@ typedef struct {
 		} depth_clear;
 		// A secondary command buffer, replayed in place.
 		struct VkCommandBuffer_T *secondary;
+		// vkCmdSetEvent's or vkCmdResetEvent's event word, as the GPU addresses it, and the value it takes.
+		struct {
+			uint32_t address;
+			uint32_t value;
+		} event;
+		// vkCmdWaitEvents' events, in the command buffer's data.
+		struct {
+			uint32_t events_at;
+			uint32_t count;
+		} wait_events;
+		// Queries reset, or a time stamp written once the work before it is done or at once.
+		struct {
+			struct QueryPool *pool;
+			uint32_t first;
+			uint32_t count;
+		} queries;
+		struct {
+			struct QueryPool *pool;
+			uint32_t query;
+			bool after_work;
+		} timestamp;
 		// A VkViewport, VkRect2D or ClearRect in the command buffer's data.
 		uint32_t state_at;
 		struct {
@@ -501,10 +527,41 @@ typedef struct {
 	uint32_t unused;
 } Semaphore;
 
+// A word in GPU memory the host and the GPU set to 1 and reset to 0, which the GPU can wait on (sync.c).
+// shortcut: each event takes a 64 KB page of its own; share pages if a port makes many events.
 typedef struct {
-	// vkGetEventStatus isn't externally synchronized against vkSetEvent, so it's read and written atomically.
-	bool set;
+	volatile uint32_t *word;
+	uint32_t address;
 } Event;
+
+enum {
+	// A query's slot: the GPU clock's words (xsdk:include/xsdk/gpu.h, xsdk_gpu_write_clock), padded.
+	V4X_QUERY_SLOT_WORDS = 4,
+	// The first word of a slot no time stamp has been written into since its reset: a high word the clock would
+	// take 2^32 times 8.6 s to reach.
+	V4X_QUERY_UNWRITTEN = 0xFFFFFFFF,
+};
+
+// Time stamp queries, a slot each in GPU memory (query.c).
+typedef struct QueryPool {
+	volatile uint32_t *slots;
+	uint32_t address;
+	uint32_t count;
+	// The submission that last wrote it (VkQueue_T's serial), 0 if none, which a reset or a copy waits for.
+	uint32_t used_serial;
+} QueryPool;
+
+// vkCmdCopyQueryPoolResults' queries and where they go, in the command buffer's data.
+typedef struct {
+	QueryPool *pool;
+	uint32_t first;
+	uint32_t count;
+	volatile uint8_t *destination;
+	// The destination's GPU address, 0 in cached memory.
+	uint32_t address;
+	uint32_t stride_bytes;
+	VkQueryResultFlags flags;
+} QueryCopy;
 
 typedef struct {
 	uint32_t unused;

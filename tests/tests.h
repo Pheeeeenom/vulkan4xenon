@@ -19,6 +19,8 @@ void test_dynamic_state(const Harness *harness);
 void test_clears(const Harness *harness);
 // A render pass of three subpasses, the second drawn from secondary command buffers (milestone 19).
 void test_subpasses(const Harness *harness);
+// Events the GPU sets, resets and waits on, and time stamps of its clock (milestone 19).
+void test_events(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.
 void test_triangle(const Harness *harness);
 // The triangle again, its shaders read back from the layer's cache by a second device (milestone 13).

@@ -19,5 +19,8 @@ void v4x_transfer_fill_buffer(VkQueue queue, const Command *command);
 // A sampled depth image's texture cleared, each texel's word depth's 24 bits above stencil's 8 (docs/SUPPORT.md,
 // Images).
 void v4x_transfer_fill_depth(VkQueue queue, Image *image, float depth, uint8_t stencil);
+// Time stamp queries marked unwritten, and their results copied into a buffer (query.c).
+void v4x_transfer_reset_queries(VkQueue queue, const Command *command);
+void v4x_transfer_copy_queries(VkQueue queue, const QueryCopy *copy);
 
 #endif

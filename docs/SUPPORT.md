@@ -27,8 +27,9 @@ required minimums.
 | Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkGetImageSparseMemoryRequirements`, `vkGetImageSubresourceLayout`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
 | Descriptor sets | `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`, `vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`, `vkFreeDescriptorSets`, `vkUpdateDescriptorSets` |
 | Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer`, `vkGetRenderAreaGranularity` |
-| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdNextSubpass`, `vkCmdEndRenderPass`, `vkCmdExecuteCommands`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBias`, `vkCmdSetBlendConstants`, `vkCmdSetDepthBounds`, `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask`, `vkCmdSetStencilReference`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdClearDepthStencilImage`, `vkCmdClearAttachments`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdNextSubpass`, `vkCmdEndRenderPass`, `vkCmdExecuteCommands`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBias`, `vkCmdSetBlendConstants`, `vkCmdSetDepthBounds`, `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask`, `vkCmdSetStencilReference`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdClearDepthStencilImage`, `vkCmdClearAttachments`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier`, `vkCmdSetEvent`, `vkCmdResetEvent`, `vkCmdWaitEvents`, `vkCmdResetQueryPool`, `vkCmdBeginQuery`, `vkCmdEndQuery`, `vkCmdWriteTimestamp`, `vkCmdCopyQueryPoolResults` |
 | Sync and submit | `vkQueueSubmit`, `vkQueueBindSparse`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore`, `vkCreateEvent`, `vkDestroyEvent`, `vkGetEventStatus`, `vkSetEvent`, `vkResetEvent` |
+| Queries | `vkCreateQueryPool`, `vkDestroyQueryPool`, `vkGetQueryPoolResults` |
 | Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
 | Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
 
@@ -43,6 +44,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - `vkCreateBufferView`, as no format has texel buffer features (Formats), so `vkDestroyBufferView` has nothing to do;
 - `vkCmdResolveImage`, as images have one sample;
 - `vkCmdSetDepthBounds`, with no depth bounds test (Pipelines);
+- `vkCreateQueryPool` for occlusion and pipeline statistics queries, and so `vkCmdBeginQuery` and `vkCmdEndQuery`
+  (Queries);
 - `vkQueueBindSparse`, with no sparse binding (Device).
 
 ## Device
@@ -347,10 +350,38 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - Fences are xsdk's fences: `vkQueueSubmit` always ends with one, and a `VkFence` passed to it signals when the GPU
   passes it.
 - Semaphores do nothing: there's one queue, and it replays in order.
-- Events are the host's: `vkSetEvent` and `vkResetEvent` set what `vkGetEventStatus` reads. Command buffers don't set
-  or wait on them yet (milestone 19, step 6).
+- An event is a word in GPU memory, 1 when set, which the host and the GPU both write and the GPU can wait on
+  (milestone 19). `vkSetEvent` writes it after draining the CPU's write-combining, so a GPU waiting on it sees what the
+  host wrote before. **Shortcut:** each event takes a 64 KB page of its own, as `xsdk_gpu_alloc` hands out no less.
+- `vkCmdSetEvent` and `vkCmdResetEvent` write it once the GPU is done with the work before, whatever the stage mask
+  (`xsdk_gpu_write_word`).
+- `vkCmdWaitEvents` has the command processor wait on each event's word (`xsdk_gpu_wait_word`), then takes the whole of
+  memory out of the GPU's caches, for what the host wrote before setting it; its barriers are a pipeline barrier's.
+  **Shortcut:** an event the host sets after the submit holds the GPU's work alone. What the replay does on the CPU at
+  `vkQueueSubmit` (copies, indirect draws' parameters, uniform buffers the GPU can't load) doesn't wait for it, so it
+  sees only what the host wrote before the submit. A GPU waiting on an event no one sets waits for good, as Vulkan
+  allows.
 - `vkWaitForFences` with `waitAll` false waits on the earliest pending fence, since fences signal in submission order.
   A fence never submitted never signals, so waiting on it returns `VK_TIMEOUT` at once.
+
+## Queries
+
+- Time stamp queries only (milestone 19). A query's slot in GPU memory takes the GPU's clock (`xsdk_gpu_write_clock`):
+  64 bits, from 0 when the device takes the GPU, 498.75 ticks a microsecond, so `timestampPeriod` is 2.005 ns and the
+  queue family's `timestampValidBits` 64 (xsdk:docs/HARDWARE.md, "Queries and events").
+- `vkCmdWriteTimestamp` at `VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT` copies the clock as the command processor reaches it:
+  once the draws before it are issued, which may still be running, but only once a render pass before it has ended, as
+  the command processor waits for the pass's resolve. At any other stage it copies the clock once the GPU is idle, the
+  latest any stage finishes.
+- `vkCmdResetQueryPool` marks the slots unwritten on the CPU at replay, after waiting for the submission that last wrote
+  the pool, as the copies do (Commands). A query is available once its slot is written.
+- `vkCmdCopyQueryPoolResults` runs on the CPU at replay too: it waits for the pool's last submission and the draws
+  before, so every query written before it is available and `VK_QUERY_RESULT_WAIT_BIT` adds nothing.
+- `vkGetQueryPoolResults` with `VK_QUERY_RESULT_WAIT_BIT` waits for the fence of the submission that last wrote the
+  pool; a query still unwritten then returns `VK_NOT_READY`, rather than waiting for good.
+- **Not yet:** occlusion queries. Every way the console was asked to write its sample counts hung the GPU
+  (xsdk:docs/HARDWARE.md, "Queries and events"), so `vkCreateQueryPool` refuses them, and pipeline statistics, whose
+  feature isn't reported.
 
 ## Display and swapchain
 
@@ -434,6 +465,8 @@ minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
 | `standardSampleLocations` | true |
 | `optimalBufferCopyOffsetAlignment`, `optimalBufferCopyRowPitchAlignment` | 1 |
 | `nonCoherentAtomSize` | 128 |
+| `timestampComputeAndGraphics` | true |
+| `timestampPeriod` | 2.005 ns |
 
 Set limits below Vulkan 1.0's minimum:
 

@@ -27,6 +27,14 @@ void v4x_sync_signal(Fence *fence)
 		fence->signaled = true;
 }
 
+uint32_t v4x_sync_fence_of(VkQueue queue, uint32_t serial)
+{
+	if (queue->serial - serial < V4X_SUBMIT_FENCES)
+		return queue->submit_fences[serial % V4X_SUBMIT_FENCES];
+	// Older than the fences kept: the last submission's covers it.
+	return queue->submit_fences[(queue->serial - 1) % V4X_SUBMIT_FENCES];
+}
+
 static bool signaled(Fence *fence)
 {
 	if (!fence->signaled && fence->pending && xsdk_gpu_fence_done(fence->number)) {
@@ -135,32 +143,53 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateEvent(
 		v4x_host_alloc(v4x_host_device_allocator(device, pAllocator), sizeof *event, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!event)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
+	event->word = xsdk_gpu_alloc(sizeof *event->word);
+	if (!event->word) {
+		v4x_host_free(v4x_host_device_allocator(device, pAllocator), event);
+		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+	}
+	event->address = xsdk_gpu_address(event->word);
+	*event->word = 0;
+	__asm__ volatile("sync" ::: "memory");
 	*pEvent = v4x_handle(event);
 	return VK_SUCCESS;
 }
 
 VKAPI_ATTR void VKAPI_CALL vkDestroyEvent(VkDevice device, VkEvent event, const VkAllocationCallbacks *pAllocator)
 {
-	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(event));
+	Event *const object = v4x_object(event);
+	if (!object)
+		return;
+	xsdk_gpu_free(object->word);
+	v4x_host_free(v4x_host_device_allocator(device, pAllocator), object);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkGetEventStatus(VkDevice device, VkEvent event)
 {
 	(void)device;
 	const Event *const object = v4x_object(event);
-	return __atomic_load_n(&object->set, __ATOMIC_ACQUIRE) ? VK_EVENT_SET : VK_EVENT_RESET;
+	return *object->word ? VK_EVENT_SET : VK_EVENT_RESET;
+}
+
+// What the host wrote before goes to memory first, so a GPU waiting on the word reads it once it passes; then the word
+// itself, out of the CPU's write-combining.
+static void write_event(VkEvent event, uint32_t value)
+{
+	__asm__ volatile("sync" ::: "memory");
+	*((Event *)v4x_object(event))->word = value;
+	__asm__ volatile("sync" ::: "memory");
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkSetEvent(VkDevice device, VkEvent event)
 {
 	(void)device;
-	__atomic_store_n(&((Event *)v4x_object(event))->set, true, __ATOMIC_RELEASE);
+	write_event(event, 1);
 	return VK_SUCCESS;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkResetEvent(VkDevice device, VkEvent event)
 {
 	(void)device;
-	__atomic_store_n(&((Event *)v4x_object(event))->set, false, __ATOMIC_RELEASE);
+	write_event(event, 0);
 	return VK_SUCCESS;
 }
