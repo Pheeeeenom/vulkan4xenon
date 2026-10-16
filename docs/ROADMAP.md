@@ -2088,15 +2088,38 @@ Milestone 20 is done.
 
 ### Milestone 21: Shader Model 3's control flow
 
-**Why.** xost turns `if` into selects in pixel shaders and refuses it in vertex shaders (xost:docs/xsc.md:63), unrolls
-loops of fixed counts, and refuses an `if` on data inside a loop (269-272). The layer refuses a shader that needs a
-hardware loop's constants (docs/SUPPORT.md, Shaders). Shader Model 3 has all of it, and Xenos runs it with conditional
-execs, predicates and loops (xenia:src/xenia/gpu/ucode.h:101-132).
-- **xost:** `if` and `else` in vertex shaders; `if` on data inside a loop; `gl_FragDepth` written under an `if`.
-- **The layer:** the integer constants a hardware loop reads, written when a pipeline is bound, as its literal
-  constants are.
+**Why.** xost turned `if` into selects in pixel shaders and refused it in vertex shaders, unrolled loops of fixed
+counts, and refused an `if` on data inside a loop. The layer refused a shader that needs a hardware loop's constants.
+Shader Model 3 has all of it, and Xenos runs it with conditional execs, predicates and loops
+(xenia:src/xenia/gpu/ucode.h:101-132).
+- **xost:** `if` and `else` in vertex shaders, on data and on uniforms; `if` on data inside a loop's body;
+  `gl_FragDepth` written under an `if`. Real control flow where it's needed and selects where the arms are cheap and
+  have no side effects, chosen on the evidence and said in xost:docs/xsc.md; exports under control flow as Xenia has
+  them.
+- **The layer:** the integer constants a hardware loop reads, so a shader whose loop a uniform counts isn't refused,
+  the replay kept cheap.
 
 Done when GLSL with each runs through the layer on the console, checked by pixel, and xost's tests cover it.
+
+**Built in steps** (2026-10-16), each an xsdk commit for xost and a layer commit for its checks:
+1. **An if/else on data, by selects** (xsdk `37f3946`, `7f0e26e`). xost's unroller runs both arms of an if/else on
+   data in a vertex shader, in a loop's body or around `gl_FragDepth`, each from the locals and outputs as they were,
+   and merges each value they leave apart with a select where they meet, glslang's Phis for `&&` and `||` too.
+   Outputs are kept as locals are and exported once at the end, so every path writes them; `gl_FragDepth` written on
+   one path alone is refused, as nothing else gives the pixel a depth (xenia:src/xenia/gpu/draw_util.cc:498-502).
+   Selects, not execs on the predicate, as such an exec runs for every vertex or pixel of 64 when any of them needs it
+   (ucode.h:114-124), so arms that differ within a group run both either way (xost:docs/xsc.md, "Control flow").
+- **The checks:** vulkan4xenon_test's `test_branches.c`, each scene 30 frames, checked by pixel on every frame and on
+  the screen after, a check line of its own for each:
+  - `branch_data.vert`: four quads whose colour's w picks each arm, moving the quad right or down and picking its
+    colour, one arm with an `if` of its own, then an `&&` greening the quad that ends at the bottom right; each quad
+    probed where its arm puts it, and the clear where the other would.
+  - `loop_if.frag`: an if/else on the pixel's u in an unrolled loop of four, in bands across the screen, both sides of
+    a threshold.
+  - `depth_if.frag` and `depth_before.frag`: `gl_FragDepth` in both arms, and before an if/else and again in an arm,
+    then a green quad between the two depths, showing where the arms wrote the far depth alone.
+  - `branch_data.vert` again, compiled on the console from SPIR-V the bundle doesn't hold.
+  - xsdk_test's compiler check takes `vk_vertex_if.vert`, the console's container and needs against the PC's.
 
 ### Milestone 22: Shader Model 3's fetches and inputs
 

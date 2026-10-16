@@ -97,11 +97,17 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - SPIR-V xost refuses returns `VK_ERROR_FEATURE_NOT_PRESENT`, logged with xost's reason, and so does a shader that
   wants a hardware loop's constants, which the layer doesn't set. `vkCreateShaderModule` doesn't list that result: a
   deviation.
-- The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, data-dependent branches inside loops raise an
-  error, and 16 registers a pixel shader.
-- A fragment shader may write `gl_FragDepth` once, outside any `if`/`else` (xost:docs/xsc.md). Its draws skip no
-  hidden pixels early, as xsdk turns hierarchical depth off for them (xsdk:docs/HARDWARE.md, "A pixel shader's
-  depth").
+- The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, a break on data in a loop raises an error,
+  and 16 registers a pixel shader.
+- `if`/`else` in either stage, nested, in an unrolled loop's body and around `gl_FragDepth` (milestone 21;
+  xost:docs/xsc.md, "Control flow"). Both arms run and a select picks each value, as a group of 64 that splits runs both
+  arms on Xenos anyway (xenia:src/xenia/gpu/ucode.h:114-124). Refused, with xost's reason: a `break` or `return` in an
+  arm, a `discard` in an arm xost's unroller merges, a `switch`, and a matrix, array or struct an `if`/`else` chooses.
+  An output stored on one path alone takes that value on the other, where GLSL leaves it undefined.
+- A fragment shader may write `gl_FragDepth` outside any `if`/`else`, in both arms of one, or before one and again in
+  an arm; written on one path alone, it's refused, as nothing else gives the pixel a depth (xost:docs/xsc.md,
+  "Control flow"). Its draws skip no hidden pixels early, as xsdk turns hierarchical depth off for them
+  (xsdk:docs/HARDWARE.md, "A pixel shader's depth").
 - Vertex input location n feeds the usage xost gives it: 0 position, 1 colour, 2 and up texture coordinates
   (xsdk:src/xsc_resolve.c:344-346).
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's

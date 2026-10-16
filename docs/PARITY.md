@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 21, part of 12 and none of 14. Xenos has all but three: occlusion queries hang it today,
+Of the 47 rows, the layer has 23, part of 10 and none of 14. Xenos has all but three: occlusion queries hang it today,
 its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is
 software.
 
@@ -21,13 +21,13 @@ software.
 | Vertex and pixel shaders from a high-level language | Yes | Yes: GLSL through xost, offline or on the console | Yes |
 | 256 vertex and 224 pixel float constants | Yes | Yes | Yes, 256 a stage |
 | Constant arrays at a run-time index, as skinning palettes are | Yes | Yes (xost:docs/xsc.md:71) | Yes |
-| `if` and `else` | Yes: conditional execs and predicates (xenia:src/xenia/gpu/ucode.h:101-130) | Partial: selects in pixel shaders; refused in vertex shaders (xost:docs/xsc.md:63) | Partial |
-| Loops | Yes (xenia:src/xenia/gpu/ucode.h:132) | Partial: fixed counts unrolled; no `if` on data inside a loop (xost:docs/xsc.md:269-272) | Partial: a shader that needs a hardware loop's constants is refused (SUPPORT.md, Shaders) |
+| `if` and `else` | Yes: conditional execs and predicates (xenia:src/xenia/gpu/ucode.h:101-130) | Yes: selects; a `switch`, and a `break` or `return` in an arm, refused (xost:docs/xsc.md, "Control flow") | Yes |
+| Loops | Yes (xenia:src/xenia/gpu/ucode.h:132) | Partial: fixed counts unrolled, an `if` on data inside them (xost:docs/xsc.md, "Loops (unrolling + mem2reg)") | Partial: a shader that needs a hardware loop's constants is refused (SUPPORT.md, Shaders) |
 | `discard` | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md:64) | Yes |
 | Derivatives | Yes | Yes, confirmed on the console (xost:docs/xsc.md:282) | Yes |
 | A computed LOD and gradients (`texldl`, `texldd`) | Yes | Partial: a constant LOD only (xost:docs/xsc.md:82) | Partial |
 | The pixel's position and facing (`vPos`, `vFace`) | Yes | Partial: `gl_FragCoord.xy` only (xost:docs/xsc.md:72) | Partial |
-| Depth output | Yes | Partial: written once, outside any `if` | Partial |
+| Depth output | Yes | Yes: outside any `if`, or in both arms of one; written on one path alone, refused, as nothing else gives the pixel a depth (xost:docs/xsc.md, "Control flow") | Yes |
 | Vertex texture fetch | Yes | Not checked | No: both stages share the fetch constants (SUPPORT.md, Pipelines) |
 | 32 temporary registers | Yes | Partial: 16 a pixel shader | Partial |
 
@@ -90,8 +90,8 @@ software.
 
 - **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
   formats, and the vertex formats came with milestone 20.
-- **xost:** `if` in vertex shaders, loops, a computed LOD and gradients, facing, vertex texture fetch and the register
-  budget. Almost every ported shader meets one.
+- **xost:** loops a block counts, a computed LOD and gradients, facing, vertex texture fetch and the register budget.
+  Almost every ported shader meets one.
 - **xsdk, then the layer:** four targets and their formats, predicated tiling, cube and volume textures, border
   addressing, two-sided stencil, clip planes, point sprites, fill modes and instancing.
 
