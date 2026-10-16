@@ -29,6 +29,8 @@ void test_triangle_from_cache(const Harness *harness);
 void test_packed_colour(const Harness *harness);
 // Images copied in from a buffer and sampled through descriptor sets (milestone 2).
 void test_texture(const Harness *harness);
+// Every image format on xsdk's sampled, filtered, copied, blitted and cleared, each texel checked (milestone 20).
+void test_formats(const Harness *harness);
 // Quads placed and coloured by push constants (milestone 2).
 void test_push_constants(const Harness *harness);
 // Quads placed by a matrix and coloured from uniform buffers, one dynamic, in two sets (milestone 2).

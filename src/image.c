@@ -1,5 +1,6 @@
 #include <vulkan/vulkan.h>
 
+#include "format.h"
 #include "host.h"
 #include "image.h"
 #include "objects.h"
@@ -17,47 +18,35 @@ enum {
 
 bool v4x_image_format(VkFormat format, uint32_t *xsdk_format)
 {
-	switch (format) {
-	case VK_FORMAT_R8G8B8A8_UNORM:
-		*xsdk_format = XSDK_FORMAT_R8G8B8A8;
-		return true;
-	case VK_FORMAT_B8G8R8A8_UNORM:
-		*xsdk_format = XSDK_FORMAT_B8G8R8A8;
-		return true;
-	case VK_FORMAT_R32_SFLOAT:
-		*xsdk_format = XSDK_FORMAT_R32F;
-		return true;
-	case VK_FORMAT_R8_UNORM:
-		*xsdk_format = XSDK_FORMAT_R8;
-		return true;
-	case VK_FORMAT_R8G8_UNORM:
-		*xsdk_format = XSDK_FORMAT_R8G8;
-		return true;
-	default:
-		return false;
-	}
+	const V4xFormat *const info = v4x_format(format);
+	if (info)
+		*xsdk_format = info->xsdk_format;
+	return info != NULL;
 }
 
+// Depth's D24S8 is 4 bytes, as its texture is.
 uint32_t v4x_texel_bytes(VkFormat format)
 {
-	switch (format) {
-	case VK_FORMAT_R8_UNORM:
-		return 1;
-	case VK_FORMAT_R8G8_UNORM:
-		return 2;
-	default:
-		return 4;
-	}
+	const V4xFormat *const info = v4x_format(format);
+	return info ? info->texel_bytes : 4;
+}
+
+uint32_t v4x_texel_blocks(VkFormat format, uint32_t texels)
+{
+	const V4xFormat *const info = v4x_format(format);
+	return info && info->compressed ? (texels + V4X_BLOCK_SIDE - 1) / V4X_BLOCK_SIDE : texels;
 }
 
 bool v4x_blit_format(VkFormat format)
 {
-	return format != VK_FORMAT_R32_SFLOAT && v4x_image_format(format, &(uint32_t){ 0 });
+	const V4xFormat *const info = v4x_format(format);
+	return info && (info->features & VK_FORMAT_FEATURE_BLIT_SRC_BIT);
 }
 
 bool v4x_attachment_format(VkFormat format)
 {
-	return format == VK_FORMAT_R8G8B8A8_UNORM || format == VK_FORMAT_B8G8R8A8_UNORM;
+	const V4xFormat *const info = v4x_format(format);
+	return info && (info->features & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT);
 }
 
 static VkResult check_depth_create_info(const VkImageCreateInfo *info)
@@ -80,12 +69,12 @@ static VkResult check_create_info(const VkImageCreateInfo *info)
 	if (info->format == VK_FORMAT_D24_UNORM_S8_UINT)
 		return check_depth_create_info(info);
 	if (!v4x_image_format(info->format, &format) || info->samples != VK_SAMPLE_COUNT_1_BIT)
-		return v4x_host_unsupported(
-			"image formats other than R8G8B8A8_UNORM, B8G8R8A8_UNORM, R32_SFLOAT, R8_UNORM and "
-			"R8G8_UNORM, single-sampled");
+		return v4x_host_unsupported("image formats docs/SUPPORT.md doesn't list, or multisampled images");
+	// A linear image's memory is the host's to read and write, and compressed blocks are swapped as they're copied.
 	if (info->tiling == VK_IMAGE_TILING_LINEAR &&
-		(info->mipLevels != 1 || (info->usage & ~(VkImageUsageFlags)V4X_LINEAR_IMAGE_USAGE)))
-		return v4x_host_unsupported("linear images other than one level, only copied to and from");
+		(info->mipLevels != 1 || (info->usage & ~(VkImageUsageFlags)V4X_LINEAR_IMAGE_USAGE) ||
+			v4x_format(info->format)->compressed))
+		return v4x_host_unsupported("linear images other than one uncompressed level, only copied to and from");
 	if (info->usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE)
 		return v4x_host_unsupported("image usages other than sampling, copying in and colour attachments");
 	if ((info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && !v4x_attachment_format(info->format))
@@ -196,8 +185,12 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory(
 	return VK_SUCCESS;
 }
 
-// The XSDK_CHANNEL_* a component mapping takes for the component at index, red to alpha.
-static uint32_t channel(VkComponentSwizzle swizzle, uint32_t index)
+// A depth image's channels are its texture's own.
+static const uint8_t depth_channels[4] = { XSDK_CHANNEL_RED, XSDK_CHANNEL_GREEN, XSDK_CHANNEL_BLUE,
+	XSDK_CHANNEL_ALPHA };
+
+// The XSDK_CHANNEL_* a component mapping takes for the component at index, red to alpha, among the format's own.
+static uint32_t channel(const uint8_t own[4], VkComponentSwizzle swizzle, uint32_t index)
 {
 	switch (swizzle) {
 	case VK_COMPONENT_SWIZZLE_ZERO:
@@ -208,9 +201,9 @@ static uint32_t channel(VkComponentSwizzle swizzle, uint32_t index)
 	case VK_COMPONENT_SWIZZLE_G:
 	case VK_COMPONENT_SWIZZLE_B:
 	case VK_COMPONENT_SWIZZLE_A:
-		return XSDK_CHANNEL_RED + (uint32_t)(swizzle - VK_COMPONENT_SWIZZLE_R);
+		return own[swizzle - VK_COMPONENT_SWIZZLE_R];
 	default:
-		return XSDK_CHANNEL_RED + index;
+		return own[index];
 	}
 }
 
@@ -225,8 +218,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device, const VkImageV
 		level_count != levels || range->baseArrayLayer || range->layerCount != 1)
 		return v4x_host_unsupported("image views other than the whole of a 2D image in its format");
 	const VkComponentMapping *const mapping = &pCreateInfo->components;
-	const uint32_t channels[4] = { channel(mapping->r, 0), channel(mapping->g, 1), channel(mapping->b, 2),
-		channel(mapping->a, 3) };
+	const V4xFormat *const format = v4x_format(image->format);
+	const uint8_t *const own = format ? format->channels : depth_channels;
+	const uint32_t channels[4] = { channel(own, mapping->r, 0), channel(own, mapping->g, 1),
+		channel(own, mapping->b, 2), channel(own, mapping->a, 3) };
 	const bool swizzled = channels[0] != XSDK_CHANNEL_RED || channels[1] != XSDK_CHANNEL_GREEN ||
 		channels[2] != XSDK_CHANNEL_BLUE || channels[3] != XSDK_CHANNEL_ALPHA;
 	if (swizzled && !image->is_texture)

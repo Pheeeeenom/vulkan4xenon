@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "format.h"
 #include "host.h"
 #include "image.h"
 #include "objects.h"
@@ -149,36 +150,23 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceMemoryProperties(
 	};
 }
 
+// No format has linear tiling features, which copies don't need. textureCompressionBC stays false, as it promises BC4
+// to BC7 too; Vulkan has each BC format's features read here instead.
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 	VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties *pFormatProperties)
 {
 	(void)physicalDevice;
 	*pFormatProperties = (VkFormatProperties){ 0 };
-	// Blits run on the CPU, for formats of 8-bit channels (vkCmdBlitImage).
-	const VkFormatFeatureFlags blit = VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
-	const VkFormatFeatureFlags color = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
-		VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-		VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT | blit;
+	const V4xFormat *const image = v4x_format(format);
+	if (image)
+		pFormatProperties->optimalTilingFeatures = image->features;
 	switch (format) {
-	case VK_FORMAT_R8G8B8A8_UNORM:
-	case VK_FORMAT_B8G8R8A8_UNORM:
-		pFormatProperties->optimalTilingFeatures = color;
-		break;
 	case VK_FORMAT_D24_UNORM_S8_UINT:
 		// Sampled, its depth in red: nearest only, as filtering depth hasn't been tried on the console.
 		pFormatProperties->optimalTilingFeatures =
 			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
 		break;
-	case VK_FORMAT_R8_UNORM:
-	case VK_FORMAT_R8G8_UNORM:
-		pFormatProperties->optimalTilingFeatures =
-			VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT | blit;
-		break;
 	case VK_FORMAT_R32_SFLOAT:
-		// Sampled, as xsdk's R32F: nearest only, since filtering 32-bit floats hasn't been tried on the console.
-		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-		pFormatProperties->bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
-		break;
 	case VK_FORMAT_R32G32_SFLOAT:
 	case VK_FORMAT_R32G32B32_SFLOAT:
 	case VK_FORMAT_R32G32B32A32_SFLOAT:
@@ -206,10 +194,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 		};
 		return VK_SUCCESS;
 	}
-	uint32_t xsdk_format;
+	const V4xFormat *const image = v4x_format(format);
 	const bool linear = tiling == VK_IMAGE_TILING_LINEAR;
 	const VkImageUsageFlags usages = linear ? V4X_LINEAR_IMAGE_USAGE : V4X_IMAGE_USAGE;
-	if (!v4x_image_format(format, &xsdk_format) || type != VK_IMAGE_TYPE_2D || (usage & ~usages) || flags ||
+	if (!image || type != VK_IMAGE_TYPE_2D || (usage & ~usages) || flags || (linear && image->compressed) ||
 		((usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && !v4x_attachment_format(format))) {
 		*pImageFormatProperties = (VkImageFormatProperties){ 0 };
 		return VK_ERROR_FORMAT_NOT_SUPPORTED;

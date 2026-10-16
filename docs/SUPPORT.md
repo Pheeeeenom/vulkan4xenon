@@ -231,8 +231,13 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - 2D, one layer, one sample, optimal tiling, used for sampling, copying to and from and as colour attachments; anything
   else returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1. None is sparse, so
   `vkGetImageSparseMemoryRequirements` and `vkGetPhysicalDeviceSparseImageFormatProperties` find nothing.
-- Linear images: one level, only copied to and from, which they're for, as xsdk's linear textures are one level
-  (xsdk:src/texture.c). Their rows start a whole 256 bytes apart, as Xenos's linear textures need
+- Formats: each on the xsdk format that holds its bits as Vulkan does (Formats, "On xsdk").
+- Compressed images, BC1 to BC3, are optimal-tiled. Vulkan's blocks are the Khronos Data Format Specification's
+  bytes, each 16-bit word least significant byte first, and xsdk's DXT formats take each word in the CPU's order
+  (xsdk:include/xsdk/texture.h), so copies into and out of a compressed image swap each word's bytes, a row of blocks
+  at a time (milestone 20). The image's memory holds xsdk's order, which is opaque to the app, as Vulkan has it.
+- Linear images: one level of an uncompressed format, only copied to and from, which they're for, as xsdk's linear
+  textures are one level (xsdk:src/texture.c). Their rows start a whole 256 bytes apart, as Xenos's linear textures need
   (xenia:src/xenia/gpu/xenos.h:1179-1181), and `vkGetImageSubresourceLayout` gives that pitch, offset 0 and the rows'
   size; for an optimal image, which is invalid use, it gives zeros. `vkGetPhysicalDeviceImageFormatProperties` takes
   linear tiling for those usages alone, one level; the formats report no linear tiling features, which copies don't
@@ -257,7 +262,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     shader to sample, as well as the next pass to load it.
 - Image views: the whole of a 2D image in its format. A component mapping sets the fetch constant's swizzle
   (`xsdk_texture_swizzle`), so a view samples any of the format's channels, 0 or 1 as each of red, green, blue and
-  alpha; a swizzled view of a depth image returns `VK_ERROR_FEATURE_NOT_PRESENT`.
+  alpha, the format's own picked as Formats ("On xsdk") has them; a swizzled view of a depth image returns
+  `VK_ERROR_FEATURE_NOT_PRESENT`.
 
 ## Samplers
 
@@ -310,17 +316,18 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   no longer what eDRAM holds. Copies of depth images return `VK_ERROR_FEATURE_NOT_PRESENT`.
 - `vkCmdCopyBufferToImage` and `vkCmdCopyImageToBuffer` copy whole mip levels, to or from tightly packed rows or rows
   `bufferRowLength` texels long, at 4-byte-aligned offsets, in runs of whole words where the rows are word-aligned
-  (`xsdk_texture_upload_rows`, `xsdk_texture_download_rows`). A copy out reads the GPU's write-combined memory, so
-  it's slow.
+  (`xsdk_texture_upload_rows`, `xsdk_texture_download_rows`). A compressed level goes a row of blocks at a time, each
+  16-bit word's bytes swapped (Images). A copy out reads the GPU's write-combined memory, so it's slow.
 - `vkCmdCopyImage` copies whole levels of one size between formats of one texel size, the bits as they are, a row at a
-  time.
-- `vkCmdBlitImage` blits whole levels to whole levels, unflipped, between images of one format whose channels are 8
-  bits: `VK_FORMAT_R8_UNORM`, `R8G8_UNORM`, `R8G8B8A8_UNORM` and `B8G8R8A8_UNORM`, the formats reporting
-  `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT`. Each destination texel samples the source at its centre,
-  nearest or between the four texels around it, edges clamped, rounded to the nearest byte. A chain of levels
-  blitted down from the base makes an image's mips.
-- `vkCmdClearColorImage` fills whole levels with the colour, as the format holds it: bytes for the 8-bit formats, the
-  red float for `R32_SFLOAT`.
+  time. A copy between a compressed and an uncompressed format, which Vulkan allows, fails the command buffer, as
+  their 16-bit words lie in different orders.
+- `vkCmdBlitImage` blits whole levels to whole levels, unflipped, between images of one format reporting
+  `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT` (Formats): every uncompressed format but `R32_SFLOAT`. Each
+  destination texel samples the source at its centre, nearest or between the four texels around it, edges clamped:
+  the CPU unpacks each texel's channels to floats, mixes them, and packs them again rounded to the nearest
+  (src/format.c). A chain of levels blitted down from the base makes an image's mips.
+- `vkCmdClearColorImage` fills whole levels with the colour, packed as the format holds it, each channel rounded to the
+  nearest. A compressed image's clear, which Vulkan doesn't allow, fails the command buffer.
 - `vkCmdClearDepthStencilImage` clears depth and stencil together, as one register holds both; a range of one alone
   fails the command buffer. Its clear waits for the next pass to use the image (Render passes), and a sampled image's
   memory takes it at once (Images).
@@ -415,7 +422,38 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, nearest filtering only, as filtering depth hasn't been tried on the console |
 | `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
 | `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering, blit source and destination |
+| `VK_FORMAT_R5G6B5_UNORM_PACK16`, `B5G6R5_UNORM_PACK16`, `A1R5G5B5_UNORM_PACK16`, `R4G4B4A4_UNORM_PACK16`, `B4G4R4A4_UNORM_PACK16`, `A2B10G10R10_UNORM_PACK32`, `A2R10G10B10_UNORM_PACK32`, `R16_SFLOAT`, `R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | optimal tiling: sampled, linear filtering, blit source and destination (milestone 20) |
+| `VK_FORMAT_BC1_RGB_UNORM_BLOCK`, `BC1_RGBA_UNORM_BLOCK`, `BC2_UNORM_BLOCK`, `BC3_UNORM_BLOCK` | optimal tiling: sampled, linear filtering (milestone 20) |
 | `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
+
+**On xsdk:** each image format is the xsdk format that holds its bits as Vulkan does: a packed unit in the CPU's byte
+order, as xsdk's uploads take it and as Vulkan has a packed format's unit on a big-endian host, each channel where
+xsdk's own format puts it (xsdk:docs/HARDWARE.md, "Texture formats, milestone 16"). Where Vulkan orders the channels
+otherwise, the fetch constant's swizzle picks them, which reads the same bits (src/format.c):
+
+| Vulkan | xsdk | Vulkan's red, green, blue and alpha are xsdk's |
+|---|---|---|
+| `R8G8B8A8_UNORM`, `B8G8R8A8_UNORM`, `R8_UNORM`, `R8G8_UNORM`, `R32_SFLOAT` | `XSDK_FORMAT_R8G8B8A8`, `B8G8R8A8`, `R8`, `R8G8`, `R32F` | the same |
+| `R5G6B5_UNORM_PACK16`; `B5G6R5_UNORM_PACK16` | `XSDK_FORMAT_R5G6B5` | the same; blue, green, red, alpha |
+| `A1R5G5B5_UNORM_PACK16` | `XSDK_FORMAT_A1R5G5B5` | the same |
+| `R4G4B4A4_UNORM_PACK16`; `B4G4R4A4_UNORM_PACK16` | `XSDK_FORMAT_A4R4G4B4` | alpha, red, green, blue; green, red, alpha, blue |
+| `A2B10G10R10_UNORM_PACK32`; `A2R10G10B10_UNORM_PACK32` | `XSDK_FORMAT_A2B10G10R10` | the same; blue, green, red, alpha |
+| `R16_SFLOAT`, `R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | `XSDK_FORMAT_R16F`, `R16G16F`, `R16G16B16A16F` | the same |
+| `BC1_RGB_UNORM_BLOCK`; `BC1_RGBA_UNORM_BLOCK` | `XSDK_FORMAT_DXT1` | red, green, blue and 1, as BC1 without alpha reads 1 where DXT1 has transparent black; the same |
+| `BC2_UNORM_BLOCK`, `BC3_UNORM_BLOCK` | `XSDK_FORMAT_DXT3`, `DXT5` | the same |
+
+Left out, as no Xenos format holds their bits: `R5G5B5A1_UNORM_PACK16` and `B5G5R5A1_UNORM_PACK16`, whose alpha is the
+lowest bit, where Xenos's 1-5-5-5 has it highest (xenia:src/xenia/gpu/shaders/pixel_formats.xesli,
+`XeR5G5B5A1ToB5G5R5A1`).
+
+**Deviations:**
+- `textureCompressionBC` is false, as it promises BC4 to BC7 too, and Xenos has no BC6H or BC7
+  (xenia:src/xenia/gpu/xenos.h:450-532). Vulkan has an app that doesn't find the feature read each BC format's features
+  from `vkGetPhysicalDeviceFormatProperties`, which reports them (Vulkan spec, `VkPhysicalDeviceFeatures`). Vulkan also
+  requires one of the BC, ETC2 and ASTC LDR suites in full; the layer has none in full.
+- BC2 and BC3 colour blocks whose first endpoint isn't above the second take four colours, as Vulkan has them. Whether
+  Xenos decodes them that way or as DXT1's three and transparent black is unsettled (xsdk:TODO.md, "Questions the
+  console hasn't answered"); milestone 20's checks settle it.
 
 Vulkan 1.0 requires many more formats and features; each missing one is a deviation.
 

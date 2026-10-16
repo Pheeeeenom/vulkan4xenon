@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "format.h"
 #include "host.h"
 #include "image.h"
 #include "objects.h"
@@ -422,7 +423,7 @@ static void record_level_copies(VkCommandBuffer commandBuffer, CommandType type,
 		command->copy.address = buffer_address(buffer, region->bufferOffset);
 		command->copy.image = image;
 		command->copy.level = level;
-		command->copy.row_bytes = row_texels * v4x_texel_bytes(image->format);
+		command->copy.row_bytes = v4x_texel_blocks(image->format, row_texels) * v4x_texel_bytes(image->format);
 	}
 }
 
@@ -455,7 +456,16 @@ static void record_image_copy(VkCommandBuffer commandBuffer, CommandType type, I
 	command->image_copy.linear = linear;
 }
 
-// Whole levels of the same size, their bits as they are between formats of one texel size.
+// Whether one image's texels are compressed blocks and the other's aren't, which a copy would have to swap
+// (src/transfer.c).
+static bool compressed_apart(const Image *source, const Image *destination)
+{
+	const V4xFormat *const from = v4x_format(source->format);
+	const V4xFormat *const to = v4x_format(destination->format);
+	return (from && from->compressed) != (to && to->compressed);
+}
+
+// Whole levels of the same size, their bits as they are between formats of one texel size, compressed or not.
 VKAPI_ATTR void VKAPI_CALL vkCmdCopyImage(VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
 	VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy *pRegions)
 {
@@ -467,8 +477,10 @@ VKAPI_ATTR void VKAPI_CALL vkCmdCopyImage(VkCommandBuffer commandBuffer, VkImage
 		const VkImageCopy *const region = &pRegions[i];
 		if (!whole_level(source, &region->srcSubresource, region->srcOffset, region->extent) ||
 			!whole_level(destination, &region->dstSubresource, region->dstOffset, region->extent) ||
-			v4x_texel_bytes(source->format) != v4x_texel_bytes(destination->format)) {
-			commandBuffer->result = v4x_host_unsupported("image copies of less than a whole level");
+			v4x_texel_bytes(source->format) != v4x_texel_bytes(destination->format) ||
+			compressed_apart(source, destination)) {
+			commandBuffer->result = v4x_host_unsupported(
+				"image copies of less than a whole level, or between compressed and uncompressed formats");
 			return;
 		}
 		record_image_copy(commandBuffer, COMMAND_COPY_IMAGE, source, region->srcSubresource.mipLevel, destination,
@@ -483,7 +495,7 @@ static bool whole_blit_level(const Image *image, const VkImageSubresourceLayers 
 	return whole_level(image, layers, offsets[0], extent);
 }
 
-// Whole levels to whole levels of an image of the same format, its channels 8 bits (v4x_blit_format).
+// Whole levels to whole levels of an image of the same format, one the CPU unpacks (v4x_blit_format).
 VKAPI_ATTR void VKAPI_CALL vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
 	VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit *pRegions, VkFilter filter)
 {
@@ -497,24 +509,12 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage
 			!whole_blit_level(destination, &region->dstSubresource, region->dstOffsets) ||
 			source->format != destination->format || !v4x_blit_format(source->format) || filter > VK_FILTER_LINEAR) {
 			commandBuffer->result = v4x_host_unsupported(
-				"blits of less than a whole level, flipped, between formats or of formats past 8 bits a channel");
+				"blits of less than a whole level, flipped, between formats or of formats that don't blit");
 			return;
 		}
 		record_image_copy(commandBuffer, COMMAND_BLIT_IMAGE, source, region->srcSubresource.mipLevel, destination,
 			region->dstSubresource.mipLevel, filter == VK_FILTER_LINEAR);
 	}
-}
-
-// A texel's bytes for a clear colour, as an image of the format holds them.
-static uint32_t clear_texel(VkFormat format, const VkClearColorValue *color)
-{
-	const float *const rgba = color->float32;
-	const bool bgra = format == VK_FORMAT_B8G8R8A8_UNORM;
-	const uint8_t bytes[4] = { (uint8_t)unorm8(rgba[bgra ? 2 : 0]), (uint8_t)unorm8(rgba[1]),
-		(uint8_t)unorm8(rgba[bgra ? 0 : 2]), (uint8_t)unorm8(rgba[3]) };
-	uint32_t texel;
-	memcpy(&texel, format == VK_FORMAT_R32_SFLOAT ? (const void *)rgba : (const void *)bytes, sizeof texel);
-	return texel;
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdClearColorImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout,
@@ -527,9 +527,12 @@ VKAPI_ATTR void VKAPI_CALL vkCmdClearColorImage(VkCommandBuffer commandBuffer, V
 		const uint32_t levels = range->levelCount == VK_REMAINING_MIP_LEVELS
 			? object->texture.levels - range->baseMipLevel
 			: range->levelCount;
-		if (!object->is_texture || range->baseArrayLayer ||
+		const V4xFormat *const format = v4x_format(object->format);
+		// Vulkan clears no compressed image.
+		if (!object->is_texture || !format || format->compressed || range->baseArrayLayer ||
 			(range->layerCount != 1 && range->layerCount != VK_REMAINING_ARRAY_LAYERS)) {
-			commandBuffer->result = v4x_host_unsupported("colour clears of images other than colour images");
+			commandBuffer->result =
+				v4x_host_unsupported("colour clears of images other than uncompressed colour images");
 			return;
 		}
 		Command *const command = record(commandBuffer, COMMAND_CLEAR_COLOR_IMAGE);
@@ -538,7 +541,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdClearColorImage(VkCommandBuffer commandBuffer, V
 		command->clear.image = object;
 		command->clear.first_level = range->baseMipLevel;
 		command->clear.level_count = levels;
-		command->clear.texel = clear_texel(object->format, pColor);
+		v4x_format_pack(format, pColor->float32, command->clear.texel);
 	}
 }
 

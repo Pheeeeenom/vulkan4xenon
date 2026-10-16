@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 18, part of 12 and none of 17. Xenos has all but three: occlusion queries hang it today,
+Of the 47 rows, the layer has 20, part of 12 and none of 15. Xenos has all but three: occlusion queries hang it today,
 its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is
 software.
 
@@ -49,10 +49,10 @@ software.
 | 2D textures, mips, any size | Yes, up to 8192 | Yes | Yes |
 | Cube maps | Yes (xenia:src/xenia/gpu/xenos.h:97-102) | No (xsdk:TODO.md, "Cube and 3D textures"); xost samples them (xost:docs/xsc.md:40) | No |
 | Volume textures | Yes | No | No |
-| 16-bit colour, L8, A8, A8L8 | Yes | Yes | Partial: R8 and RG8, whose swizzles stand in for L8, A8 and A8L8; no 565, 1555 or 4444 |
-| DXT1 to 5 | Yes (xenia:src/xenia/gpu/xenos.h:494-536) | Yes | No |
-| Float textures | Yes | Partial: 16-bit floats and R32F | Partial: R32F, nearest filtering only |
-| 10-10-10-2, 16-bit fixed point, signed formats for bump maps | Yes | Partial: 10-10-10-2 (xsdk:TODO.md, "More texture formats") | No |
+| 16-bit colour, L8, A8, A8L8 | Yes | Yes | Yes: 565, 1555 and 4444 (milestone 20), and R8 and RG8, whose swizzles stand in for L8, A8 and A8L8 |
+| DXT1 to 5 | Yes (xenia:src/xenia/gpu/xenos.h:494-536) | Yes | Yes: BC1 to BC3, each reported a format at a time, as `textureCompressionBC` promises BC6H and BC7 too (SUPPORT.md, Formats) |
+| Float textures | Yes | Partial: 16-bit floats and R32F | Partial: 16-bit floats in one, two and four channels; R32F, nearest filtering only |
+| 10-10-10-2, 16-bit fixed point, signed formats for bump maps | Yes | Partial: 10-10-10-2 (xsdk:TODO.md, "More texture formats") | Partial: 10-10-10-2 |
 | sRGB | Approximate: a piecewise-linear gamma (xenia:src/xenia/gpu/xenos.cc:27) | No | No |
 | Point, linear and anisotropic filtering, LOD bias, mip clamps | Yes | Yes | Yes, clamped to whole levels |
 | Wrap, mirror and clamp | Yes | Yes | Yes |
@@ -88,8 +88,8 @@ software.
 
 ## Where the gaps lie
 
-- **The layer alone,** as xsdk has them: DXT, the 16-bit and float texture formats, the vertex formats, and
-  multisampling. Most PC ports ship DXT.
+- **The layer alone,** as xsdk has them: the vertex formats and multisampling. DXT, which most PC ports ship, and the
+  16-bit and half-float texture formats came with milestone 20.
 - **xost:** `if` in vertex shaders, loops, a computed LOD and gradients, facing, vertex texture fetch and the register
   budget. Almost every ported shader meets one.
 - **xsdk, then the layer:** four targets and their formats, predicated tiling, cube and volume textures, border

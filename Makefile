@@ -20,7 +20,7 @@ LIBS := -Wl,--start-group $(BUILD)/libvulkan4xenon.a $(XSDK_LIBRARY) -lstdc++ -l
 LAYER_SOURCES := src/host.c src/proc_addr.c src/instance.c src/physical_device.c src/display.c src/device.c \
 	src/memory.c src/shader.c src/pipeline.c src/render_pass.c src/command_buffer.c src/queue.c src/transfer.c src/sync.c \
 	src/swapchain.c src/image.c src/sampler.c src/descriptor.c src/pipeline_state.c src/blit.c src/blit_shaders.c \
-	src/query.c
+	src/query.c src/format.c
 LAYER_OBJECTS := $(patsubst src/%.c,$(BUILD)/src/%.o,$(LAYER_SOURCES))
 
 # tests/shaders.c and src/blit_shaders.c come from tools/build_shaders.py, run by hand where glslang and xost are.
@@ -30,7 +30,7 @@ TEST_SOURCES := tests/main.c tests/harness.c tests/harness_scene.c tests/test_bo
 	tests/test_render_to_texture.c tests/test_run_time_index.c tests/test_uploads.c tests/test_thin_textures.c \
 	tests/test_sampled_depth.c tests/test_anisotropy.c tests/test_aurora_points.c tests/test_lod.c \
 	tests/test_commands.c tests/test_copies.c tests/test_dynamic_state.c tests/test_clears.c tests/test_subpasses.c \
-	tests/test_events.c tests/test_shader_cache.c tests/shaders.c
+	tests/test_events.c tests/test_formats.c tests/test_shader_cache.c tests/shaders.c
 TEST_OBJECTS := $(patsubst tests/%.c,$(BUILD)/tests/%.o,$(TEST_SOURCES))
 
 # vkbench, the benchmark against xsdk's GPU layer; bench/shaders.c comes from tools/build_shaders.py too.

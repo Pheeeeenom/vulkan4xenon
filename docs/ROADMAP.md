@@ -1992,6 +1992,36 @@ formats (xsdk:include/xsdk/texture.h, shader.h), and the layer takes 6 and 5 of 
 
 Done when vulkan4xenon_test samples every new image format and draws from every new vertex format, checked by pixel.
 
+**Step 1, built** (2026-10-16). A table of the layer's image formats, src/format.c, puts each on the xsdk format that
+holds its bits as Vulkan does: a packed unit in the CPU's byte order, as xsdk's uploads take it and as Vulkan has a
+packed unit on a big-endian host, and each channel where xsdk's own format puts it, as xsdk milestone 16 settled. Where
+Vulkan orders the channels otherwise, the fetch constant's swizzle picks them, and a view's component mapping picks
+among those (docs/SUPPORT.md, Formats).
+- **The formats:** BC1 with and without alpha, BC2 and BC3 on DXT1, 3 and 5, BC1 without alpha reading 1 for alpha;
+  `R5G6B5` and `B5G6R5`; `A1R5G5B5`; `R4G4B4A4` and `B4G4R4A4` on xsdk's 4-4-4-4; `A2B10G10R10` and `A2R10G10B10`;
+  and 16-bit floats in one, two and four channels. Each samples with linear filtering. `R5G5B5A1` and `B5G5R5A1` are
+  left out, as Xenos's 1-5-5-5 has its alpha in the top bit.
+- **BC:** reported a format at a time, `textureCompressionBC` false, as Vulkan allows (docs/SUPPORT.md, Formats).
+  Vulkan's blocks are the Khronos Data Format Specification's little-endian 16-bit words and xsdk's DXT formats take
+  each word in the CPU's order, so copies in and out swap each word's bytes, a row of blocks at a time
+  (src/transfer.c). Compressed images are optimal-tiled; clearing one and blitting one are refused, and so is a copy
+  between compressed and uncompressed images, as their words lie in different orders.
+- **Copies, clears and blits** of the new formats run on the CPU as the old ones' do: copies move the bits as they
+  are, a clear packs its colour as the format holds it, and a blit unpacks each texel to floats, mixes and packs again,
+  so every uncompressed format but `R32_SFLOAT` blits. Rows the CPU copies through grew to 8 bytes a texel.
+- **The checks:** vulkan4xenon_test's `test_formats.c` makes a 4x4 image of each uncompressed format and an 8x8 one of
+  each BC format, every texel's red, green, blue and alpha different, and copies them in from a buffer as Vulkan lays
+  them out: packed units in the CPU's order, BC blocks in the Khronos Data Format Specification's. BC1's last two
+  blocks are three colours and transparent black, and BC2 and BC3's last block has its first endpoint below the
+  second. Each frame draws each image three times, 48 pixels a side: sampled nearest, through a view that shows its
+  alpha in red, green and blue, and filtered linearly, a pixel's centre at its own corner's coordinates so texels'
+  centres and the midpoints between them land on pixels' centres. Probes check every texel nearest and in alpha, a
+  check a format, and halfway between neighbouring texels along the filtered quad's edges, a check for all; BC2 and
+  BC3's last block has a check of its own. The images are copied back out and checked byte for byte; each
+  uncompressed one is blitted linearly to 2x2, then cleared to one colour, and both read back against the test's own
+  packing of the means and the colour. The formats' features, `textureCompressionBC` false and the refusals have a
+  check each.
+
 ### Milestone 21: Shader Model 3's control flow
 
 **Why.** xost turns `if` into selects in pixel shaders and refuses it in vertex shaders (xost:docs/xsc.md:63), unrolls

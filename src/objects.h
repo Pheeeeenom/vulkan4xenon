@@ -7,6 +7,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "format.h"
 #include "vulkan4xenon.h"
 #include "xsdk/gpu.h"
 #include "xsdk/shader.h"
@@ -427,7 +428,7 @@ typedef struct {
 			uint32_t first_level;
 			uint32_t level_count;
 			// A texel's bytes as the image holds them.
-			uint32_t texel;
+			uint8_t texel[V4X_MAX_TEXEL_BYTES];
 		} clear;
 		// An indirect draw's parameters, read at replay.
 		volatile const uint32_t *parameters;

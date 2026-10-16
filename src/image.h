@@ -25,9 +25,11 @@ enum {
 bool v4x_image_format(VkFormat format, uint32_t *xsdk_format);
 // Whether images of this format can be colour attachments: R8G8B8A8_UNORM and B8G8R8A8_UNORM, which resolves write.
 bool v4x_attachment_format(VkFormat format);
-// The bytes in a texel of an image of this format, which copies take.
+// The bytes in a texel of an image of this format, or in a block of a compressed one, which copies take.
 uint32_t v4x_texel_bytes(VkFormat format);
-// Whether images of this format can be blitted: their channels are bytes, which the CPU filters.
+// The texels or blocks a row or column of this many texels takes: a compressed format's blocks are 4 texels a side.
+uint32_t v4x_texel_blocks(VkFormat format, uint32_t texels);
+// Whether images of this format can be blitted: the CPU unpacks their texels to filter them (src/format.c).
 bool v4x_blit_format(VkFormat format);
 // Whether a shader may sample an image in this layout: a render pass that leaves a sampled depth image in one resolves
 // it into its texture.

@@ -32,6 +32,7 @@ int main(void)
 		test_triangle(&harness);
 		test_packed_colour(&harness);
 		test_texture(&harness);
+		test_formats(&harness);
 		test_push_constants(&harness);
 		test_uniform_buffers(&harness);
 		test_indexed(&harness);
