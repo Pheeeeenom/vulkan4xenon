@@ -121,7 +121,8 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures(
 	VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures *pFeatures)
 {
 	(void)physicalDevice;
-	*pFeatures = (VkPhysicalDeviceFeatures){ .samplerAnisotropy = VK_TRUE };
+	// Indirect draws read firstInstance at replay, as direct ones take it (queue.c).
+	*pFeatures = (VkPhysicalDeviceFeatures){ .drawIndirectFirstInstance = VK_TRUE, .samplerAnisotropy = VK_TRUE };
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice,

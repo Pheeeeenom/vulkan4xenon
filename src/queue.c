@@ -562,21 +562,35 @@ static void prepare_draw(Replay *replay)
 	apply_resources(pipeline, replay);
 }
 
-// xsdk draws from vertex 0, so each stream starts at the draw's first vertex, which may come before the binding's.
-static void point_streams(Replay *replay, int32_t first_vertex)
+// xsdk draws from vertex 0, so each stream at the vertex's rate starts at the draw's first vertex, which may come
+// before the binding's, and each at the instance's rate at the instance's element.
+static void point_streams(Replay *replay, int32_t first_vertex, uint32_t instance)
 {
 	const Pipeline *const pipeline = replay->pipeline;
 	for (uint32_t s = 0; s < pipeline->stream_count; s++) {
-		const VertexBinding *const binding = &replay->bindings[pipeline->streams[s].binding];
-		const int32_t skipped = first_vertex * (int32_t)pipeline->streams[s].stride_bytes;
-		const VertexBinding stream = { .address = binding->address + (uint32_t)skipped,
-			.size_bytes = binding->size_bytes - (uint32_t)skipped };
+		const VertexStream *const source = &pipeline->streams[s];
+		const VertexBinding *const binding = &replay->bindings[source->binding];
+		const uint32_t skipped = source->per_instance ? instance * source->stride_bytes
+													  : (uint32_t)(first_vertex * (int32_t)source->stride_bytes);
+		const VertexBinding stream = { .address = binding->address + skipped,
+			.size_bytes = binding->size_bytes - skipped };
 		if (replay->pointed_streams[s].address == stream.address &&
 			replay->pointed_streams[s].size_bytes == stream.size_bytes)
 			continue;
 		xsdk_gpu_set_vertices(s, stream.address, stream.size_bytes);
 		replay->pointed_streams[s] = stream;
 	}
+}
+
+// The instance's index in every component, for a vertex shader that reads gl_InstanceIndex (xost:docs/xsc.md,
+// "Interface conventions"); a float holds it exactly up to 2^24.
+static void write_instance_index(const Pipeline *pipeline, uint32_t instance)
+{
+	if (!pipeline->reads_instance_index)
+		return;
+	const float index = (float)instance;
+	const float values[4] = { index, index, index, index };
+	xsdk_gpu_set_vertex_constants(pipeline->instance_index_constant, values, 1);
 }
 
 // Lists longer than a draw packet carries are split on whole primitives; longer strips and fans were refused.
@@ -586,21 +600,32 @@ static uint32_t chunk_vertices(const Pipeline *pipeline)
 								   : V4X_MAX_DRAW_VERTICES;
 }
 
-static void draw(Replay *replay, uint32_t vertex_count, uint32_t first_vertex)
+static void draw_instance(Replay *replay, uint32_t vertex_count, uint32_t first_vertex, uint32_t instance)
 {
-	prepare_draw(replay);
 	const uint32_t chunk = chunk_vertices(replay->pipeline);
+	write_instance_index(replay->pipeline, instance);
 	for (uint32_t done = 0; done < vertex_count; done += chunk) {
-		point_streams(replay, (int32_t)(first_vertex + done));
+		point_streams(replay, (int32_t)(first_vertex + done), instance);
 		const uint32_t left = vertex_count - done;
 		xsdk_gpu_draw(replay->pipeline->primitive, left < chunk ? left : chunk);
 	}
 }
 
-static void draw_indexed(Replay *replay, uint32_t count, uint32_t first_index, int32_t vertex_offset)
+// A draw an instance: the simple way, before a shader that fetches at an index it works out (docs/ROADMAP.md,
+// milestone 24).
+static void draw(
+	Replay *replay, uint32_t vertex_count, uint32_t first_vertex, uint32_t instance_count, uint32_t first_instance)
 {
 	prepare_draw(replay);
-	point_streams(replay, vertex_offset);
+	for (uint32_t i = 0; i < instance_count; i++)
+		draw_instance(replay, vertex_count, first_vertex, first_instance + i);
+}
+
+static void draw_indexed_instance(
+	Replay *replay, uint32_t count, uint32_t first_index, int32_t vertex_offset, uint32_t instance)
+{
+	write_instance_index(replay->pipeline, instance);
+	point_streams(replay, vertex_offset, instance);
 	const uint32_t index_bytes = replay->index_32_bit ? 4 : 2;
 	const uint32_t chunk = chunk_vertices(replay->pipeline);
 	for (uint32_t done = 0; done < count; done += chunk) {
@@ -610,15 +635,19 @@ static void draw_indexed(Replay *replay, uint32_t count, uint32_t first_index, i
 	}
 }
 
+static void draw_indexed(Replay *replay, uint32_t count, uint32_t first_index, int32_t vertex_offset,
+	uint32_t instance_count, uint32_t first_instance)
+{
+	prepare_draw(replay);
+	for (uint32_t i = 0; i < instance_count; i++)
+		draw_indexed_instance(replay, count, first_index, vertex_offset, first_instance + i);
+}
+
 // What a direct draw refuses as it's recorded, an indirect one refuses as it's replayed, drawing nothing.
-static bool drawable(const Replay *replay, uint32_t count, uint32_t instances, uint32_t first_instance)
+static bool drawable(const Replay *replay, uint32_t count, uint32_t instances)
 {
 	if (!count || !instances)
 		return false;
-	if (instances != 1 || first_instance) {
-		(void)v4x_host_unsupported("instanced draws");
-		return false;
-	}
 	if (count > V4X_MAX_DRAW_VERTICES && !replay->pipeline->list_vertices) {
 		(void)v4x_host_unsupported("strips and fans of more than 65535 vertices");
 		return false;
@@ -631,16 +660,18 @@ static bool drawable(const Replay *replay, uint32_t count, uint32_t instances, u
 static void draw_indirect(Replay *replay, volatile const uint32_t *parameters)
 {
 	const uint32_t count = parameters[0];
-	if (drawable(replay, count, parameters[1], parameters[3]))
-		draw(replay, count, parameters[2]);
+	const uint32_t instances = parameters[1];
+	if (drawable(replay, count, instances))
+		draw(replay, count, parameters[2], instances, parameters[3]);
 }
 
 // The same with a VkDrawIndexedIndirectCommand: indexCount, instanceCount, firstIndex, vertexOffset, firstInstance.
 static void draw_indexed_indirect(Replay *replay, volatile const uint32_t *parameters)
 {
 	const uint32_t count = parameters[0];
-	if (drawable(replay, count, parameters[1], parameters[4]))
-		draw_indexed(replay, count, parameters[2], (int32_t)parameters[3]);
+	const uint32_t instances = parameters[1];
+	if (drawable(replay, count, instances))
+		draw_indexed(replay, count, parameters[2], (int32_t)parameters[3], instances, parameters[4]);
 }
 
 static void set_dynamic(Replay *replay, const Command *command)
@@ -740,7 +771,8 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 			.size_bytes = command->vertex_buffer.size_bytes };
 		break;
 	case COMMAND_DRAW:
-		draw(replay, command->draw.vertex_count, command->draw.first_vertex);
+		draw(replay, command->draw.vertex_count, command->draw.first_vertex, command->draw.instance_count,
+			command->draw.first_instance);
 		break;
 	case COMMAND_BIND_DESCRIPTOR_SET:
 		replay->sets[command->descriptor_set.index] = command->descriptor_set.set;
@@ -805,7 +837,8 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 		break;
 	case COMMAND_DRAW_INDEXED:
 		draw_indexed(replay, command->draw_indexed.index_count, command->draw_indexed.first_index,
-			command->draw_indexed.vertex_offset);
+			command->draw_indexed.vertex_offset, command->draw_indexed.instance_count,
+			command->draw_indexed.first_instance);
 		break;
 	case COMMAND_DRAW_INDIRECT:
 		draw_indirect(replay, command->parameters);

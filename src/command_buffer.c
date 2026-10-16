@@ -319,20 +319,19 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer,
 	}
 }
 
+// Each instance is replayed as a draw of its own (queue.c).
 VKAPI_ATTR void VKAPI_CALL vkCmdDraw(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount,
 	uint32_t firstVertex, uint32_t firstInstance)
 {
-	if (instanceCount != 1 || firstInstance) {
-		commandBuffer->result = v4x_host_unsupported("instanced draws");
-		return;
-	}
-	if (!vertexCount || !splittable(commandBuffer, vertexCount))
+	if (!vertexCount || !instanceCount || !splittable(commandBuffer, vertexCount))
 		return;
 	Command *const command = record(commandBuffer, COMMAND_DRAW);
 	if (!command)
 		return;
 	command->draw.vertex_count = vertexCount;
 	command->draw.first_vertex = firstVertex;
+	command->draw.instance_count = instanceCount;
+	command->draw.first_instance = firstInstance;
 }
 
 // Each set's dynamic offsets follow its layout's dynamic bindings, in binding order.
@@ -974,11 +973,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBindIndexBuffer(
 VKAPI_ATTR void VKAPI_CALL vkCmdDrawIndexed(VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount,
 	uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 {
-	if (instanceCount != 1 || firstInstance) {
-		commandBuffer->result = v4x_host_unsupported("instanced draws");
-		return;
-	}
-	if (!indexCount || !splittable(commandBuffer, indexCount))
+	if (!indexCount || !instanceCount || !splittable(commandBuffer, indexCount))
 		return;
 	Command *const command = record(commandBuffer, COMMAND_DRAW_INDEXED);
 	if (!command)
@@ -986,6 +981,8 @@ VKAPI_ATTR void VKAPI_CALL vkCmdDrawIndexed(VkCommandBuffer commandBuffer, uint3
 	command->draw_indexed.index_count = indexCount;
 	command->draw_indexed.first_index = firstIndex;
 	command->draw_indexed.vertex_offset = vertexOffset;
+	command->draw_indexed.instance_count = instanceCount;
+	command->draw_indexed.first_instance = firstInstance;
 }
 
 // One draw at most, without multiDrawIndirect; its parameters are read at replay (queue.c).

@@ -45,6 +45,8 @@ void test_push_constants(const Harness *harness);
 void test_uniform_buffers(const Harness *harness);
 // Index buffers and every topology (milestone 3).
 void test_indexed(const Harness *harness);
+// Instanced draws, indexed and not, direct and indirect, each instance placed and coloured on its own (milestone 24).
+void test_instancing(const Harness *harness);
 // A depth and stencil attachment: depth tests, a stencil mask and a depth bias (milestone 3).
 void test_depth_stencil(const Harness *harness);
 // Culling, blending, a write mask, dynamic viewport and scissor, and pixel centres (milestone 3).

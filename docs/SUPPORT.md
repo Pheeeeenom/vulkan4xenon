@@ -53,8 +53,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 - One physical device, and one device at a time: a second `vkCreateDevice` returns `VK_ERROR_TOO_MANY_OBJECTS`, since
   the GPU has one owner. `vkCreateDevice` takes the GPU from XAM (`xsdk_gpu_open`) and shows the boot logo.
-- One feature, `samplerAnisotropy` (Samplers). Requesting any other returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan
-  1.0 requires `robustBufferAccess`; that's a deviation.
+- Two features, `drawIndirectFirstInstance` (Commands) and `samplerAnisotropy` (Samplers). Requesting any other
+  returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires `robustBufferAccess`; that's a deviation.
 - One queue family with one queue, `VK_QUEUE_GRAPHICS_BIT` only. Vulkan 1.0 requires a family with graphics and
   compute together; Xenos has no compute stage, so that's a deviation. There's no sparse binding either: the GPU
   addresses physical memory, and Xenia's registers show no GPU MMU (xenia:src/xenia/gpu/register_table.inc).
@@ -133,6 +133,10 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   as culling takes it, as it did on the console for both windings (milestone 22).
 - Vertex input location n feeds the usage xost gives it: 0 position, 1 colour, 2 and up texture coordinates
   (xsdk:src/xsc_resolve.c:344-346).
+- A vertex shader may read `gl_InstanceIndex`, `firstInstance` included: xost gives it a float constant past the
+  shader's blocks, which the bundle records as a `V4X_RESOURCE_INSTANCE_INDEX` resource, and the layer writes each
+  instance's index into it before the instance's draw (Commands). A float holds it exactly up to 2^24. xost refuses
+  `gl_VertexIndex` (xost:docs/xsc.md, "Interface conventions").
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's
   uniforms.
 - Where a shader's resources land is xost's choice, recorded in the bundle as its `V4xShaderResource`s
@@ -163,7 +167,10 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   26.
 - Graphics pipelines, otherwise `VK_ERROR_FEATURE_NOT_PRESENT`:
   - a vertex and a fragment stage, entry point `main`, no specialization constants;
-  - per-vertex bindings with strides a multiple of 4, up to 1020 bytes;
+  - bindings at the vertex's rate or the instance's, with strides a multiple of 4, up to 1020 bytes. One at the
+    instance's rate is fetched with a stride of 0, so every vertex reads the element its stream starts at
+    (xenia:src/xenia/gpu/shader_interpreter.cc:1013-1014), and each instance's draw moves the stream to its own
+    (Commands);
   - attributes of the vertex buffer formats (Formats) at offsets a multiple of 4;
   - point lists, line lists and strips, and triangle lists, strips and fans, without primitive restart (an xsdk
     TODO);
@@ -417,17 +424,24 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   writes its word in the CPU's byte order, as the spec has it, a store a word.
 - `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for what used what they copy. One that
   would have a sampled depth image read from an attachment fails the command buffer (Render passes).
-- `vkCmdDraw` and `vkCmdDrawIndexed`: one instance, `firstInstance` 0.
-  - `firstVertex` and `vertexOffset` move each stream's address, since xsdk draws from vertex 0.
+- `vkCmdDraw` and `vkCmdDrawIndexed` draw any number of instances from any `firstInstance`, a draw an instance
+  (milestone 24). Before each, the streams at the instance's rate move to the instance's element, and a vertex
+  shader's `gl_InstanceIndex` constant takes its index (Shaders). **Shortcut:** an instance costs a draw packet, the
+  fetch constants of its streams at the instance's rate and its index's group of constants, and a constant written
+  waits for the draw before it (xsdk:TODO.md, "Constants written between draws hold the GPU"). One draw whose vertex
+  shader works out its instance and fetches at an index it computes would cost one draw; it's left for later
+  (docs/ROADMAP.md, milestone 24).
+  - `firstVertex` and `vertexOffset` move the address of each stream at the vertex's rate, since xsdk draws from
+    vertex 0.
   - `firstIndex` moves the index buffer's address. Indices are 16 or 32 bits, with values up to 2^24 - 1.
   - Lists of more than 65535 vertices or indices are split on whole primitives, as the draw packets count in 16 bits
     (xsdk:src/gpu_draw.c:219, 309). Strips and fans that long return `VK_ERROR_FEATURE_NOT_PRESENT`.
 - `vkCmdDrawIndirect` and `vkCmdDrawIndexedIndirect`: one draw each, as there's no `multiDrawIndirect` and
   `maxDrawIndirectCount` is 1; more fail the command buffer. The parameters are read at replay, in order with it:
-  the host wrote them before the submit, or a copy earlier in the replay did, as nothing else writes buffers.
-  **Deviation:** what a direct draw refuses as it's recorded, an indirect one can only refuse as it's replayed, after
-  the command buffer ended: more than one instance, a first instance, or a strip or fan past 65535. It logs that and
-  draws nothing.
+  the host wrote them before the submit, or a copy earlier in the replay did, as nothing else writes buffers. They
+  take any instance count and first instance, as `drawIndirectFirstInstance` promises. **Deviation:** what a direct
+  draw refuses as it's recorded, an indirect one can only refuse as it's replayed, after the command buffer ended: a
+  strip or fan past 65535. It logs that and draws nothing.
 
 ## Sync
 

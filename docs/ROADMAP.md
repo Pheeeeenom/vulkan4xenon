@@ -2417,6 +2417,54 @@ Commands). It also refuses strips and fans past 65,535 vertices, as a draw packe
 Done when vulkan4xenon_test draws instanced, indexed and not, with per-instance attributes, and a strip past 65,535
 vertices, checked by pixel.
 
+**Settled when it started (2026-10-16),** in two steps:
+1. **Instancing, a draw an instance,** the simple and correct way first: the replay loops over the instances. A binding
+   at the instance's rate is fetched with a stride of 0, its stream pointed at the binding's address plus
+   (firstInstance + i) times its stride for instance i, and xost lowers `gl_InstanceIndex` to a float constant the
+   layer writes before each instance's draw. Indirect draws read instanceCount and firstInstance at replay, as they
+   read the rest, so `drawIndirectFirstInstance` is reported.
+2. **Strips past 65,535 vertices or indices,** split as lists are, as a draw packet counts in 16 bits
+   (xenia:src/xenia/gpu/registers.h:327), the pieces sharing two vertices at an even offset so the winding holds. Fans only if they split cleanly without an index buffer made
+   at replay, as the first vertex has to repeat in each piece; otherwise refused as before.
+
+**Left for later: all the instances in one draw.** A vertex fetch takes its index from a register
+(xenia:src/xenia/gpu/ucode.h:695-715), so one draw of every instance's vertices could have its vertex shader work out
+each vertex's instance and fetch the instance's attributes at an index it computes. It waits for a port whose small
+instances show the cost of a draw each on the console, as it takes more than the simple way:
+- the vertex shader has the vertex's index alone (xost:docs/xsc.md, "Register budget"), so the instance is the index
+  over the vertices an instance, and the vertex within it the remainder, both worked out in floats, as Xenos's ALU
+  has float instructions alone (xenia:src/xenia/gpu/ucode.h:1006, 1359);
+- an indexed draw would need its indices repeated for each instance, moved on by the vertices an instance, in an index
+  buffer the layer makes at replay;
+- every instanced shader's fetches change: xost would fetch the streams at the instance's rate at the computed index,
+  and the layer would pass the vertices an instance as a constant.
+
+**Step 1: instancing.** xost gives a vertex shader's `gl_InstanceIndex` the float constant register past its blocks, so
+no uniform block the GPU loads shares its group of 4, before the literals, and lists it among the shader's resources;
+`float()` of it, integer arithmetic on it and a block array's index at it lower as xost's integers do
+(xost:docs/xsc.md, "Interface conventions"). A vertex shader's other built-ins, `gl_VertexIndex` among them, are no
+longer fetched as vertex input 0 but refused when read. The bundle records the register as a `V4X_RESOURCE_INSTANCE_INDEX`
+resource, tools/build_shaders.py taking xost's resource list as the compiler gives it. A pipeline takes bindings at the
+instance's rate, each fetched with a stride of 0 (xenia:src/xenia/gpu/shader_interpreter.cc:1013-1014); the replay
+draws each instance on its own, those bindings' streams moved to the instance's element and its index written into
+the constant first, `firstInstance` included. `vkCmdDrawIndirect` and `vkCmdDrawIndexedIndirect` take the instance
+count and first instance they read, and the device reports `drawIndirectFirstInstance`.
+- **The checks:** vulkan4xenon_test's `test_instancing.c` draws five rows of a grid, each instance a quad in a cell
+  160 by 120, from an instance buffer bound at each row's own 8 entries: `vkCmdDraw` of 4 instances, `vkCmdDrawIndexed`
+  of 3 from instance 2 at a vertex offset of 2, `vkCmdDrawIndirect` of 4 from instance 3 and `vkCmdDrawIndexedIndirect`
+  of 2 from instance 5, the parameters the host wrote, each instance in the column `gl_InstanceIndex` gives and the
+  row and colour its own attributes give; and a shader without `gl_InstanceIndex` placing 4 from instance 1 by their
+  attributes alone, column 7 less the entry. Each cell's middle holds its instance's colour or the clear colour, each
+  row a check of its own, and the device reports `drawIndirectFirstInstance` and is made with it. xost's
+  `tests/test_instance_index.py` checks the register past a push and a uniform block and alone, each of 8 instances'
+  position and colour on xost's simulator, and `gl_VertexIndex` refused.
+- **Broken on purpose** (`results/2026-10-16-milestone-24/breaks.py` and `builds.sh`), three builds: `a` breaks each
+  row's draw and the feature on its own, `vkCmdDraw` dropping all but one instance from instance 0, `vkCmdDrawIndexed`
+  recording a first instance of 0, `vkCmdDrawIndirect` reading none, `vkCmdDrawIndexedIndirect` reading its vertex
+  offset as it, streams at the instance's rate moved only where the shader reads `gl_InstanceIndex`, and the feature
+  unreported, so each of those six checks fails alone; `b` fetches the instance's bindings at their stride, failing all
+  five rows; `c` never writes the index, failing the four rows that read it and not the fifth.
+
 ### Milestone 25: render target formats, and four targets at once
 
 **Why.** HDR and deferred renderers draw into float and 10-bit targets, several at once. The layer draws into one RGBA8

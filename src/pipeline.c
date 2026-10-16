@@ -78,17 +78,21 @@ static VkResult find_stages(const VkGraphicsPipelineCreateInfo *info, Pipeline *
 	return VK_SUCCESS;
 }
 
-// Each binding becomes the next stream; each attribute an element of the vertex shader's layout.
+// Each binding becomes the next stream; each attribute an element of the vertex shader's layout. A binding at the
+// instance's rate is fetched with a stride of 0, every vertex reading the element its stream starts at
+// (xenia:src/xenia/gpu/shader_interpreter.cc:1013-1014), and each instance's draw moves the stream.
 static VkResult lay_out_vertices(const VkPipelineVertexInputStateCreateInfo *input, Pipeline *pipeline)
 {
 	uint32_t strides[XSDK_VERTEX_STREAMS] = { 0 };
 	for (uint32_t i = 0; i < input->vertexBindingDescriptionCount; i++) {
 		const VkVertexInputBindingDescription *const binding = &input->pVertexBindingDescriptions[i];
-		if (binding->inputRate != VK_VERTEX_INPUT_RATE_VERTEX || binding->stride % 4 ||
-			binding->stride > V4X_MAX_VERTEX_STRIDE_BYTES)
-			return v4x_host_unsupported("instanced bindings and strides not a multiple of 4");
-		pipeline->streams[i] = (VertexStream){ .binding = binding->binding, .stride_bytes = binding->stride };
-		strides[i] = binding->stride;
+		if (binding->stride % 4 || binding->stride > V4X_MAX_VERTEX_STRIDE_BYTES)
+			return v4x_host_unsupported("strides not a multiple of 4, or past 1020 bytes");
+		const bool per_instance = binding->inputRate == VK_VERTEX_INPUT_RATE_INSTANCE;
+		pipeline->streams[i] = (VertexStream){
+			.binding = binding->binding, .stride_bytes = binding->stride, .per_instance = per_instance
+		};
+		strides[i] = per_instance ? 0 : binding->stride;
 	}
 	pipeline->stream_count = input->vertexBindingDescriptionCount;
 	XsdkVertexElement elements[V4X_MAX_VERTEX_ATTRIBUTES];
@@ -152,6 +156,12 @@ static VkResult gather_resources(const PipelineLayout *layout, const V4xShader *
 	const VkShaderStageFlags stage = vertex ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
 	for (uint32_t i = 0; i < shader->resource_count; i++) {
 		const V4xShaderResource *const resource = &shader->resources[i];
+		// No binding of the layout's: each instance's draw writes it (queue.c).
+		if (resource->kind == V4X_RESOURCE_INSTANCE_INDEX) {
+			pipeline->reads_instance_index = true;
+			pipeline->instance_index_constant = resource->first;
+			continue;
+		}
 		if (!layout_has(layout, resource, stage)) {
 			xsdk_log_write("vulkan4xenon: the pipeline layout lacks set %u binding %u, kind %u, for the %s shader",
 				(unsigned)resource->set, (unsigned)resource->binding, (unsigned)resource->kind,

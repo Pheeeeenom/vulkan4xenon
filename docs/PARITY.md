@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 30, part of 7 and none of 10. Xenos has all but three: occlusion queries hang it today,
+Of the 47 rows, the layer has 31, part of 7 and none of 9. Xenos has all but three: occlusion queries hang it today,
 its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked, which xost's
 comparison after the fetch doesn't need. Every other gap is software.
 
@@ -39,7 +39,7 @@ comparison after the fetch doesn't need. Every other gap is software.
 | 16 vertex streams | Yes | Yes | Yes |
 | Points, lines, line strips, triangle lists, strips and fans | Yes | Yes | Yes |
 | 32-bit indices, draws past 65,535 | Yes, though a draw packet counts in 16 bits (xenia:src/xenia/gpu/registers.h:327) | Up to 65,535 a draw | Partial: lists are split; strips and fans that long are refused |
-| Instancing | Yes: a vertex fetch takes its index from a register (xenia:src/xenia/gpu/ucode.h:695-715) | No | No |
+| Instancing | Yes: a vertex fetch takes its index from a register (xenia:src/xenia/gpu/ucode.h:695-715) | Partial: xost lowers `gl_InstanceIndex` to a constant the runtime writes (xost:docs/xsc.md, "Interface conventions"); xsdk draws an instance at a time | Yes, a draw an instance (SUPPORT.md, Commands) |
 | Dynamic vertex buffers | n/a | Yes | Yes |
 
 ## Textures and samplers
@@ -92,7 +92,7 @@ comparison after the fetch doesn't need. Every other gap is software.
   formats, and the vertex formats came with milestone 20.
 - **xost:** breaks on data, and loops a block counts inside other loops. Almost every ported shader meets one.
 - **xsdk, then the layer:** four targets and their formats, predicated tiling, a volume texture's mips, two-sided
-  stencil, clip planes, point sprites, fill modes and instancing.
+  stencil, clip planes, point sprites and fill modes.
 
 ## Past Direct3D 9, for older consoles' ports
 

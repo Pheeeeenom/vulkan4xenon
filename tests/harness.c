@@ -44,8 +44,9 @@ VkResult harness_create_device(Harness *harness)
 		.queueCount = 1,
 		.pQueuePriorities = &priority,
 	};
-	// Sampler anisotropy, the one feature the device has, for test_anisotropy.
-	const VkPhysicalDeviceFeatures features = { .samplerAnisotropy = VK_TRUE };
+	// The features the device has: indirect draws' first instance for test_instancing, and sampler anisotropy for
+	// test_anisotropy.
+	const VkPhysicalDeviceFeatures features = { .drawIndirectFirstInstance = VK_TRUE, .samplerAnisotropy = VK_TRUE };
 	const VkDeviceCreateInfo device_info = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.queueCreateInfoCount = 1,

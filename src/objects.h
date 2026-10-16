@@ -265,6 +265,9 @@ typedef struct {
 typedef struct {
 	uint32_t binding;
 	uint32_t stride_bytes;
+	// At the instance's rate: the shader fetches it with a stride of 0, and each instance's draw points it at its
+	// element.
+	bool per_instance;
 } VertexStream;
 
 typedef struct {
@@ -297,6 +300,9 @@ typedef struct {
 	uint32_t resource_count;
 	// Its resources that are hardware loops' counts, so a pipeline with none spends nothing on them.
 	uint32_t loop_count;
+	// The vertex shader reads gl_InstanceIndex from this float constant, which each instance's draw writes.
+	bool reads_instance_index;
+	uint32_t instance_index_constant;
 } Pipeline;
 
 // One subpass as the replay draws it, a render pass of its own: its colour attachment and its depth if it has one, with
@@ -417,6 +423,8 @@ typedef struct {
 		struct {
 			uint32_t vertex_count;
 			uint32_t first_vertex;
+			uint32_t instance_count;
+			uint32_t first_instance;
 		} draw;
 		struct {
 			uint32_t index;
@@ -510,6 +518,8 @@ typedef struct {
 			uint32_t index_count;
 			uint32_t first_index;
 			int32_t vertex_offset;
+			uint32_t instance_count;
+			uint32_t first_instance;
 		} draw_indexed;
 	};
 } Command;

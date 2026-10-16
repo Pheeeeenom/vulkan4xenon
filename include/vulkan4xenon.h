@@ -27,19 +27,21 @@ enum {
 	V4X_RESOURCE_UNIFORM_LOOP,
 	// A sampler2DShadow's comparison: the float constant its sampler's compare op is written to.
 	V4X_RESOURCE_COMPARISON,
+	// A vertex shader's gl_InstanceIndex: a float constant the layer writes each instance's index into.
+	V4X_RESOURCE_INSTANCE_INDEX,
 };
 
-// Where xost put a block, sampler or comparison the shader reads (xost:docs/xsc.md, "Interface conventions"), or where
-// a loop's count is.
+// Where xost put a block, sampler, comparison or gl_InstanceIndex the shader reads (xost:docs/xsc.md, "Interface
+// conventions"), or where a loop's count is.
 typedef struct {
 	uint8_t kind;
-	// The descriptor set and binding; 0 for push constants.
+	// The descriptor set and binding; 0 for push constants and the instance index.
 	uint8_t set;
 	uint8_t binding;
-	// The first float constant register, holding the block's first 16 bytes, the fetch constant, or a loop's count's
-	// byte in its block.
+	// The first float constant register, holding the block's first 16 bytes or the index, the fetch constant, or a
+	// loop's count's byte in its block.
 	uint16_t first;
-	// Registers the block fills; 1 for a sampler; a loop's loop constant.
+	// Registers the block fills; 1 for a sampler and the index; a loop's loop constant.
 	uint16_t count;
 } V4xShaderResource;
 
