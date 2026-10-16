@@ -9,6 +9,11 @@ Step 1:
   check; R16G16_SFLOAT's red and green swapped, its sampled check; an 8-byte texel's words taken the wrong way round,
   the clear check through R16G16B16A16_SFLOAT, whose blit unpacks and packs alike; linear BC images offered, the
   features check.
+
+Step 2:
+- 2a: R8G8B8A8_UNORM, R16G16_SNORM and R16G16B16A16_UNORM fetched without their picks, B8G8R8A8_UNORM with R8G8B8A8's,
+  and A8B8G8R8_SSCALED_PACK32 as unsigned: each its format's colours check, and the first four the triangles check;
+  R8G8B8A8_UINT offered as a vertex format, the vertex buffer features check.
 """
 import pathlib
 import sys
@@ -40,6 +45,20 @@ SETS = {
         (FORMAT, "XSDK_FORMAT_R16G16F, { RED, GREEN, BLUE, ALPHA }", "XSDK_FORMAT_R16G16F, { GREEN, RED, BLUE, ALPHA }"),
         (FORMAT, "return format->texel_bytes > 4 && shift < 32;", "return format->texel_bytes > 4 && shift >= 32;"),
         ("src/physical_device.c", "flags || (linear && image->compressed) ||", "flags ||"),
+    ],
+    "2a": [
+        (FORMAT, "{ VK_FORMAT_R8G8B8A8_UNORM, XSDK_VERTEX_UBYTE4N, { W, Z, Y, X } },",
+         "{ VK_FORMAT_R8G8B8A8_UNORM, XSDK_VERTEX_UBYTE4N, { 0 } },"),
+        (FORMAT, "{ VK_FORMAT_R16G16_SNORM, XSDK_VERTEX_SHORT2N, { Y, X } },",
+         "{ VK_FORMAT_R16G16_SNORM, XSDK_VERTEX_SHORT2N, { 0 } },"),
+        (FORMAT, "{ VK_FORMAT_R16G16B16A16_UNORM, XSDK_VERTEX_USHORT4N, { Y, X, W, Z } },",
+         "{ VK_FORMAT_R16G16B16A16_UNORM, XSDK_VERTEX_USHORT4N, { 0 } },"),
+        (FORMAT, "{ VK_FORMAT_B8G8R8A8_UNORM, XSDK_VERTEX_UBYTE4N, { Y, Z, W, X } },",
+         "{ VK_FORMAT_B8G8R8A8_UNORM, XSDK_VERTEX_UBYTE4N, { W, Z, Y, X } },"),
+        (FORMAT, "{ VK_FORMAT_A8B8G8R8_SSCALED_PACK32, XSDK_VERTEX_BYTE4, { 0 } },",
+         "{ VK_FORMAT_A8B8G8R8_SSCALED_PACK32, XSDK_VERTEX_UBYTE4, { 0 } },"),
+        (FORMAT, "{ VK_FORMAT_R32_SFLOAT, XSDK_VERTEX_FLOAT1, { 0 } },",
+         "{ VK_FORMAT_R32_SFLOAT, XSDK_VERTEX_FLOAT1, { 0 } },\n\t{ VK_FORMAT_R8G8B8A8_UINT, XSDK_VERTEX_UBYTE4, { 0 } },"),
     ],
 }
 

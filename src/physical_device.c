@@ -160,22 +160,13 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 	const V4xFormat *const image = v4x_format(format);
 	if (image)
 		pFormatProperties->optimalTilingFeatures = image->features;
-	switch (format) {
-	case VK_FORMAT_D24_UNORM_S8_UINT:
-		// Sampled, its depth in red: nearest only, as filtering depth hasn't been tried on the console.
+	// Sampled, its depth in red: nearest only, as filtering depth hasn't been tried on the console.
+	if (format == VK_FORMAT_D24_UNORM_S8_UINT)
 		pFormatProperties->optimalTilingFeatures =
 			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-		break;
-	case VK_FORMAT_R32_SFLOAT:
-	case VK_FORMAT_R32G32_SFLOAT:
-	case VK_FORMAT_R32G32B32_SFLOAT:
-	case VK_FORMAT_R32G32B32A32_SFLOAT:
-	case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+	XsdkVertexElement element;
+	if (v4x_format_vertex(format, &element))
 		pFormatProperties->bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
-		break;
-	default:
-		break;
-	}
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice,

@@ -27,6 +27,8 @@ void test_triangle(const Harness *harness);
 void test_triangle_from_cache(const Harness *harness);
 // The triangle with 8-bit colours packed in a word, as Aurora decodes vertex colours (milestone 10).
 void test_packed_colour(const Harness *harness);
+// Colours and positions from vertex attributes of half floats, bytes and shorts, normalized or scaled (milestone 20).
+void test_vertex_formats(const Harness *harness);
 // Images copied in from a buffer and sampled through descriptor sets (milestone 2).
 void test_texture(const Harness *harness);
 // Every image format on xsdk's sampled, filtered, copied, blitted and cleared, each texel checked (milestone 20).

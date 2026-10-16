@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "format.h"
 #include "host.h"
 #include "objects.h"
 #include "pipeline_state.h"
@@ -40,31 +41,6 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyPipelineLayout(
 	VkDevice device, VkPipelineLayout pipelineLayout, const VkAllocationCallbacks *pAllocator)
 {
 	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(pipelineLayout));
-}
-
-static bool vertex_format(VkFormat format, uint32_t *xsdk_format)
-{
-	switch (format) {
-	case VK_FORMAT_R32_SFLOAT:
-		*xsdk_format = XSDK_VERTEX_FLOAT1;
-		return true;
-	case VK_FORMAT_R32G32_SFLOAT:
-		*xsdk_format = XSDK_VERTEX_FLOAT2;
-		return true;
-	case VK_FORMAT_R32G32B32_SFLOAT:
-		*xsdk_format = XSDK_VERTEX_FLOAT3;
-		return true;
-	case VK_FORMAT_R32G32B32A32_SFLOAT:
-		*xsdk_format = XSDK_VERTEX_FLOAT4;
-		return true;
-	// A packed word, red in its low byte, is what xsdk's ubyte4n fetches: its x from the word's bits 0-7
-	// (xsdk:docs/HARDWARE.md, milestone 17's vertex formats).
-	case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
-		*xsdk_format = XSDK_VERTEX_UBYTE4N;
-		return true;
-	default:
-		return false;
-	}
 }
 
 // The usage xost gives an input at this location (xsdk:src/xsc_resolve.c:344-346).
@@ -117,8 +93,9 @@ static VkResult lay_out_vertices(const VkPipelineVertexInputStateCreateInfo *inp
 		XsdkVertexElement *const element = &elements[i];
 		*element = (XsdkVertexElement){ .offset_bytes = attribute->offset, .stream = XSDK_VERTEX_STREAMS };
 		location_usage(attribute->location, element);
-		if (!vertex_format(attribute->format, &element->format) || attribute->offset % 4)
-			return v4x_host_unsupported("vertex formats other than 32-bit floats at 4-byte offsets");
+		if (!v4x_format_vertex(attribute->format, element) || attribute->offset % 4)
+			return v4x_host_unsupported(
+				"vertex formats docs/SUPPORT.md doesn't list, or at offsets not a multiple of 4");
 		for (uint32_t s = 0; s < pipeline->stream_count; s++) {
 			if (pipeline->streams[s].binding == attribute->binding)
 				element->stream = s;

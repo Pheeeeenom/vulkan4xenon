@@ -123,8 +123,7 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - Graphics pipelines, otherwise `VK_ERROR_FEATURE_NOT_PRESENT`:
   - a vertex and a fragment stage, entry point `main`, no specialization constants;
   - per-vertex bindings with strides a multiple of 4, up to 1020 bytes;
-  - `VK_FORMAT_R32_SFLOAT` to `R32G32B32A32_SFLOAT` and `A8B8G8R8_UNORM_PACK32` attributes at offsets a multiple of
-    4;
+  - attributes of the vertex buffer formats (Formats) at offsets a multiple of 4;
   - point lists, line lists and strips, and triangle lists, strips and fans, without primitive restart (an xsdk
     TODO);
   - one viewport and scissor, set in the pipeline or dynamic;
@@ -418,13 +417,15 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 | Format | Features |
 |---|---|
-| `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending, blit source and destination |
+| `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending, blit source and destination; buffer: vertex buffer (milestone 20) |
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, nearest filtering only, as filtering depth hasn't been tried on the console |
 | `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
 | `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering, blit source and destination |
-| `VK_FORMAT_R5G6B5_UNORM_PACK16`, `B5G6R5_UNORM_PACK16`, `A1R5G5B5_UNORM_PACK16`, `R4G4B4A4_UNORM_PACK16`, `B4G4R4A4_UNORM_PACK16`, `A2B10G10R10_UNORM_PACK32`, `A2R10G10B10_UNORM_PACK32`, `R16_SFLOAT`, `R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | optimal tiling: sampled, linear filtering, blit source and destination (milestone 20) |
+| `VK_FORMAT_R5G6B5_UNORM_PACK16`, `B5G6R5_UNORM_PACK16`, `A1R5G5B5_UNORM_PACK16`, `R4G4B4A4_UNORM_PACK16`, `B4G4R4A4_UNORM_PACK16`, `A2B10G10R10_UNORM_PACK32`, `A2R10G10B10_UNORM_PACK32`, `R16_SFLOAT` | optimal tiling: sampled, linear filtering, blit source and destination (milestone 20) |
+| `VK_FORMAT_R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | optimal tiling: sampled, linear filtering, blit source and destination; buffer: vertex buffer (milestone 20) |
 | `VK_FORMAT_BC1_RGB_UNORM_BLOCK`, `BC1_RGBA_UNORM_BLOCK`, `BC2_UNORM_BLOCK`, `BC3_UNORM_BLOCK` | optimal tiling: sampled, linear filtering (milestone 20) |
 | `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
+| `VK_FORMAT_A8B8G8R8_SNORM_PACK32`, `A8B8G8R8_USCALED_PACK32`, `A8B8G8R8_SSCALED_PACK32`, `R8G8B8A8_SNORM`, `R8G8B8A8_USCALED`, `R8G8B8A8_SSCALED`, `R16G16_UNORM`, `R16G16_SNORM`, `R16G16_USCALED`, `R16G16_SSCALED`, `R16G16B16A16_UNORM`, `R16G16B16A16_SNORM`, `R16G16B16A16_USCALED`, `R16G16B16A16_SSCALED` | buffer: vertex buffer (milestone 20) |
 
 **On xsdk:** each image format is the xsdk format that holds its bits as Vulkan does: a packed unit in the CPU's byte
 order, as xsdk's uploads take it and as Vulkan has a packed format's unit on a big-endian host, each channel where
@@ -445,6 +446,27 @@ otherwise, the fetch constant's swizzle picks them, which reads the same bits (s
 Left out, as no Xenos format holds their bits: `R5G5B5A1_UNORM_PACK16` and `B5G5R5A1_UNORM_PACK16`, whose alpha is the
 lowest bit, where Xenos's 1-5-5-5 has it highest (xenia:src/xenia/gpu/shaders/pixel_formats.xesli,
 `XeR5G5B5A1ToB5G5R5A1`).
+
+Each vertex format is the xsdk vertex format of its components' size, number and count (xsdk:include/xsdk/shader.h):
+xsdk fetches 32-bit words, each component after the first in the bits above it, as xsdk milestone 17 settled, and a
+stream's words are swapped 8 in 32 (xsdk:src/gpu_draw.c), so a packed word reads in order. Vulkan's other vertex
+formats lay their components out by address, each in the CPU's byte order, so in each word the bytes or the halves
+read in reverse, and the vertex element picks them back (`XsdkVertexElement`'s `components`, which the fetch's
+destination swizzle takes; xenia:src/xenia/gpu/ucode.h:677-688):
+
+| Vulkan | xsdk | x, y, z and w read xsdk's |
+|---|---|---|
+| `R32_SFLOAT` to `R32G32B32A32_SFLOAT` | `XSDK_VERTEX_FLOAT1` to `FLOAT4` | the same |
+| `A8B8G8R8_UNORM_PACK32`, `SNORM_PACK32`, `USCALED_PACK32`, `SSCALED_PACK32` | `XSDK_VERTEX_UBYTE4N`, `BYTE4N`, `UBYTE4`, `BYTE4` | the same |
+| `R8G8B8A8_UNORM`, `SNORM`, `USCALED`, `SSCALED` | `XSDK_VERTEX_UBYTE4N`, `BYTE4N`, `UBYTE4`, `BYTE4` | w, z, y, x |
+| `B8G8R8A8_UNORM` | `XSDK_VERTEX_UBYTE4N` | y, z, w, x |
+| `R16G16_UNORM`, `SNORM`, `USCALED`, `SSCALED`, `SFLOAT` | `XSDK_VERTEX_USHORT2N`, `SHORT2N`, `USHORT2`, `SHORT2`, `HALF2` | y, x |
+| `R16G16B16A16_UNORM`, `SNORM`, `USCALED`, `SSCALED`, `SFLOAT` | `XSDK_VERTEX_USHORT4N`, `SHORT4N`, `USHORT4`, `SHORT4`, `HALF4` | y, x, w, z |
+
+Signed normalized components read as Vulkan has them, the most negative and the next both -1, as xsdk's fetch takes
+them (xenia:src/xenia/gpu/xenos.h:761-767). Left out: the `_UINT` and `_SINT` formats, as xost's shaders take floats
+alone, no integer reaching the GPU (xost:docs/xsc.md:239); formats of 1, 2, 3 or 6 bytes, such as `R8G8_UNORM` and
+`R16G16B16_SFLOAT`, as xsdk fetches whole words; and the 10-bit types, which xsdk lacks.
 
 **Deviations:**
 - `textureCompressionBC` is false, as it promises BC4 to BC7 too, and Xenos has no BC6H or BC7

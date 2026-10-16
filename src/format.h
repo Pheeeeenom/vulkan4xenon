@@ -6,8 +6,10 @@
 
 #include <vulkan/vulkan.h>
 
-// The image formats the layer takes: what each is in xsdk, and how a texel holds its channels for the CPU's clears and
-// blits (docs/SUPPORT.md, Formats).
+#include "xsdk/shader.h"
+
+// The image and vertex formats the layer takes: what each is in xsdk, and how an image's texel holds its channels for
+// the CPU's clears and blits (docs/SUPPORT.md, Formats).
 
 enum {
 	// The most bytes an uncompressed texel takes, R16G16B16A16_SFLOAT's.
@@ -46,5 +48,8 @@ const V4xFormat *v4x_format(VkFormat format);
 void v4x_format_unpack(const V4xFormat *format, const uint8_t *texel, float rgba[4]);
 // The texel's bytes for the channels, each clamped to what the format holds and rounded to the nearest.
 void v4x_format_pack(const V4xFormat *format, const float rgba[4], uint8_t *texel);
+// Sets the element's xsdk format and the components it picks for a vertex attribute of this format; false if the
+// layer takes none.
+bool v4x_format_vertex(VkFormat format, XsdkVertexElement *element);
 
 #endif

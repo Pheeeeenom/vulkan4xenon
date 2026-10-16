@@ -2022,6 +2022,26 @@ among those (docs/SUPPORT.md, Formats).
   packing of the means and the colour. The formats' features, `textureCompressionBC` false and the refusals have a
   check each.
 
+**Step 2, built** (2026-10-16). Vertex attributes of half floats, and of bytes and shorts in `UNORM`, `SNORM`,
+`USCALED` and `SSCALED`, two or four to an attribute, on xsdk's vertex formats (src/format.c). xsdk fetches 32-bit
+words, each component after the first in the bits above it, and swaps a stream's words 8 in 32, so Vulkan's packed
+`A8B8G8R8` words read as they are. Its other formats lay their components out by address, so in each word the bytes or
+the halves come in reverse, which xsdk can't fetch as it stood.
+- **xsdk:** a vertex element names the component of its format each of x, y, z and w reads (`XsdkVertexElement`'s
+  `components`, 0 for its own), put into the fetch's destination swizzle, whose components are absolute
+  (xenia:src/xenia/gpu/ucode.h:677-688), before the padding of what the format lacks (xsdk:src/shader.c).
+- **The layer:** `R8G8B8A8` picks w, z, y, x; `B8G8R8A8_UNORM`, which Direct3D's `D3DCOLOR` is, y, z, w, x; `R16G16`
+  y, x; `R16G16B16A16` y, x, w, z (docs/SUPPORT.md, Formats). `_UINT` and `_SINT` stay refused, as xost takes floats
+  alone, and so do formats of 1, 2, 3 or 6 bytes, as xsdk fetches whole words.
+- **The checks:** xsdk_test's vertex test draws four cells more, `UBYTE4N`, `HALF2`, `SHORT4N` and `UBYTE4`, each
+  colour's components stored in another order and picked back into place, a check of their own. vulkan4xenon_test's
+  `test_vertex_formats.c` draws a cell of four squares for each of the 19 byte, short and half formats, colours from
+  an attribute 4 bytes into its vertex, each square's components apart and a signed format's most negative in one,
+  then the cell again with alpha in red, green and blue; the vertex shader scales and moves each format's range to 0
+  to 1, a check a format. Ten formats place a triangle below its square's diagonal too, which x and y swapped would
+  mirror and z and w swapped would lose, a check for all; and every format reports `VERTEX_BUFFER_BIT`, and the
+  integer formats and those under a word don't, a check.
+
 ### Milestone 21: Shader Model 3's control flow
 
 **Why.** xost turns `if` into selects in pixel shaders and refuses it in vertex shaders (xost:docs/xsc.md:63), unrolls

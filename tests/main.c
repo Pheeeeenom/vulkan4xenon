@@ -31,6 +31,7 @@ int main(void)
 		test_copies(&harness);
 		test_triangle(&harness);
 		test_packed_colour(&harness);
+		test_vertex_formats(&harness);
 		test_texture(&harness);
 		test_formats(&harness);
 		test_push_constants(&harness);

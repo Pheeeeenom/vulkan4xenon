@@ -35,7 +35,7 @@ software.
 
 | Feature | Xenos | xsdk and xost | vulkan4xenon |
 |---|---|---|---|
-| Vertex formats: half floats, bytes and shorts, normalized or not, 10-bit types | Yes (xenia:src/xenia/gpu/xenos.h:602-618) | Yes but the 10-bit types: 18 formats (xsdk:include/xsdk/shader.h) | Partial: 32-bit floats and normalized bytes |
+| Vertex formats: half floats, bytes and shorts, normalized or not, 10-bit types | Yes (xenia:src/xenia/gpu/xenos.h:602-618) | Yes but the 10-bit types: 18 formats (xsdk:include/xsdk/shader.h) | Partial: half floats, and bytes and shorts normalized or scaled, two or four to an attribute (milestone 20); no 10-bit types |
 | 16 vertex streams | Yes | Yes | Yes |
 | Points, lines, line strips, triangle lists, strips and fans | Yes | Yes | Yes |
 | 32-bit indices, draws past 65,535 | Yes, though a draw packet counts in 16 bits (xenia:src/xenia/gpu/registers.h:327) | Up to 65,535 a draw | Partial: lists are split; strips and fans that long are refused |
@@ -88,8 +88,8 @@ software.
 
 ## Where the gaps lie
 
-- **The layer alone,** as xsdk has them: the vertex formats and multisampling. DXT, which most PC ports ship, and the
-  16-bit and half-float texture formats came with milestone 20.
+- **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
+  formats, and the vertex formats came with milestone 20.
 - **xost:** `if` in vertex shaders, loops, a computed LOD and gradients, facing, vertex texture fetch and the register
   budget. Almost every ported shader meets one.
 - **xsdk, then the layer:** four targets and their formats, predicated tiling, cube and volume textures, border

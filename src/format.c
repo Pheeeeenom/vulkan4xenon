@@ -196,3 +196,58 @@ void v4x_format_pack(const V4xFormat *format, const float rgba[4], uint8_t *texe
 	}
 	write_unit(format, words, texel);
 }
+
+enum {
+	X = XSDK_COMPONENT_X,
+	Y = XSDK_COMPONENT_Y,
+	Z = XSDK_COMPONENT_Z,
+	W = XSDK_COMPONENT_W,
+};
+
+typedef struct {
+	VkFormat format;
+	uint32_t xsdk_format;
+	uint8_t components[4];
+} VertexFormat;
+
+// xsdk fetches 32-bit words, each component after the first in the bits above it (xsdk:include/xsdk/shader.h), and a
+// stream's words are swapped 8 in 32 (xsdk:src/gpu_draw.c), so a packed word reads in order. Vulkan's other formats lay
+// their components out by address, each in the CPU's byte order, so in each word the bytes, or the halves, read in
+// reverse, and the element picks them back.
+static const VertexFormat vertex_formats[] = {
+	{ VK_FORMAT_R32_SFLOAT, XSDK_VERTEX_FLOAT1, { 0 } },
+	{ VK_FORMAT_R32G32_SFLOAT, XSDK_VERTEX_FLOAT2, { 0 } },
+	{ VK_FORMAT_R32G32B32_SFLOAT, XSDK_VERTEX_FLOAT3, { 0 } },
+	{ VK_FORMAT_R32G32B32A32_SFLOAT, XSDK_VERTEX_FLOAT4, { 0 } },
+	{ VK_FORMAT_A8B8G8R8_UNORM_PACK32, XSDK_VERTEX_UBYTE4N, { 0 } },
+	{ VK_FORMAT_A8B8G8R8_SNORM_PACK32, XSDK_VERTEX_BYTE4N, { 0 } },
+	{ VK_FORMAT_A8B8G8R8_USCALED_PACK32, XSDK_VERTEX_UBYTE4, { 0 } },
+	{ VK_FORMAT_A8B8G8R8_SSCALED_PACK32, XSDK_VERTEX_BYTE4, { 0 } },
+	{ VK_FORMAT_R8G8B8A8_UNORM, XSDK_VERTEX_UBYTE4N, { W, Z, Y, X } },
+	{ VK_FORMAT_R8G8B8A8_SNORM, XSDK_VERTEX_BYTE4N, { W, Z, Y, X } },
+	{ VK_FORMAT_R8G8B8A8_USCALED, XSDK_VERTEX_UBYTE4, { W, Z, Y, X } },
+	{ VK_FORMAT_R8G8B8A8_SSCALED, XSDK_VERTEX_BYTE4, { W, Z, Y, X } },
+	{ VK_FORMAT_B8G8R8A8_UNORM, XSDK_VERTEX_UBYTE4N, { Y, Z, W, X } },
+	{ VK_FORMAT_R16G16_UNORM, XSDK_VERTEX_USHORT2N, { Y, X } },
+	{ VK_FORMAT_R16G16_SNORM, XSDK_VERTEX_SHORT2N, { Y, X } },
+	{ VK_FORMAT_R16G16_USCALED, XSDK_VERTEX_USHORT2, { Y, X } },
+	{ VK_FORMAT_R16G16_SSCALED, XSDK_VERTEX_SHORT2, { Y, X } },
+	{ VK_FORMAT_R16G16_SFLOAT, XSDK_VERTEX_HALF2, { Y, X } },
+	{ VK_FORMAT_R16G16B16A16_UNORM, XSDK_VERTEX_USHORT4N, { Y, X, W, Z } },
+	{ VK_FORMAT_R16G16B16A16_SNORM, XSDK_VERTEX_SHORT4N, { Y, X, W, Z } },
+	{ VK_FORMAT_R16G16B16A16_USCALED, XSDK_VERTEX_USHORT4, { Y, X, W, Z } },
+	{ VK_FORMAT_R16G16B16A16_SSCALED, XSDK_VERTEX_SHORT4, { Y, X, W, Z } },
+	{ VK_FORMAT_R16G16B16A16_SFLOAT, XSDK_VERTEX_HALF4, { Y, X, W, Z } },
+};
+
+bool v4x_format_vertex(VkFormat format, XsdkVertexElement *element)
+{
+	for (uint32_t i = 0; i < sizeof vertex_formats / sizeof vertex_formats[0]; i++) {
+		if (vertex_formats[i].format != format)
+			continue;
+		element->format = vertex_formats[i].xsdk_format;
+		memcpy(element->components, vertex_formats[i].components, sizeof element->components);
+		return true;
+	}
+	return false;
+}
