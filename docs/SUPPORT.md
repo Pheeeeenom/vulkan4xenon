@@ -27,7 +27,7 @@ required minimums.
 | Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkGetImageSparseMemoryRequirements`, `vkGetImageSubresourceLayout`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
 | Descriptor sets | `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`, `vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`, `vkFreeDescriptorSets`, `vkUpdateDescriptorSets` |
 | Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer`, `vkGetRenderAreaGranularity` |
-| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBias`, `vkCmdSetBlendConstants`, `vkCmdSetDepthBounds`, `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask`, `vkCmdSetStencilReference`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBias`, `vkCmdSetBlendConstants`, `vkCmdSetDepthBounds`, `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask`, `vkCmdSetStencilReference`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdClearDepthStencilImage`, `vkCmdClearAttachments`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
 | Sync and submit | `vkQueueSubmit`, `vkQueueBindSparse`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore`, `vkCreateEvent`, `vkDestroyEvent`, `vkGetEventStatus`, `vkSetEvent`, `vkResetEvent` |
 | Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
 | Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
@@ -186,6 +186,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   long as no colour and no other depth reached its tiles in between: a pass with another depth places it under the
   first where both fit above the pass's colour (How it maps). **Deviation:** otherwise its contents are undefined, and
   the layer logs that once.
+- **A depth image's clear waits for its pass:** `vkCmdClearDepthStencilImage` can't reach eDRAM, so it keeps its depth
+  and stencil on the image, and the next pass with the image as its depth attachment clears to them, if it doesn't
+  clear to its own (milestone 19).
 - **Depth to sample:** a depth image made with `VK_IMAGE_USAGE_SAMPLED_BIT` is resolved out of eDRAM into its texture
   (`xsdk_gpu_resolve_depth_texture`) when a pass stores its depth or stencil and leaves it in a layout a shader samples
   in: `finalLayout` `VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL`, `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL` or
@@ -230,15 +233,18 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - Optimal tiling is Xenos's tiled layout, with mips as xsdk milestones 15 and 16 settled.
 - Memory requirements: the texture's size, 4 KB aligned, as a fetch constant holds its address in 4 KB units. Binding
   places the texels at the memory (`xsdk_texture_attach`).
-- Depth images: `VK_FORMAT_D24_UNORM_S8_UINT`, one level, a depth attachment, and sampled if they're made to be. One
-  that isn't has a memory requirement of one page, which nothing uses. A sampled one is a tiled D24S8 texture
-  (`XSDK_FORMAT_D24S8`), both sides over 16 texels as a resolve needs, and needs its texture's memory:
+- Depth images: `VK_FORMAT_D24_UNORM_S8_UINT`, one level, a depth attachment, sampled if they're made to be, and
+  cleared by `vkCmdClearDepthStencilImage` if they're made a transfer destination. One that isn't sampled has a
+  memory requirement of one page, which nothing uses. A sampled one is a tiled D24S8 texture (`XSDK_FORMAT_D24S8`),
+  both sides over 16 texels as a resolve needs, and needs its texture's memory:
   - after a pass leaves it to be read (Render passes), each texel's word in its memory holds depth's 24 bits above
     stencil's 8, as the CPU reads it, at `tiled_index` (tests/tiled_index.h) of the texel and the 32-texel pitch.
     **Deviation:** Vulkan leaves an optimal-tiled image's memory opaque; a mapped read of it is how an app reads depth
     back without a copy that waits for the GPU;
   - sampled, it returns the depth from 0 to 1 in red, 0 in green and blue and 1 in alpha, whatever the view's aspect
-    mask.
+    mask;
+  - cleared by `vkCmdClearDepthStencilImage`, every word of its memory takes the clear on the CPU at replay, for a
+    shader to sample, as well as the next pass to load it.
 - Image views: the whole of a 2D image in its format. A component mapping sets the fetch constant's swizzle
   (`xsdk_texture_swizzle`), so a view samples any of the format's channels, 0 or 1 as each of red, green, blue and
   alpha; a swizzled view of a depth image returns `VK_ERROR_FEATURE_NOT_PRESENT`.
@@ -302,6 +308,14 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   blitted down from the base makes an image's mips.
 - `vkCmdClearColorImage` fills whole levels with the colour, as the format holds it: bytes for the 8-bit formats, the
   red float for `R32_SFLOAT`.
+- `vkCmdClearDepthStencilImage` clears depth and stencil together, as one register holds both; a range of one alone
+  fails the command buffer. Its clear waits for the next pass to use the image (Render passes), and a sampled image's
+  memory takes it at once (Images).
+- `vkCmdClearAttachments` draws each rectangle with the layer's own shaders: the scissor at the rectangle, a viewport
+  whose depth range is the clear's depth alone, so every pixel takes it, depth and stencil always passing, the
+  stencil replaced by the clear's, and the colour, depth and stencil each written only if it's cleared. The pass's
+  pipeline, viewport, scissor and state are set again for the draw after. Rectangles of one layer; more fail the
+  command buffer.
 - `vkCmdCopyBuffer` copies bytes at any offsets; `vkCmdUpdateBuffer` copies the bytes it recorded; `vkCmdFillBuffer`
   writes its word in the CPU's byte order, as the spec has it, a store a word.
 - `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for what used what they copy. One that

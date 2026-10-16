@@ -20,6 +20,8 @@ enum {
 	ROW_BELOW = 1,
 	ROW_OUT = 2,
 	ROWS = 3,
+	// D24's largest value, depth 1.
+	DEPTH_MAX = 0xFFFFFF,
 };
 
 // Rows of texels on their way between images; the queue is externally synchronized, so one set will do.
@@ -219,4 +221,15 @@ void v4x_transfer_fill_buffer(VkQueue queue, const Command *command)
 	for (uint32_t i = 0; i < command->buffer_copy.size_bytes / 4; i++)
 		words[i] = command->buffer_copy.data;
 	buffer_written(command->buffer_copy.address, command->buffer_copy.size_bytes);
+}
+
+// One word for every texel, so the texture's tiled order doesn't matter.
+void v4x_transfer_fill_depth(VkQueue queue, Image *image, float depth, uint8_t stencil)
+{
+	const uint32_t word = (uint32_t)lrintf(depth * DEPTH_MAX) << 8 | stencil;
+	wait_for_image(queue, image);
+	volatile uint32_t *const texels = image->texture.texels;
+	for (uint32_t i = 0; i < image->texture.size_bytes / 4; i++)
+		texels[i] = word;
+	image_written(queue, image);
 }

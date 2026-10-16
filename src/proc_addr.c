@@ -118,6 +118,8 @@ static const Entry entries[] = {
 	ENTRY(vkCmdCopyImage, SCOPE_DEVICE),
 	ENTRY(vkCmdBlitImage, SCOPE_DEVICE),
 	ENTRY(vkCmdClearColorImage, SCOPE_DEVICE),
+	ENTRY(vkCmdClearDepthStencilImage, SCOPE_DEVICE),
+	ENTRY(vkCmdClearAttachments, SCOPE_DEVICE),
 	ENTRY(vkCmdCopyBuffer, SCOPE_DEVICE),
 	ENTRY(vkCmdUpdateBuffer, SCOPE_DEVICE),
 	ENTRY(vkCmdFillBuffer, SCOPE_DEVICE),

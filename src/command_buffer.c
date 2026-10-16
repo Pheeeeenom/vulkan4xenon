@@ -508,6 +508,65 @@ VKAPI_ATTR void VKAPI_CALL vkCmdClearColorImage(VkCommandBuffer commandBuffer, V
 	}
 }
 
+// Depth and stencil clear together, as one register holds both (docs/SUPPORT.md, Render passes), so a range of one
+// alone is refused.
+VKAPI_ATTR void VKAPI_CALL vkCmdClearDepthStencilImage(VkCommandBuffer commandBuffer, VkImage image,
+	VkImageLayout imageLayout, const VkClearDepthStencilValue *pDepthStencil, uint32_t rangeCount,
+	const VkImageSubresourceRange *pRanges)
+{
+	(void)imageLayout;
+	Image *const object = v4x_object(image);
+	const VkImageAspectFlags both = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	for (uint32_t i = 0; i < rangeCount; i++) {
+		if (!object->is_depth || pRanges[i].aspectMask != both) {
+			commandBuffer->result = v4x_host_unsupported("depth image clears of depth or stencil alone");
+			return;
+		}
+	}
+	Command *const command = rangeCount ? record(commandBuffer, COMMAND_CLEAR_DEPTH_IMAGE) : NULL;
+	if (!command)
+		return;
+	command->depth_clear.image = object;
+	command->depth_clear.depth = pDepthStencil->depth;
+	command->depth_clear.stencil = (uint8_t)pDepthStencil->stencil;
+}
+
+// Each rectangle a draw the scissor cuts to it, of one layer, in the pass's one colour attachment and its depth.
+VKAPI_ATTR void VKAPI_CALL vkCmdClearAttachments(VkCommandBuffer commandBuffer, uint32_t attachmentCount,
+	const VkClearAttachment *pAttachments, uint32_t rectCount, const VkClearRect *pRects)
+{
+	ClearRect clear = { .clears_color = false };
+	for (uint32_t i = 0; i < attachmentCount; i++) {
+		const VkClearAttachment *const attachment = &pAttachments[i];
+		if (attachment->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
+			clear.clears_color = true;
+			memcpy(clear.color, attachment->clearValue.color.float32, sizeof clear.color);
+		}
+		if (attachment->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) {
+			clear.clears_depth = true;
+			clear.depth = attachment->clearValue.depthStencil.depth;
+		}
+		if (attachment->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT) {
+			clear.clears_stencil = true;
+			clear.stencil = attachment->clearValue.depthStencil.stencil;
+		}
+	}
+	for (uint32_t i = 0; i < rectCount; i++) {
+		if (pRects[i].baseArrayLayer || pRects[i].layerCount != 1) {
+			commandBuffer->result = v4x_host_unsupported("attachment clears of layers past the first");
+			return;
+		}
+		clear.rect = pRects[i].rect;
+		uint32_t at = 0;
+		if (!record_data(commandBuffer, &clear, sizeof clear, &at))
+			return;
+		Command *const command = record(commandBuffer, COMMAND_CLEAR_ATTACHMENTS);
+		if (!command)
+			return;
+		command->state_at = at;
+	}
+}
+
 static void record_buffer_copy(VkCommandBuffer commandBuffer, CommandType type, volatile const uint8_t *source,
 	const Buffer *destination, VkDeviceSize offset, uint32_t size_bytes, uint32_t data)
 {

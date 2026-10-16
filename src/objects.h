@@ -74,10 +74,13 @@ typedef struct {
 	uint32_t tile;
 } EdramPart;
 
-// The layer's own shaders and state for drawing an image back into eDRAM.
+// The layer's own shaders and state for drawing an image back into eDRAM, and for vkCmdClearAttachments's rectangles.
 typedef struct {
 	XsdkShader vertex;
 	XsdkShader pixel;
+	// The clear's pixel shader, and the float constant its colour goes in.
+	XsdkShader clear;
+	uint32_t clear_constant;
 	volatile uint32_t *vertices;
 	uint32_t vertices_address;
 	uint32_t texture_slot;
@@ -86,6 +89,17 @@ typedef struct {
 	XsdkRasterState raster;
 	XsdkDepthStencilState depth_stencil;
 } Blit;
+
+// What vkCmdClearAttachments clears in one rectangle, kept in the command buffer's data.
+typedef struct {
+	VkRect2D rect;
+	float color[4];
+	float depth;
+	uint32_t stencil;
+	bool clears_color;
+	bool clears_depth;
+	bool clears_stencil;
+} ClearRect;
 
 enum {
 	// The fences of this many submissions are kept, for copies into images they used.
@@ -160,6 +174,11 @@ typedef struct Image {
 	// The submission that last sampled it, resolved into it or drew it back into eDRAM, so a copy waits for that
 	// one alone; 0 for none.
 	uint32_t used_serial;
+	// A depth image's depth lives in eDRAM, so vkCmdClearDepthStencilImage's values wait here for the next pass that
+	// loads it, which clears to them instead.
+	bool clear_pending;
+	float pending_depth;
+	uint8_t pending_stencil;
 } Image;
 
 typedef struct {
@@ -304,6 +323,8 @@ typedef enum {
 	COMMAND_SET_STENCIL,
 	COMMAND_SET_DEPTH_BIAS,
 	COMMAND_SET_BLEND_CONSTANTS,
+	COMMAND_CLEAR_ATTACHMENTS,
+	COMMAND_CLEAR_DEPTH_IMAGE,
 } CommandType;
 
 // The dynamic state a command buffer sets past the viewport and scissor, as it last set it in a replay.
@@ -393,7 +414,12 @@ typedef struct {
 			float slope;
 		} depth_bias;
 		float blend_constants[4];
-		// A VkViewport or VkRect2D in the command buffer's data.
+		struct {
+			Image *image;
+			float depth;
+			uint8_t stencil;
+		} depth_clear;
+		// A VkViewport, VkRect2D or ClearRect in the command buffer's data.
 		uint32_t state_at;
 		struct {
 			uint32_t address;

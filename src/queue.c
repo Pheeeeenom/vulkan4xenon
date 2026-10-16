@@ -58,6 +58,8 @@ typedef struct {
 	uint32_t depth_part;
 	uint32_t depth_tile;
 	uint32_t clear_argb;
+	// The pass clears its depth: its load op says so, or its image's vkCmdClearDepthStencilImage waits (Image).
+	bool clears_depth;
 	float clear_depth;
 	uint32_t clear_stencil;
 	VertexBinding bindings[V4X_MAX_VERTEX_BINDINGS];
@@ -348,7 +350,7 @@ static void place_depth(VkQueue queue, Replay *replay)
 	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS && render_pass->has_depth; i++) {
 		const EdramPart *const depth = &queue->depths[i];
 		if ((depth->contents == EDRAM_IMAGE && depth->image == framebuffer->depth) ||
-			(part == V4X_EDRAM_DEPTHS && render_pass->clears_depth && depth_ready(depth, replay)))
+			(part == V4X_EDRAM_DEPTHS && replay->clears_depth && depth_ready(depth, replay)))
 			part = i;
 	}
 	const uint32_t tile = part < V4X_EDRAM_DEPTHS ? queue->depths[part].tile
@@ -389,7 +391,7 @@ static void begin_render_pass(VkQueue queue, Replay *replay)
 	const Framebuffer *const framebuffer = replay->framebuffer;
 	place_depth(queue, replay);
 	set_target(replay);
-	if (render_pass->has_depth && render_pass->loads_depth)
+	if (render_pass->has_depth && render_pass->loads_depth && !replay->clears_depth)
 		check_depth_kept(queue, replay);
 	if (!color_ready(&queue->color, replay) && render_pass->load_op == VK_ATTACHMENT_LOAD_OP_LOAD) {
 		v4x_blit_draw(&queue->blit, &framebuffer->attachment->texture, framebuffer->width, framebuffer->height);
@@ -398,7 +400,7 @@ static void begin_render_pass(VkQueue queue, Replay *replay)
 	}
 	EdramPart *const depth = &queue->depths[replay->depth_part];
 	const bool clear_color = !color_ready(&queue->color, replay);
-	const bool clear_depth = render_pass->clears_depth && !depth_ready(depth, replay);
+	const bool clear_depth = replay->clears_depth && !depth_ready(depth, replay);
 	if (clear_color || clear_depth) {
 		if (clear_depth)
 			set_depth_clear(queue, replay->clear_depth, replay->clear_stencil);
@@ -615,7 +617,36 @@ static void begin_command(VkQueue queue, Replay *replay, const Command *command)
 	replay->clear_argb = command->begin.clear_argb;
 	replay->clear_depth = command->begin.clear_depth;
 	replay->clear_stencil = command->begin.clear_stencil;
+	replay->clears_depth = replay->render_pass->clears_depth;
+	Image *const depth = replay->render_pass->has_depth ? replay->framebuffer->depth : NULL;
+	if (depth && depth->clear_pending && !replay->clears_depth) {
+		replay->clears_depth = true;
+		replay->clear_depth = depth->pending_depth;
+		replay->clear_stencil = depth->pending_stencil;
+	}
+	if (depth)
+		depth->clear_pending = false;
 	begin_render_pass(queue, replay);
+}
+
+// A depth image's depth lives in eDRAM, so its clear waits for the next pass to load it; a sampled one's texture
+// takes the clear now too, for a shader to sample.
+static void clear_depth_image(VkQueue queue, const Command *command)
+{
+	Image *const image = command->depth_clear.image;
+	image->clear_pending = true;
+	image->pending_depth = command->depth_clear.depth;
+	image->pending_stencil = command->depth_clear.stencil;
+	if (image->is_sampled_depth)
+		v4x_transfer_fill_depth(queue, image, command->depth_clear.depth, command->depth_clear.stencil);
+}
+
+// The clear draws with the layer's own shaders and state, and its rectangle in stream 0, so they're set again after.
+static void clear_attachments(VkQueue queue, Replay *replay, const ClearRect *clear)
+{
+	v4x_blit_clear(&queue->blit, clear, replay->framebuffer->width, replay->framebuffer->height);
+	replay->pipeline_dirty = true;
+	replay->pointed_streams[0] = (VertexBinding){ 0 };
 }
 
 static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay, uint32_t index)
@@ -684,6 +715,12 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 	case COMMAND_SET_DEPTH_BIAS:
 	case COMMAND_SET_BLEND_CONSTANTS:
 		set_dynamic(replay, command);
+		break;
+	case COMMAND_CLEAR_ATTACHMENTS:
+		clear_attachments(queue, replay, (const ClearRect *)(buffer->data + command->state_at));
+		break;
+	case COMMAND_CLEAR_DEPTH_IMAGE:
+		clear_depth_image(queue, command);
 		break;
 	case COMMAND_BIND_INDEX_BUFFER:
 		replay->index_address = command->index_buffer.address;

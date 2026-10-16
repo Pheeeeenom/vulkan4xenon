@@ -1871,6 +1871,29 @@ depth bias clamp is. xsdk gained the constant blend factors and `xsdk_gpu_set_bl
 
 Step 3 is done.
 
+**Step 4 on the console** (2026-10-16; `results/2026-10-16-milestone-19-step-4/`). `vkCmdClearAttachments` draws each
+rectangle with the layer's own shaders, as it draws an image back: the rectangle it has for that over the whole target,
+the scissor at the clear's rectangle, a new `clear.frag` writing the colour from a push constant, and a viewport whose
+depth range is the clear's depth alone, so every pixel takes it; depth and stencil always pass, the stencil taking the
+clear's as its reference, and each of colour, depth and stencil is written only if it's cleared. The pass's pipeline is
+set again for the next draw. `vkCmdClearDepthStencilImage` keeps its values on the image, and the next pass with it as
+its depth attachment clears to them unless it clears to its own; a sampled image's memory takes the clear on the CPU at
+once. Depth images take `TRANSFER_DST` for it, and a range of depth or stencil alone is refused.
+- **The checks:** vulkan4xenon_test's `test_clears.c` clears a depth image to 0.2 and stencil 1 each frame, then draws
+  in a pass loading it: a quad behind 0.2 hides and one in front shows, a quad testing stencil equal to 1 shows, and
+  the pass undoes both at its end, so each frame finds them by the image's clear alone. In the same pass it clears a
+  rectangle of colour inside a red quad, then draws with the pipeline from before the clear; a rectangle of depth to
+  0.9 between a near quad and a farther one; and a rectangle of stencil to 2 under a quad testing equal to it. A
+  sampled depth image cleared outside a pass is read back through its memory.
+- **On the console:** vulkan4xenon_test passed 170 of 170, twice, its 9 checks new. Broken on purpose, in four builds
+  (`breaks.py`): the colour, depth and stencil clears each writing nothing, the sampled image left unfilled, a depth
+  range alone recorded and `vkCmdClearAttachments` missing from the names failed those six checks
+  (`vulkan4xenon_test_broken_a.log`); the image's clear ignored failed its check and the depth cell's, which counts
+  on it (`_b`); the pipeline left unset after a clear failed the colour cell and the depth cell's next draw (`_c`);
+  depth images refused `TRANSFER_DST` failed the scene's making and the checks after it (`_d`).
+
+Step 4 is done.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
