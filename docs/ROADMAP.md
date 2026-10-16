@@ -2217,6 +2217,20 @@ minimum LOD. The builder keeps each fetch in its order with the setters, and the
   in the bias field, and at 6.25, through the register. Each band should show its level's colour whichever way the GPU
   rounds a point-filtered LOD; each strip is a check of its own.
 
+**Step 2: `gl_FrontFacing`.** The pixel parameters' x is the pixel's column with its sign set on a back face
+(xenia:src/xenia/gpu/registers.h:224-227; XenosRecomp:XenosRecomp/shader_recompiler.cpp:1465-1467), so xost turns the
+parameters on for it as for `gl_FragCoord`, and makes it 1.0 or 0.0 by `rcpc` of x, which keeps column 0's -0.0
+negative, then `sge` against its negation (xost:docs/xsc.md, "Facing"). xost took the variable for an interpolator
+before. As GLSL takes it as a bool, a pixel shader's if/else or discard on a bool value rather than a comparison now
+lowers on the value: `cndgt` for the if/else, `kill_gt` or `kill_eq` against its negation for the discard. Which face
+the sign marks is the console's to show; Xenia gives it the host's front face, set from the same PA_SU_SC_MODE_CNTL
+face that culling reads (xenia:src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc:625).
+- **The checks:** vulkan4xenon_test's `test_facing.c` draws six quads, clockwise and counter-clockwise as they look,
+  nothing culled: two under a counter-clockwise frontFace and two under a clockwise one, each the push constants' colour
+  where gl_FrontFacing holds and blue where it doesn't, the pixel parameters past an interpolator; and two through a
+  discard on !gl_FrontFacing, with no interpolator, so the parameters are in r0. A check for each pair: the front face
+  shows its colour and the back face blue, or the clear colour where it's discarded.
+
 ### Milestone 23: cube and volume textures, and the rest of sampling
 
 **Why.** Skies and reflections sample cube maps, and a port's samplers clamp to a border, mirror once, or compare
