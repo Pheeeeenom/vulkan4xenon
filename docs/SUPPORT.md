@@ -83,6 +83,9 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
   deviation.
 - The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, data-dependent branches inside loops raise an
   error, and 16 registers a pixel shader.
+- A fragment shader may write `gl_FragDepth` once, outside any `if`/`else` (xost:docs/xsc.md). Its draws skip no
+  hidden pixels early, as xsdk turns hierarchical depth off for them (xsdk:docs/HARDWARE.md, "A pixel shader's
+  depth").
 - Vertex input location n feeds the usage xost gives it: 0 position, 1 colour, 2 and up texture coordinates
   (xsdk:src/xsc_resolve.c:344-346).
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's

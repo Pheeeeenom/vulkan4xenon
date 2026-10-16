@@ -1707,6 +1707,40 @@ under any bias, as the console shows.
 
 Step 2 is done.
 
+**Step 3 on the console** (2026-10-16; `results/2026-10-16-milestone-18-step-3/`). xost exports `gl_FragDepth`,
+stored once outside any if/else, to export 61's x, and gives the shader's record ps_export_mode 3: a probe found that
+with libxenon's 2 such a shader drew nothing (xsdk:docs/HARDWARE.md, "A pixel shader's depth"). xsdk tells a draw that
+writes depth by that bit and leaves hierarchical depth off for it, as the buffer tests a polygon's depth: with it on,
+921,438 of 921,600 pixels hid a draw writing nearer depth. The layer needed nothing for it but its docs and tests. The
+generator (aurora-melee:lib/vulkan4xenon/glsl.cpp, `z_texture`) writes the WGSL's Z texture after the colour: the last
+stage's texel through its swap table, U24's three bytes or U8's first as GX's 24-bit z, replacing the polygon's depth
+or added to it, with the bias, wrapped to 24 bits, reversed. In floats, which hold the sum's integers exactly only to
+2^24, so a sum past it may be off by its lowest bits. The polygon's depth comes from the clip z and w fog already
+passed, now `clip_zw`; the stage's texture is sampled where its colour reads none; compare-before-texture and U16 get
+no depth, as the WGSL's `ztex_source_stage` leaves them.
+- **On the PC:** vulkan4xenon_glsl_tests passed 47 of 47; check_glsl_math.py 33 of 33, four Z texture cases new, U24
+  and U8, replace and add, one wrapping, with 20 of 20 breaks caught, 6 new; the coverage sweep's 6,648 programs all
+  lower, 411 writing depth; xost's suite passed 24 of 24, with the fix below, xcomb's parity test run on Windows as
+  it needs MSVC (`xost_tests_full.txt`), its new `test_frag_depth.py` catching 4 of 4 breaks.
+- **On the console:** vulkan4xenon_test's points draw the four Z textures, map 0 sampled at a texel's middle so its
+  bytes are whole, each writing its depth always; over its middle a quad 32 of D24's steps below that depth tests
+  greater-than and one above less-than, so either shows only if the point wrote a depth outside them. vulkan4xenon_test
+  passed 127 of 127, twice. Broken on purpose, the bundle built by an xost leaving the export mode at 2, or the programs
+  writing depth unreversed, the four Z textures failed and the other 123 passed. xsdk_test passed 316 of 316 with the
+  user at the pad (xsdk:results/2026-10-16-depth-export/). Melee's attract mode and matches logged no "no GLSL yet"
+  (`melee.log`).
+- **Found on the way, in Melee:** its fighters drew with spikes, as they had before this milestone. Two frames dumped
+  from a diagnostic build, replayed through the layer alone, put it on vertex shaders that fetch five attributes in one
+  exec: xost marked only four fetches in the exec's vertex cache bits, and an unmarked fifth fetched wrong. Marked,
+  every draw of both frames stayed in place and Melee's fighters drew whole (xsdk:docs/HARDWARE.md, "A fifth vertex
+  fetch"; its `results/2026-10-16-fifth-vertex-fetch/`). The replay also showed Xenos drawing past a viewport as far as
+  the scissor, which the layer now stops at the viewport (docs/SUPPORT.md, Pipelines). Two of Dusklight's 47 vertex
+  programs fetched five attributes; its pack, rebuilt, changed by that one bit in each. vulkan4xenon_test passed 127 of
+  127 twice with both fixes (`vulkan4xenon_test_fixes.log`, `vulkan4xenon_test_fixes_2.log`), xsdk_test 316 of 316,
+  and Dusklight's title scene ran at 29.3 to 30 fps, with nothing refused (`dusklight.log`).
+
+Step 3 is done.
+
 ### The Guide, through xsdk (2026-10-15)
 
 xsdk's milestone 37 shows the Guide: `xsdk_present_end` hands each frame to the kernel's swap, and while the Guide is

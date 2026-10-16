@@ -1,0 +1,7 @@
+  PASS vk_frag_depth.frag, its colour: [0.1875, 0.375, 0.5625, 0.75]
+  PASS vk_frag_depth.frag, its depth in oDepth.x: [0.25]
+  PASS vk_frag_depth.frag: its depth export writes x alone
+  PASS vk_frag_depth.frag: ps_export_mode 3
+  PASS vk_composite_extract.frag: ps_export_mode 2
+  PASS vk_frag_depth_branch.frag refused: gl_FragDepth stored inside an if/else
+OK

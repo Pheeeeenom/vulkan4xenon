@@ -1,0 +1,22 @@
+xost's suite, 2026-10-16, with milestone 18 step 3's xost changes and the six-bit vertex cache mask.
+
+WSL (xsdk build/host/libxsc.so), each tests/test_*.py: 23 passed; test_xcomb_parity.py needs MSVC, so it ran on
+Windows (Python 3.13, Visual Studio 18 Community's cl):
+
+built harness.exe (MSVC /W4 /WX /O2)
+  bank[0] modulate: OK (212 B)
+  bank[1] tex_prim: OK (308 B)
+  bank[2] lerp_pe_t: OK (372 B)
+  bank[3] decal: OK (252 B)
+  bank[4] shade: OK (196 B)
+  bank[5] inv_tex_p: OK (320 B)
+  bank[6] multitex: OK (280 B)
+  bank[7] lerp2_p: OK (388 B)
+  bank[8] add_glow: OK (332 B)
+BANK parity: 9/9
+fuzz (main, A-B shape restricted): 300/300
+fuzz (incl. A==ZERO subtract shape): 60/60 (0 rejected identically on both sides)
+max container size observed: 524 B (XCOMB_MAX_CONTAINER = 1024)
+ALL GREEN: 9 bank + 360 fuzz cases byte-identical
+
+24 of 24.

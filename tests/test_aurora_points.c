@@ -9,7 +9,9 @@
 
 // Aurora's GLSL for GX configs (milestone 18), each drawn as a GX point, its quad's six corners from one vertex, so
 // every interpolant holds that vertex's value across it, and checked at the point's middle against the colour
-// tools/gen_aurora_points.py worked out from Aurora's reference of its WGSL.
+// tools/gen_aurora_points.py worked out from Aurora's reference of its WGSL. A Z texture's point writes depth, always;
+// over its middle a quad a little below that depth tests greater-than and one a little above less-than, so either
+// shows only if the point wrote a depth outside the two.
 
 enum {
 	CASES = sizeof aurora_points / sizeof aurora_points[0],
@@ -24,18 +26,33 @@ enum {
 	TOLERANCE = 2,
 	PROBES = 2,
 	SET_COUNT = 2,
+	DEPTH_QUAD_WIDTH = 8,
 };
 
-// A dark grey: 24 in each channel.
-static const VkClearValue clear = { .color = { .float32 = { 24.0f / 255, 24.0f / 255, 24.0f / 255, 1.0f } } };
+// D24's steps the depth may be off by: the program's floats hold the depth's sum to a few (Aurora's
+// lib/vulkan4xenon/glsl.cpp, z_texture), and the depth and the quads' each round once.
+static const float depth_margin = 32.0f / 0xFFFFFF;
+
+// A dark grey: 24 in each channel, and depth 0.
+static const VkClearValue clears[2] = { { .color = { .float32 = { 24.0f / 255, 24.0f / 255, 24.0f / 255, 1.0f } } },
+	{ .depthStencil = { 0.0f, 0 } } };
 static const Rgb clear_rgb = { 24, 24, 24 };
 
 // Map 0's texels, too big for a stack: gen_aurora_points.py's wave in red and green.
 static uint8_t gradient[IMAGE_BYTES];
 
 typedef struct {
+	VkImage depth;
+	VkDeviceMemory depth_memory;
+	VkImageView depth_view;
 	VkRenderPass render_pass;
 	VkFramebuffer framebuffers[HARNESS_MAX_IMAGES];
+	// The quads over a Z texture's point: below its depth testing greater-than, above it less-than.
+	VkPipelineLayout quad_layout;
+	VkPipeline below;
+	VkPipeline above;
+	VkBuffer quad;
+	VkDeviceMemory quad_memory;
 	VkDescriptorSetLayout set_layouts[SET_COUNT];
 	VkPipelineLayout layout;
 	VkImage image;
@@ -203,6 +220,46 @@ static bool upload(const Harness *harness, const Shared *shared)
 	return ok;
 }
 
+static VkResult create_depth_quad(
+	const Harness *harness, const Shared *shared, VkCompareOp compare, VkPipeline *pipeline)
+{
+	const VkPipelineDepthStencilStateCreateInfo depth_stencil = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+		.depthTestEnable = VK_TRUE,
+		.depthCompareOp = compare,
+	};
+	const HarnessPipeline spec = {
+		.vertex_spirv = push_vert_spirv,
+		.vertex_bytes = PUSH_VERT_SPIRV_BYTES,
+		.fragment_spirv = push_frag_spirv,
+		.fragment_bytes = PUSH_FRAG_SPIRV_BYTES,
+		.bindings = &harness_quad_binding,
+		.binding_count = 1,
+		.attributes = &harness_quad_attribute,
+		.attribute_count = 1,
+		.layout = shared->quad_layout,
+		.depth_stencil = &depth_stencil,
+	};
+	return harness_pipeline(harness, &spec, shared->render_pass, pipeline);
+}
+
+// The depth attachment, its pass, and the quads over a Z texture's point.
+static VkResult create_depth(const Harness *harness, Shared *shared)
+{
+	VkResult result = harness_depth_image(harness, &shared->depth, &shared->depth_memory, &shared->depth_view);
+	if (result == VK_SUCCESS)
+		result = harness_depth_render_pass(harness, shared->depth_view, &shared->render_pass, shared->framebuffers);
+	if (result == VK_SUCCESS)
+		result = harness_push_layout(harness, &shared->quad_layout);
+	if (result == VK_SUCCESS)
+		result = create_depth_quad(harness, shared, VK_COMPARE_OP_GREATER, &shared->below);
+	if (result == VK_SUCCESS)
+		result = create_depth_quad(harness, shared, VK_COMPARE_OP_LESS, &shared->above);
+	if (result == VK_SUCCESS)
+		result = harness_quad_buffer(harness, &shared->quad, &shared->quad_memory);
+	return result;
+}
+
 // The point's six corners, each the one vertex with its corner: right when odd, lower from 2, as Aurora's
 // write_corners orders them; the attributes packed in their order.
 static VkResult create_vertices(const Harness *harness, const AuroraPoint *point, Case *c,
@@ -249,6 +306,12 @@ static VkResult create_case(const Harness *harness, const Shared *shared, const 
 	if (result == VK_SUCCESS)
 		result = create_vertices(harness, point, c, attributes, &stride);
 	const VkVertexInputBindingDescription binding = { 0, stride, VK_VERTEX_INPUT_RATE_VERTEX };
+	const VkPipelineDepthStencilStateCreateInfo writes_depth = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+		.depthTestEnable = VK_TRUE,
+		.depthWriteEnable = VK_TRUE,
+		.depthCompareOp = VK_COMPARE_OP_ALWAYS,
+	};
 	const HarnessPipeline spec = {
 		.vertex_spirv = point->vertex_spirv,
 		.vertex_bytes = point->vertex_bytes,
@@ -259,6 +322,7 @@ static VkResult create_case(const Harness *harness, const Shared *shared, const 
 		.attributes = attributes,
 		.attribute_count = point->attribute_count,
 		.layout = shared->layout,
+		.depth_stencil = point->depth >= 0.0f ? &writes_depth : NULL,
 	};
 	if (result == VK_SUCCESS)
 		result = harness_pipeline(harness, &spec, shared->render_pass, &c->pipeline);
@@ -295,6 +359,22 @@ static VkResult create_case(const Harness *harness, const Shared *shared, const 
 	return VK_SUCCESS;
 }
 
+static void record_depth_quads(const Shared *shared, const AuroraPoint *point, VkCommandBuffer commands)
+{
+	const float x = (float)point->x - DEPTH_QUAD_WIDTH / 2;
+	const float y = (float)point->y - DEPTH_QUAD_WIDTH / 2;
+	const HarnessQuad below = { x, y, DEPTH_QUAD_WIDTH, DEPTH_QUAD_WIDTH, point->depth - depth_margin,
+		{ 1.0f, 0.0f, 1.0f, 1.0f }, false };
+	const HarnessQuad above = { x, y, DEPTH_QUAD_WIDTH, DEPTH_QUAD_WIDTH, point->depth + depth_margin,
+		{ 0.0f, 1.0f, 1.0f, 1.0f }, false };
+	const VkDeviceSize offset = 0;
+	vkCmdBindVertexBuffers(commands, 0, 1, &shared->quad, &offset);
+	vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, shared->below);
+	harness_push_quad(commands, shared->quad_layout, &below);
+	vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, shared->above);
+	harness_push_quad(commands, shared->quad_layout, &above);
+}
+
 static VkResult record(const Harness *harness, const Shared *shared, const AuroraPoint *point, Case *c)
 {
 	VkResult result = harness_command_buffers(harness, c->commands);
@@ -304,8 +384,8 @@ static VkResult record(const Harness *harness, const Shared *shared, const Auror
 			.renderPass = shared->render_pass,
 			.framebuffer = shared->framebuffers[i],
 			.renderArea = { { 0, 0 }, { HARNESS_WIDTH, HARNESS_HEIGHT } },
-			.clearValueCount = 1,
-			.pClearValues = &clear,
+			.clearValueCount = 2,
+			.pClearValues = clears,
 		};
 		const VkDeviceSize offset = 0;
 		const VkCommandBuffer commands = c->commands[i];
@@ -316,6 +396,8 @@ static VkResult record(const Harness *harness, const Shared *shared, const Auror
 		vkCmdPushConstants(commands, shared->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, PUSH_BYTES, point->push);
 		vkCmdBindVertexBuffers(commands, 0, 1, &c->vertices, &offset);
 		vkCmdDraw(commands, AURORA_CORNERS, 1, 0, 0);
+		if (point->depth >= 0.0f)
+			record_depth_quads(shared, point, commands);
 		vkCmdEndRenderPass(commands);
 		result = vkEndCommandBuffer(commands);
 	}
@@ -350,17 +432,25 @@ static void destroy(const Harness *harness, Shared *shared)
 	vkDestroyPipelineLayout(device, shared->layout, NULL);
 	for (uint32_t i = 0; i < SET_COUNT; i++)
 		vkDestroyDescriptorSetLayout(device, shared->set_layouts[i], NULL);
+	vkDestroyBuffer(device, shared->quad, NULL);
+	vkFreeMemory(device, shared->quad_memory, NULL);
+	vkDestroyPipeline(device, shared->above, NULL);
+	vkDestroyPipeline(device, shared->below, NULL);
+	vkDestroyPipelineLayout(device, shared->quad_layout, NULL);
 	harness_destroy_render_pass(harness, shared->render_pass, shared->framebuffers);
+	vkDestroyImageView(device, shared->depth_view, NULL);
+	vkDestroyImage(device, shared->depth, NULL);
+	vkFreeMemory(device, shared->depth_memory, NULL);
 }
 
 void test_aurora_points(const Harness *harness)
 {
 	Shared shared = { .render_pass = VK_NULL_HANDLE };
-	bool ok = harness_ok("render pass", harness_render_pass(harness, &shared.render_pass, shared.framebuffers));
+	bool ok = harness_ok("depth and its pass", create_depth(harness, &shared));
 	ok = ok && harness_ok("layouts", create_layout(harness, &shared));
 	ok = ok && harness_ok("map 0", create_map(harness, &shared));
 	ok = ok && upload(harness, &shared);
-	check("aurora points: the layouts, map 0's gradient and its sampler made", ok);
+	check("aurora points: the depth, layouts, map 0's gradient and its sampler made", ok);
 	for (uint32_t p = 0; ok && harness->swapchain && p < CASES; p++) {
 		const AuroraPoint *const point = &aurora_points[p];
 		Case c = { .pipeline = VK_NULL_HANDLE };
@@ -378,6 +468,8 @@ void test_aurora_points(const Harness *harness)
 		strcpy(name, "aurora points: ");
 		strcat(name, point->name);
 		strcat(name, ": the point's middle holds the WGSL's colour");
+		if (point->depth >= 0.0f)
+			strcat(name, " and depth");
 		check(name, built && frames == FRAMES && misses == 0);
 		destroy_case(harness, &c);
 	}

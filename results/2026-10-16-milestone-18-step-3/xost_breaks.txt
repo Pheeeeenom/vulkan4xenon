@@ -1,0 +1,5 @@
+caught: gl_FragDepth resolved (tests/test_frag_depth.py):   FAIL vk_frag_depth.frag exported no depth
+caught: export mode 3 for a depth (tests/test_frag_depth.py):   FAIL vk_frag_depth.frag: ps_export_mode 2, not 3
+caught: the refusal inside an if/else (tests/test_frag_depth.py):   FAIL vk_frag_depth_branch.frag lowered
+caught: oDepth's x alone (tests/test_frag_depth.py):   FAIL vk_frag_depth.frag: its depth export writes more than x
+4 of 4 breaks caught

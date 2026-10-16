@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 CASES = ["emboss", "texgen_binormal", "texgen_tangent", "texgen_prior", "texgen_prior_inline", "texgen_zero",
-         "texgen_q_zero", "attr_defaults"]
+         "texgen_q_zero", "attr_defaults", "ztex_replace_u24", "ztex_replace_u8", "ztex_add_u24", "ztex_add_u8"]
 WIDTH, HEIGHT = 1280, 720
 POINT_WIDTH = 24.0          # GX's point width, here in pixels: the viewport the game sees is the screen
 # Map 0, sampled bilinear and repeating: GRADIENT texels each way, texel (x, y) holding wave(x) in red, wave(y) in
@@ -29,6 +29,8 @@ GRADIENT_BLUE = 128
 BLOCKS = 5                  # set 0's uniform pieces, View to Material (Aurora's lib/vulkan4xenon/glsl.hpp)
 PUSH_VEC4S = 8              # pos_mtx[3], nrm_mtx[3], line_mask[2]
 CORNER_ORDER = [0, 1, 3, 3, 2, 0]   # glsl.cpp's write_corners: corner k is right when odd, lower from 2
+# The Z textures sample texel (40, 200)'s middle, so its bytes are whole: wave(40), wave(200) and GRADIENT_BLUE.
+ZTEX_UV = [(40 + 0.5) / GRADIENT, (200 + 0.5) / GRADIENT]
 
 
 def wave(x):
@@ -72,7 +74,9 @@ def main():
              "\tconst float *blocks[AURORA_BLOCKS];", "\tuint32_t block_vec4s[AURORA_BLOCKS];",
              "\tfloat push[AURORA_PUSH_VEC4S][4];", "\tAuroraAttribute attributes[AURORA_MAX_ATTRIBUTES];",
              "\tuint32_t attribute_count;", "\t// The point's middle pixel and the colour drawn there.",
-             "\tuint32_t x;", "\tuint32_t y;", "\tRgb want;", "} AuroraPoint;", ""]
+             "\tuint32_t x;", "\tuint32_t y;", "\tRgb want;",
+             "\t// The depth a Z texture writes over the point, or -1 for none.", "\tfloat depth;", "} AuroraPoint;",
+             ""]
     table = []
     for case in CASES:
         texts = {}
@@ -103,12 +107,12 @@ def main():
                     rows += [list(data[i]) + [0.0] * (4 - len(data[i])) if i < len(data) else [0.0] * 4
                              for i in range(count)]
             blocks.append(rows)
-        push = [list(r) for r in ref.pos_matrix(ref.CURRENT_PNMTX)] + [list(r) for r in ref.nrm_matrix(ref.CURRENT_PNMTX)]
-        push += [[0.0] * 4, [0.0] * 4]
+        push = [list(r) for r in ref.pos_matrix(ref.CURRENT_PNMTX)]
+        push += [list(r) for r in ref.nrm_matrix(ref.CURRENT_PNMTX)] + [[0.0] * 4, [0.0] * 4]
 
         position = {"texgen_zero": [0.0, 0.0, 0.0], "attr_defaults": [9.0, 9.0, 9.0]}.get(case, ref.POSITION)
         inputs = {"in_pos": position, "in_nrm": ref.NORMAL, "in_binrm": ref.BINORMAL, "in_tangent": ref.TANGENT,
-                  "in_tex0_uv": ref.TEX0}
+                  "in_tex0_uv": ZTEX_UV if case in ref.ZTEX else ref.TEX0}
         attributes = []
         for location, kind, name in re.findall(r"layout\(location = (\d+)\) in (\w+) (\w+);", texts["vert"]):
             components = {"float": 1, "vec2": 2, "vec3": 3}[kind]
@@ -123,13 +127,14 @@ def main():
         clip = [ref.dot(row, mv + [1.0]) for row in ref.PROJ]
         x = (clip[0] / clip[3] * 0.5 + 0.5) * WIDTH
         y = (0.5 - 0.5 * clip[1] / clip[3]) * HEIGHT
-        uvs = ref.ref_texgen_uvs(case)
+        uvs = [ZTEX_UV] if case in ref.ZTEX else ref.ref_texgen_uvs(case)
         rasterized = ref.CHANNEL_COLORS[1][:3]
         if case == "texgen_prior":
             color = ref.mul(gradient(*uvs[1]), gradient(*uvs[0]))
         else:
             color = ref.mul(gradient(*uvs[0]), rasterized)
         want = [int(round(ref.clamp(c) * 255.0)) for c in color]
+        depth = ref.ref_ztex(*ref.ZTEX[case], clip, gradient(*ZTEX_UV)) if case in ref.ZTEX else -1.0
 
         prefix = f"aurora_{case}"
         for binding, rows in enumerate(blocks):
@@ -147,9 +152,9 @@ def main():
         table.append(f"\t{{ \"{case}\", {prefix}_vert_spirv, {prefix.upper()}_VERT_SPIRV_BYTES, {prefix}_frag_spirv, "
                      f"{prefix.upper()}_FRAG_SPIRV_BYTES, {{ {block_refs} }}, {{ {block_counts} }}, {{ {push_text} }}, "
                      f"{{ {attribute_text} }}, {len(attributes)}, {int(x)}, {int(y)}, "
-                     f"{{ {want[0]}, {want[1]}, {want[2]} }} }},")
+                     f"{{ {want[0]}, {want[1]}, {want[2]} }}, {depth!r}f }},")
         print(f"{case}: point at ({int(x)}, {int(y)}), sampled at {[[round(c, 4) for c in uv] for uv in uvs]}, "
-              f"wants {want}")
+              f"wants {want}" + (f", depth {depth!r}" if depth >= 0.0 else ""))
     lines += ["static const AuroraPoint aurora_points[] = {"] + table + ["};", "", "#endif", ""]
     (root / "tests" / "aurora_points.h").write_text("\n".join(lines))
 
