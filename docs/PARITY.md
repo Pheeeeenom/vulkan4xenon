@@ -10,9 +10,9 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 28, part of 8 and none of 11, counting milestone 23's cube and 3D images, which wait for
-the console. Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it
-compares depth in a fetch hasn't been checked. Every other gap is software.
+Of the 47 rows, the layer has 29, part of 8 and none of 10, counting milestone 23's cube and 3D images and border and
+mirror-once addressing, which wait for the console. Xenos has all but three: occlusion queries hang it today, its gamma
+only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is software.
 
 ## Shaders
 
@@ -56,7 +56,7 @@ compares depth in a fetch hasn't been checked. Every other gap is software.
 | sRGB | Approximate: a piecewise-linear gamma (xenia:src/xenia/gpu/xenos.cc:27) | Yes, Xenos's gamma | Partial: sampled through Xenos's curve, a deviation; not colour attachments (milestone 20) |
 | Point, linear and anisotropic filtering, LOD bias, mip clamps | Yes | Yes | Yes, clamped to whole levels |
 | Wrap, mirror and clamp | Yes | Yes | Yes |
-| Border and mirror-once addressing | Yes, a black or white border only (xenia:src/xenia/gpu/xenos.h:104-162) | No (xsdk:TODO.md, "Border and mirror-once addressing") | No |
+| Border and mirror-once addressing | Yes, a black or white border only (xenia:src/xenia/gpu/xenos.h:104-162) | Yes, not yet run on the console (xsdk:tests/test_sampling.c) | Yes: clamp to border in transparent black and opaque white, mirror clamp to edge by its extension, not yet run on the console (milestone 23) |
 | Depth textures and shadow comparison | Depth sampling yes; comparison not checked | Depth resolves into textures | Partial: D24S8 sampled raw, nearest; no comparison |
 
 ## Render targets and output
@@ -91,8 +91,8 @@ compares depth in a fetch hasn't been checked. Every other gap is software.
 - **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
   formats, and the vertex formats came with milestone 20.
 - **xost:** breaks on data, and loops a block counts inside other loops. Almost every ported shader meets one.
-- **xsdk, then the layer:** four targets and their formats, predicated tiling, a volume texture's mips, border
-  addressing, two-sided stencil, clip planes, point sprites, fill modes and instancing.
+- **xsdk, then the layer:** four targets and their formats, predicated tiling, a volume texture's mips, two-sided
+  stencil, clip planes, point sprites, fill modes and instancing.
 
 ## Past Direct3D 9, for older consoles' ports
 

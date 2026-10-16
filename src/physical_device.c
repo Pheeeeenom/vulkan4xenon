@@ -42,6 +42,7 @@ static const float timestamp_period_ns = 1000.0f / 498.75f;
 
 static const VkExtensionProperties device_extensions[] = {
 	{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SWAPCHAIN_SPEC_VERSION },
+	{ VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION },
 };
 
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(

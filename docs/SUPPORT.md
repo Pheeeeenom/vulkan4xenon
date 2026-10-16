@@ -12,7 +12,8 @@ required minimums.
 ## Extensions
 
 - Instance: `VK_KHR_surface` and `VK_KHR_display`.
-- Device: `VK_KHR_swapchain`.
+- Device: `VK_KHR_swapchain`, and `VK_KHR_sampler_mirror_clamp_to_edge` for mirror clamp to edge (Samplers, milestone
+  23).
 - No layers.
 
 ## Functions
@@ -320,14 +321,23 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 ## Samplers
 
-- Nearest or linear filtering and mips; repeat, mirrored repeat or clamp to edge; a LOD bias within 15.
+- Nearest or linear filtering and mips; a LOD bias within 15.
+- Repeat, mirrored repeat, clamp to edge and clamp to border, and mirror clamp to edge on a device made with
+  `VK_KHR_sampler_mirror_clamp_to_edge`, which `vkCreateSampler` refuses without it: each is one of Xenos's modes,
+  mirror clamp to edge its mirror once (xsdk:include/xsdk/texture.h). W's mode is a 3D image's, across its slices
+  (milestone 23).
+- Clamp to border in transparent black or opaque white, Xenos's two borders (xenia:src/xenia/gpu/xenos.h:150-156).
+  **Deviation:** opaque black returns `VK_ERROR_FEATURE_NOT_PRESENT` where a mode reads the border. Xenos's black has
+  an alpha no one has checked, which Xenia's backends take as 0
+  (xenia:src/xenia/gpu/vulkan/vulkan_texture_cache.cc:817-824), so it stands for transparent black till
+  vulkan4xenon_test's border check settles it on the console. The integer borders return it too, as no image format is
+  an integer one.
 - Anisotropy, on a device made with `samplerAnisotropy`: `maxAnisotropy` from 1 to 16, which xsdk's sampler rounds
   down to a power of two (xsdk:include/xsdk/texture.h). Without the feature, or past 16, it returns
   `VK_ERROR_FEATURE_NOT_PRESENT`.
 - `minLod` and `maxLod` from 0 to 15, a `maxLod` past 15 keeping every level; past that, or a `maxLod` below the
   `minLod`, `VK_ERROR_FEATURE_NOT_PRESENT` (milestone 18).
-- Clamp to border, comparison and unnormalized coordinates return `VK_ERROR_FEATURE_NOT_PRESENT`; they're xsdk TODO
-  items.
+- Comparison and unnormalized coordinates return `VK_ERROR_FEATURE_NOT_PRESENT`; they're xsdk TODO items.
 - **Deviation:** Xenos clamps to whole levels (xenia:src/xenia/gpu/xenos.h:1265-1266), so `minLod` and `maxLod` go to
   the nearest; a fraction of a level past either isn't sampled.
 

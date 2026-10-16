@@ -30,6 +30,15 @@ static bool features_off(const VkPhysicalDeviceFeatures *features)
 	return true;
 }
 
+static bool enabled(const VkDeviceCreateInfo *info, const char *extension)
+{
+	for (uint32_t i = 0; i < info->enabledExtensionCount; i++) {
+		if (!strcmp(info->ppEnabledExtensionNames[i], extension))
+			return true;
+	}
+	return false;
+}
+
 static VkResult check_create_info(const VkDeviceCreateInfo *info)
 {
 	if (info->enabledLayerCount)
@@ -89,6 +98,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physicalDevice, c
 	}
 	device->queue.device = device;
 	device->sampler_anisotropy = pCreateInfo->pEnabledFeatures && pCreateInfo->pEnabledFeatures->samplerAnisotropy;
+	device->mirror_clamp_to_edge = enabled(pCreateInfo, VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
 	// Resolves clear depth to far and stencil to 0 until a render pass says otherwise.
 	xsdk_gpu_set_depth_clear(1.0f, 0);
 	device->queue.depth_clear = 1.0f;

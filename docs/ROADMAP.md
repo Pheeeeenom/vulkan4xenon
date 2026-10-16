@@ -2346,6 +2346,21 @@ Images).
   draws each face of a 32x32 cube at levels 0 and 1, and of an 8x8 one at levels 0 and 2, from its packed tails, and
   each slice of a 32x32x8 3D texture and an 8x8x3 one, one texel to a pixel, through xost's shaders.
 
+**Step 2, built** (2026-10-16; not yet run on the console). xsdk's sampler takes the rest of Xenos's address modes,
+`ClampMode` 3 to 7, a black or white border, W's mode, and filters between 3D slices as within them
+(xsdk:include/xsdk/texture.h; xenia:src/xenia/gpu/xenos.h:104-162). The layer maps clamp to border to Xenos's border, in
+transparent black, the black Xenia's backends take (xenia:src/xenia/gpu/vulkan/vulkan_texture_cache.cc:817-824), and
+opaque white; opaque black and the integer borders are refused where a mode reads the border, till the console tells
+black's alpha. Mirror clamp to edge is Xenos's mirror once, on a device made with `VK_KHR_sampler_mirror_clamp_to_edge`,
+which the device lists; `addressModeW` is taken too.
+- **The checks:** vulkan4xenon_test's `test_addressing.c` draws a 4x4 image from -1.5 to 2.5 each way, eight pixels a
+  texel, in repeat, mirrored repeat, clamp to edge, mirror clamp to edge and an opaque white border, probing texels two
+  past each edge, in the mirror image and inside; draws a transparent black border blended by its alpha over the clear
+  colour, a check of its own, which passes where the alpha is 0 and shows black where it's 1; and checks the extension
+  is listed and opaque black and the integer borders refused. xsdk_test's sampling check draws mirror once, halfway and
+  to a border, a black and a white border, filtered and not, and reads the black border's alpha; its cube and 3D check
+  draws a 3D texture's w wrapped, clamped and filtered between two slices.
+
 ### Milestone 24: instancing and long strips
 
 **Why.** Foliage, crowds and particles are drawn instanced, and the layer draws one instance a draw (docs/SUPPORT.md,

@@ -35,6 +35,8 @@ void test_texture(const Harness *harness);
 void test_formats(const Harness *harness);
 // A cube and a 3D image copied in face by face and slice by slice, sampled, copied and cleared (milestone 23).
 void test_cube_3d(const Harness *harness);
+// Every address mode past 0 and 1, borders in white and in black blended over the clear colour (milestone 23).
+void test_addressing(const Harness *harness);
 // Quads placed and coloured by push constants (milestone 2).
 void test_push_constants(const Harness *harness);
 // Quads placed by a matrix and coloured from uniform buffers, one dynamic, in two sets (milestone 2).

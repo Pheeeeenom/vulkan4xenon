@@ -151,8 +151,9 @@ struct VkDevice_T {
 	V4xShader **shaders;
 	uint32_t shader_count;
 	uint32_t shader_capacity;
-	// The samplerAnisotropy feature, enabled when the device was made.
+	// The samplerAnisotropy feature, and VK_KHR_sampler_mirror_clamp_to_edge, enabled when the device was made.
 	bool sampler_anisotropy;
+	bool mirror_clamp_to_edge;
 };
 
 typedef struct {

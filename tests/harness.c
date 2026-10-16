@@ -7,7 +7,8 @@
 #include "xsdk/present.h"
 
 static const char *const instance_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_DISPLAY_EXTENSION_NAME };
-static const char *const device_extensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+static const char *const device_extensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME };
 
 bool harness_ok(const char *call, VkResult result)
 {

@@ -17,7 +17,8 @@ static uint32_t nearest_level(float lod)
 	return (uint32_t)(lod + 0.5f);
 }
 
-static bool address_mode(VkSamplerAddressMode mode, uint32_t *xsdk_mode)
+// Mirror clamp to edge is VK_KHR_sampler_mirror_clamp_to_edge's, Xenos's mirror once (xsdk:include/xsdk/texture.h).
+static bool address_mode(VkSamplerAddressMode mode, bool mirror_clamp, uint32_t *xsdk_mode)
 {
 	switch (mode) {
 	case VK_SAMPLER_ADDRESS_MODE_REPEAT:
@@ -29,9 +30,24 @@ static bool address_mode(VkSamplerAddressMode mode, uint32_t *xsdk_mode)
 	case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE:
 		*xsdk_mode = XSDK_ADDRESS_CLAMP;
 		return true;
+	case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER:
+		*xsdk_mode = XSDK_ADDRESS_BORDER;
+		return true;
+	case VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE:
+		*xsdk_mode = XSDK_ADDRESS_MIRROR_ONCE;
+		return mirror_clamp;
 	default:
 		return false;
 	}
+}
+
+// Xenos's borders are black and white. Its black's alpha isn't known, and Xenia's backends take 0
+// (xenia:src/xenia/gpu/vulkan/vulkan_texture_cache.cc:817-824), so transparent black is it and opaque black waits for
+// the console (xsdk:tests/test_sampling.c). The integer borders are for integer formats, which images don't take.
+static bool border_colour(VkBorderColor colour, uint32_t *border)
+{
+	*border = colour == VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE ? XSDK_BORDER_WHITE : XSDK_BORDER_BLACK;
+	return colour == VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE || colour == VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 }
 
 static uint32_t filter(VkFilter filter)
@@ -49,8 +65,18 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSampler(VkDevice device, const VkSamplerC
 		.mip_filter = info->mipmapMode == VK_SAMPLER_MIPMAP_MODE_LINEAR ? XSDK_FILTER_LINEAR : XSDK_FILTER_POINT,
 		.lod_bias = info->mipLodBias,
 	};
-	if (!address_mode(info->addressModeU, &setting.address_u) || !address_mode(info->addressModeV, &setting.address_v))
-		return v4x_host_unsupported("address modes other than repeat, mirrored repeat and clamp to edge");
+	const bool mirror_clamp = device->mirror_clamp_to_edge;
+	if (!address_mode(info->addressModeU, mirror_clamp, &setting.address_u) ||
+		!address_mode(info->addressModeV, mirror_clamp, &setting.address_v) ||
+		!address_mode(info->addressModeW, mirror_clamp, &setting.address_w))
+		return v4x_host_unsupported(
+			"address modes other than repeat, mirrored repeat, clamp to edge and to border, and "
+			"mirror clamp to edge with its extension");
+	// The border colour counts only where a mode reads the border.
+	const bool reads_border = setting.address_u == XSDK_ADDRESS_BORDER || setting.address_v == XSDK_ADDRESS_BORDER ||
+		setting.address_w == XSDK_ADDRESS_BORDER;
+	if (!border_colour(info->borderColor, &setting.border) && reads_border)
+		return v4x_host_unsupported("border colours other than transparent black and opaque white");
 	if (info->compareEnable || info->unnormalizedCoordinates)
 		return v4x_host_unsupported("comparison and unnormalized coordinates");
 	// The most anisotropy goes to xsdk's sampler, which rounds it down to a power of two.
