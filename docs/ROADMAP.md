@@ -1967,6 +1967,141 @@ Step 6 is done, and with it milestone 19: the layer exports all 137 of Vulkan 1.
 (Functions) lists the ones that refuse and why. Occlusion queries wait for a sequence that makes Xenos write its sample
 counts (xsdk:TODO.md).
 
+### Direct3D 9 parity: milestones 20 to 28 (proposed 2026-10-16)
+
+**Why.** Ports will come from any system up to the GameCube and Wii, and from PC games of the same years, not only
+through Aurora (the user, 2026-10-16). docs/PARITY.md measures the layer against Direct3D 9's Shader Model 3, the class
+all of them were written for: of its 50 rows the layer lacks 17 and has 12 in part, and Xenos has the hardware for all
+but occlusion queries. These milestones close the gaps, cheapest first, as a track of their own beside the Dusklight
+track's milestones 14 to 17. Each is a proposal till agreed, and its scope is settled when it starts. Each is done on
+the console, its new checks in vulkan4xenon_test passing and failing when broken on purpose, with Dusklight run after
+as a regression check. What docs/PARITY.md lists past Direct3D 9 is decided when a port needs it.
+
+### Milestone 20: the formats xsdk already has
+
+**Why.** Most PC ports ship DXT textures and pack their vertices. xsdk samples 17 texture formats and fetches 18 vertex
+formats (xsdk:include/xsdk/texture.h, shader.h), and the layer takes 6 and 5 of them (docs/SUPPORT.md, Formats).
+1. **Images:** DXT1, 3 and 5 as BC1, BC2 and BC3, reported a format at a time, as `textureCompressionBC` promises BC4
+   to BC7 too; 565, 1555 and 4444; 16-bit floats in one, two and four channels; and 10-10-10-2. Where the bits of
+   Vulkan's packed formats land against xsdk's is settled on the console, as xsdk milestone 17 did for its vertex
+   formats.
+2. **Vertex attributes:** half floats, and bytes and shorts, normalized or scaled, on xsdk's formats.
+3. **The formats xsdk lacks,** xsdk first (xsdk:TODO.md, "More texture formats"): DXN and DXT5A as BC5 and BC4, 16-bit
+   fixed point, 10-11-11, the signed formats, and gamma as sRGB, its piecewise-linear curve a deviation
+   (xenia:src/xenia/gpu/xenos.cc:27).
+
+Done when vulkan4xenon_test samples every new image format and draws from every new vertex format, checked by pixel.
+
+### Milestone 21: Shader Model 3's control flow
+
+**Why.** xost turns `if` into selects in pixel shaders and refuses it in vertex shaders (xost:docs/xsc.md:63), unrolls
+loops of fixed counts, and refuses an `if` on data inside a loop (269-272). The layer refuses a shader that needs a
+hardware loop's constants (docs/SUPPORT.md, Shaders). Shader Model 3 has all of it, and Xenos runs it with conditional
+execs, predicates and loops (xenia:src/xenia/gpu/ucode.h:101-132).
+- **xost:** `if` and `else` in vertex shaders; `if` on data inside a loop; `gl_FragDepth` written under an `if`.
+- **The layer:** the integer constants a hardware loop reads, written when a pipeline is bound, as its literal
+  constants are.
+
+Done when GLSL with each runs through the layer on the console, checked by pixel, and xost's tests cover it.
+
+### Milestone 22: Shader Model 3's fetches and inputs
+
+**Why.** Ported shaders sample at a LOD they work out, take gradients, read which face they're on, and sample textures
+in vertex shaders for terrain. xost takes a constant LOD alone (xost:docs/xsc.md:82) and `gl_FragCoord.xy` alone (72),
+and the layer refuses samplers in vertex shaders, as both stages share the fetch constants with the vertex streams
+(docs/SUPPORT.md, Pipelines; xsdk:include/xsdk/gpu.h:150-152).
+- **xost:** a computed LOD, gradients and `gl_FrontFacing`; samplers in vertex shaders.
+- **The layer:** the fetch constants shared out between the stages and the vertex streams.
+- **The register budget:** Shader Model 3 promises 32 temporaries, and the layer's subset gives a pixel shader 16
+  (section 2). Settled by measuring what a bigger share costs.
+
+Done when vulkan4xenon_test checks each by pixel.
+
+### Milestone 23: cube and volume textures, and the rest of sampling
+
+**Why.** Skies and reflections sample cube maps, and a port's samplers clamp to a border, mirror once, or compare
+depth for shadows. The layer takes 2D images and none of those (docs/SUPPORT.md, Images and Samplers), and xsdk lacks
+cube and 3D textures and border and mirror-once addressing (xsdk:TODO.md). xost samples cube maps already
+(xost:docs/xsc.md:40).
+- **xsdk:** cube and 3D textures, their faces and slices laid out as Xenia has them
+  (xenia:src/xenia/gpu/texture_util.cc:209-449); border and mirror-once addressing, its border black or white
+  (xenia:src/xenia/gpu/xenos.h:104-162).
+- **xost:** `sampler3D`, and the comparison of a `sampler2DShadow`, after the fetch unless a probe finds Xenos compares
+  in it.
+- **The layer:** cube and 3D images and views; clamp to border, in Vulkan's black and white borders; mirror clamp to
+  edge, which in Vulkan 1.0 is the extension `VK_KHR_sampler_mirror_clamp_to_edge`; comparison samplers; and linear
+  filtering of depth, once it's been tried on the console.
+
+Done when vulkan4xenon_test samples each face and slice, each address mode and a depth comparison, checked by pixel.
+
+### Milestone 24: instancing and long strips
+
+**Why.** Foliage, crowds and particles are drawn instanced, and the layer draws one instance a draw (docs/SUPPORT.md,
+Commands). It also refuses strips and fans past 65,535 vertices, as a draw packet counts in 16 bits.
+- **Instancing,** with `gl_InstanceIndex`, `firstInstance` and bindings at the instance's rate: a draw an instance, or
+  one draw whose vertex shader works out its instance and fetches what it needs at an index it computes, since a
+  vertex fetch takes its index from a register (xenia:src/xenia/gpu/ucode.h:695-715). Which, and the xost work it
+  takes, is settled when it starts.
+- **Strips and fans past 65,535,** split as lists are, sharing the vertices where the pieces meet.
+
+Done when vulkan4xenon_test draws instanced, indexed and not, with per-instance attributes, and a strip past 65,535
+vertices, checked by pixel.
+
+### Milestone 25: render target formats, and four targets at once
+
+**Why.** HDR and deferred renderers draw into float and 10-bit targets, several at once. The layer draws into one RGBA8
+or BGRA8 colour attachment a subpass (docs/SUPPORT.md, Render passes); xsdk draws 32-bit RGBA targets alone, and
+several targets are unproven in xost (xsdk:TODO.md). Xenos has the formats (xenia:src/xenia/gpu/xenos.h:299-313) and
+four targets, each blended on its own (xenia:src/xenia/gpu/register_table.inc:481, 483-485, 537-547).
+- **xsdk:** float, 10-bit and 64-bit targets and their resolves; four targets at once.
+- **xost:** fragment outputs at locations 1 to 3.
+- **The layer:** those formats as colour attachments, four colour attachments a subpass, and a blend for each.
+
+eDRAM's 10 MB holds one 32-bit colour target and depth at 1280x720, so at that size a second target needs predicated
+tiling: this milestone takes the sizes eDRAM holds.
+
+Done when vulkan4xenon_test draws four targets in one pass in the new formats and samples them back, checked by pixel.
+
+**Then milestone 17, widened.** Milestone 17, multisampling, needs predicated tiling at 1280x720. Proposed: it comes
+after milestone 25 and takes every target past eDRAM, multisampled, several at once, or past 1280x720, such as a big
+shadow map; and alpha to coverage (xenia:src/xenia/gpu/registers.h:687).
+
+### Milestone 26: raster state
+
+**Why.** Stencil shadows set each face's stencil apart, ports clip against planes, particles draw sized point sprites,
+and debug views draw wireframes. The layer does none of them (docs/SUPPORT.md, Pipelines), nor does xsdk, though Xenos
+has each.
+- **Two-sided stencil** (xsdk:TODO.md, "Two-sided stencil").
+- **Clip distances.** Xenos clips against six planes (xenia:src/xenia/gpu/registers.h:539-544), and Vulkan's distances
+  are any value the vertex shader writes. So a distance from a plane might take one of Xenos's, and any other be
+  interpolated for the pixel shader to discard by. Settled when it starts.
+- **Point sprites:** `gl_PointSize` and `gl_PointCoord` (xenia:src/xenia/gpu/registers.h:184-212), with `largePoints`.
+- **Wireframe and point fill,** with `fillModeNonSolid` (xsdk:TODO.md, "Wireframe and point fill").
+
+Done when vulkan4xenon_test checks each by pixel.
+
+### Milestone 27: copies on the GPU
+
+**Why.** `vkCmdBlitImage` runs on the CPU once the GPU is done (docs/SUPPORT.md, Commands), which stalls a port that
+scales a target every frame, as `StretchRect` does. And a render area must cover the whole framebuffer, so the copies
+of part of a target that GameCube and N64 framebuffer effects make can't be drawn.
+- **Blits of an image the GPU drew,** drawn as the layer draws images back (src/blit.c).
+- **Render areas smaller than the framebuffer,** resolving part of a target (xsdk:TODO.md, "Resolving part of a
+  target" and "Render areas smaller than the framebuffer").
+
+Done when vulkan4xenon_test's blits and smaller render areas run without the wait, checked by pixel, the time saved
+measured on the console.
+
+### Milestone 28: occlusion queries
+
+**Why.** Some engines cull with them, though most can draw without. `ZPASS_DONE` hung the GPU in all six runs of
+xsdk's probe (xsdk:docs/HARDWARE.md, "Queries and events").
+- **xsdk:** the tries the probe has left (xsdk:TODO.md, "Occlusion queries").
+- **The layer:** occlusion query pools, `vkCmdBeginQuery` and `vkCmdEndQuery`, on a sequence that writes the counts.
+
+Done when a query counts a draw's samples on the console, or the probe's runs show none of the tries does, recorded in
+xsdk:docs/HARDWARE.md.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

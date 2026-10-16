@@ -11,7 +11,8 @@ The goal is running Dusklight, a reimplementation of Twilight Princess built on 
 
 **Status:** milestones 1 (a triangle), 2 (textures, descriptors and push constants), 3 (pipeline state), 4 (render
 to texture), 5 (the benchmark), 6 (the replay's cost) and 7 (uniform blocks the GPU loads) passed on the console on
-2026-10-11. docs/ROADMAP.md is the plan, and docs/SUPPORT.md lists what exists.
+2026-10-11. docs/ROADMAP.md is the plan, docs/SUPPORT.md lists what exists, and docs/PARITY.md measures it against
+Direct3D 9.
 
 ## Shaders
 
