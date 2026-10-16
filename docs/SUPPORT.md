@@ -122,6 +122,10 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   value every vertex or pixel shares, a store into part of an output in the loop, and a sample or derivative at
   coordinates a pass works out. A pipeline whose loop's int lies past the push constants returns
   `VK_ERROR_FEATURE_NOT_PRESENT`.
+- Samples at a LOD, with gradients or with a bias the shader gives, constant or worked out: `textureLod`, `textureGrad`
+  and `texture()`'s bias, and their projective forms (milestone 22; xost:docs/xsc.md, "LOD and gradients"). The
+  sampler's LOD bias and clamps apply on top, as Vulkan's do. Gradients on a cube map, offsets (`textureOffset` and the
+  like), a sample index and a minimum LOD are refused, as xost refuses them.
 - Vertex input location n feeds the usage xost gives it: 0 position, 1 colour, 2 and up texture coordinates
   (xsdk:src/xsc_resolve.c:344-346).
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's

@@ -2199,6 +2199,24 @@ and the layer refuses samplers in vertex shaders, as both stages share the fetch
 
 Done when vulkan4xenon_test checks each by pixel.
 
+**Built in steps** (2026-10-16), none run on the console yet; the results are the console's to give.
+
+**Step 1: a LOD and gradients the shader works out.** A Xenos fetch samples at the sum of the fetch constant's LOD
+bias, a register LOD `setTexLOD` sets if it reads it, and its own bias field, and works a LOD out from its coordinate's
+gradients, or from gradients `setGradientH` and `setGradientV` set, only where it's told to compute one
+(xenia:src/xenia/gpu/spirv_shader_translator_fetch.cc:1498-1536). So xost lowers `textureLod` with the computed LOD off,
+its LOD in the bias field when it's a constant the field holds and through `setTexLOD` otherwise; `texture()`'s bias the
+same way on top of the computed LOD; and `textureGrad`'s gradients through the two setters (xost:docs/xsc.md, "LOD and
+gradients"). Before, a constant LOD was added to the computed one, one past 4 levels didn't encode, any other LOD was
+refused, and gradients were dropped without a word, as offsets were: xost now refuses offsets, a sample index and a
+minimum LOD. The builder keeps each fetch in its order with the setters, and the setters write no temp.
+- **The checks:** vulkan4xenon_test's `test_shader_lod.c` draws four strips of eight bands over a 256x256 image whose
+  nine levels are each a colour, the image once a band at 64 pixels a side, so at LOD 2. Each band's number comes from
+  an interpolant, and every pixel works its LOD out from it: textureLod at the number and a quarter; textureGrad at
+  gradients giving that LOD; texture() biased from LOD 2 by the difference; and, in the last strip, textureLod at 1.25,
+  in the bias field, and at 6.25, through the register. Each band should show its level's colour whichever way the GPU
+  rounds a point-filtered LOD; each strip is a check of its own.
+
 ### Milestone 23: cube and volume textures, and the rest of sampling
 
 **Why.** Skies and reflections sample cube maps, and a port's samplers clamp to a border, mirror once, or compare

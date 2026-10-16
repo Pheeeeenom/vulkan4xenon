@@ -65,6 +65,8 @@ void test_branches(const Harness *harness);
 // Hardware loops counted by push constants and uniform buffers, in either stage and both, with an if/else, an array at
 // the pass's index and a break (milestone 21).
 void test_loops(const Harness *harness);
+// LODs, gradients and biases fragment shaders work out, by the colour of the level each band shows (milestone 22).
+void test_shader_lod(const Harness *harness);
 // Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
 void test_shader_cache_start(void);
 // The files the layer kept, and a second device reading the triangle's shaders back; called after the first goes.

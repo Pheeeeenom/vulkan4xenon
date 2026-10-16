@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 23, part of 10 and none of 14. Xenos has all but three: occlusion queries hang it today,
+Of the 47 rows, the layer has 24, part of 9 and none of 14. Xenos has all but three: occlusion queries hang it today,
 its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is
 software.
 
@@ -25,7 +25,7 @@ software.
 | Loops | Yes (xenia:src/xenia/gpu/ucode.h:132) | Partial: fixed counts unrolled, an `if` on data inside them; counts in a block as hardware loops, broken out of on a value every vertex or pixel shares; no break on data, `continue` or counted loop inside another (xost:docs/xsc.md, "Loops a block counts") | Partial, as xost; a count past 255 runs 255 (SUPPORT.md, Shaders) |
 | `discard` | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md:64) | Yes |
 | Derivatives | Yes | Yes, confirmed on the console (xost:docs/xsc.md:373) | Yes |
-| A computed LOD and gradients (`texldl`, `texldd`) | Yes | Partial: a constant LOD only (xost:docs/xsc.md:85) | Partial |
+| A computed LOD and gradients (`texldl`, `texldd`) | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md, "LOD and gradients") | Yes |
 | The pixel's position and facing (`vPos`, `vFace`) | Yes | Partial: `gl_FragCoord.xy` only (xost:docs/xsc.md:73) | Partial |
 | Depth output | Yes | Yes: outside any `if`, or in both arms of one; written on one path alone, refused, as nothing else gives the pixel a depth (xost:docs/xsc.md, "Control flow") | Yes |
 | Vertex texture fetch | Yes | Not checked | No: both stages share the fetch constants (SUPPORT.md, Pipelines) |
