@@ -1971,7 +1971,7 @@ counts (xsdk:TODO.md).
 
 **Why.** Ports will come from any system up to the GameCube and Wii, and from PC games of the same years, not only
 through Aurora (the user, 2026-10-16). docs/PARITY.md measures the layer against Direct3D 9's Shader Model 3, the class
-all of them were written for: of its 50 rows the layer lacks 17 and has 12 in part, and Xenos has the hardware for all
+all of them were written for: of its 47 rows the layer lacks 17 and has 12 in part, and Xenos has the hardware for all
 but occlusion queries. These milestones close the gaps, cheapest first, as a track of their own beside the Dusklight
 track's milestones 14 to 17. Each is a proposal till agreed, and its scope is settled when it starts. Each is done on
 the console, its new checks in vulkan4xenon_test passing and failing when broken on purpose, with Dusklight run after
