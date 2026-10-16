@@ -10,9 +10,9 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 27, part of 7 and none of 13. Xenos has all but three: occlusion queries hang it today,
-its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is
-software.
+Of the 47 rows, the layer has 28, part of 8 and none of 11, counting milestone 23's cube and 3D images, which wait for
+the console. Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it
+compares depth in a fetch hasn't been checked. Every other gap is software.
 
 ## Shaders
 
@@ -47,8 +47,8 @@ software.
 | Feature | Xenos | xsdk and xost | vulkan4xenon |
 |---|---|---|---|
 | 2D textures, mips, any size | Yes, up to 8192 | Yes | Yes |
-| Cube maps | Yes (xenia:src/xenia/gpu/xenos.h:97-102) | No (xsdk:TODO.md, "Cube and 3D textures"); xost samples them (xost:docs/xsc.md:40) | No |
-| Volume textures | Yes | No | No |
+| Cube maps | Yes (xenia:src/xenia/gpu/xenos.h:97-102) | Yes, with mips (xsdk:tests/test_cube_volume.c), not yet run on the console; xost samples them (xost:docs/xsc.md:41) | Yes, with mips, not yet run on the console (milestone 23) |
+| Volume textures | Yes | Partial: one level, not yet run on the console; xost samples them (xost:docs/xsc.md:42) | Partial: one level, not yet run on the console (milestone 23) |
 | 16-bit colour, L8, A8, A8L8 | Yes | Yes | Yes: 565, 1555 and 4444 (milestone 20), and R8 and RG8, whose swizzles stand in for L8, A8 and A8L8 |
 | DXT1 to 5 | Yes (xenia:src/xenia/gpu/xenos.h:494-536) | Yes | Yes: BC1 to BC3, and BC4 and BC5 from DXT5A and DXN, each reported a format at a time, as `textureCompressionBC` promises BC6H and BC7 too (SUPPORT.md, Formats) |
 | Float textures | Yes, though the console filtered 16-bit floats wrong (SUPPORT.md, Formats) | Partial: 16-bit floats and R32F | Partial: 16-bit floats in one, two and four channels, and R32F, nearest filtering only |
@@ -91,7 +91,7 @@ software.
 - **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
   formats, and the vertex formats came with milestone 20.
 - **xost:** breaks on data, and loops a block counts inside other loops. Almost every ported shader meets one.
-- **xsdk, then the layer:** four targets and their formats, predicated tiling, cube and volume textures, border
+- **xsdk, then the layer:** four targets and their formats, predicated tiling, a volume texture's mips, border
   addressing, two-sided stencil, clip planes, point sprites, fill modes and instancing.
 
 ## Past Direct3D 9, for older consoles' ports

@@ -80,11 +80,33 @@ static VkResult check_depth_create_info(const VkImageCreateInfo *info)
 	return VK_SUCCESS;
 }
 
+static bool is_cube(const VkImageCreateInfo *info)
+{
+	return info->imageType == VK_IMAGE_TYPE_2D && info->flags == VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+}
+
+// A cube's six square faces with their mips, or a 3D image of one level, which xsdk lays out
+// (xsdk:include/xsdk/texture.h); arrays of either, and drawing into them, are refused.
+static VkResult check_cube_or_3d_create_info(const VkImageCreateInfo *info)
+{
+	if (!v4x_format(info->format) || info->samples != VK_SAMPLE_COUNT_1_BIT ||
+		info->tiling != VK_IMAGE_TILING_OPTIMAL || (info->usage & ~(VkImageUsageFlags)V4X_CUBE_AND_3D_USAGE))
+		return v4x_host_unsupported("cube and 3D images other than optimal colour images, sampled and copied");
+	if (is_cube(info) &&
+		(info->arrayLayers != XSDK_CUBE_FACES || info->extent.width != info->extent.height || info->extent.depth != 1))
+		return v4x_host_unsupported("cube images other than one cube of six square faces");
+	if (!is_cube(info) && (info->arrayLayers != 1 || info->mipLevels != 1 || info->flags))
+		return v4x_host_unsupported("3D images other than one level of one layer");
+	return VK_SUCCESS;
+}
+
 static VkResult check_create_info(const VkImageCreateInfo *info)
 {
 	uint32_t format = 0;
+	if (is_cube(info) || info->imageType == VK_IMAGE_TYPE_3D)
+		return check_cube_or_3d_create_info(info);
 	if (info->imageType != VK_IMAGE_TYPE_2D || info->extent.depth != 1 || info->arrayLayers != 1 || info->flags)
-		return v4x_host_unsupported("images other than 2D with one layer");
+		return v4x_host_unsupported("images other than 2D with one layer, cubes and 3D images");
 	if (info->format == VK_FORMAT_D24_UNORM_S8_UINT)
 		return check_depth_create_info(info);
 	if (!v4x_image_format(info->format, &format) || info->samples != VK_SAMPLE_COUNT_1_BIT)
@@ -102,6 +124,20 @@ static VkResult check_create_info(const VkImageCreateInfo *info)
 		(info->mipLevels != 1 || info->extent.width <= V4X_PACKED_SIDE || info->extent.height <= V4X_PACKED_SIDE))
 		return v4x_host_unsupported("colour attachments with mips, or 16 texels or less on a side");
 	return VK_SUCCESS;
+}
+
+static NTSTATUS init_texture(XsdkTexture *texture, const VkImageCreateInfo *info)
+{
+	uint32_t format = XSDK_FORMAT_D24S8;
+	if (info->format != VK_FORMAT_D24_UNORM_S8_UINT)
+		(void)v4x_image_format(info->format, &format);
+	const VkExtent3D *const extent = &info->extent;
+	if (is_cube(info))
+		return xsdk_texture_init_cube(texture, format, extent->width, info->mipLevels);
+	if (info->imageType == VK_IMAGE_TYPE_3D)
+		return xsdk_texture_init_3d(texture, format, extent->width, extent->height, extent->depth);
+	return xsdk_texture_init(
+		texture, format, extent->width, extent->height, info->mipLevels, info->tiling == VK_IMAGE_TILING_OPTIMAL);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
@@ -123,11 +159,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
 		*pImage = v4x_handle(image);
 		return VK_SUCCESS;
 	}
-	uint32_t format = XSDK_FORMAT_D24S8;
-	if (!is_depth)
-		(void)v4x_image_format(pCreateInfo->format, &format);
-	const NTSTATUS status = xsdk_texture_init(&image->texture, format, pCreateInfo->extent.width,
-		pCreateInfo->extent.height, pCreateInfo->mipLevels, pCreateInfo->tiling == VK_IMAGE_TILING_OPTIMAL);
+	const NTSTATUS status = init_texture(&image->texture, pCreateInfo);
 	if (!NT_SUCCESS(status)) {
 		xsdk_log_write("vulkan4xenon: xsdk_texture_init failed: 0x%08X", (unsigned)status);
 		v4x_host_free(allocator, image);
@@ -228,6 +260,14 @@ static uint32_t channel(const uint8_t own[4], VkComponentSwizzle swizzle, uint32
 	}
 }
 
+// The view of the whole of an image: a cube's as a cube, a 3D image's as 3D, any other's as 2D.
+static VkImageViewType whole_view_type(const Image *image)
+{
+	if (image->texture.dimension == XSDK_TEXTURE_CUBE)
+		return VK_IMAGE_VIEW_TYPE_CUBE;
+	return image->texture.dimension == XSDK_TEXTURE_3D ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkImageView *pView)
 {
@@ -235,9 +275,11 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device, const VkImageV
 	const VkImageSubresourceRange *const range = &pCreateInfo->subresourceRange;
 	const uint32_t levels = image->is_texture || image->is_sampled_depth ? image->texture.levels : 1;
 	const uint32_t level_count = range->levelCount == VK_REMAINING_MIP_LEVELS ? levels : range->levelCount;
-	if (pCreateInfo->viewType != VK_IMAGE_VIEW_TYPE_2D || pCreateInfo->format != image->format || range->baseMipLevel ||
-		level_count != levels || range->baseArrayLayer || range->layerCount != 1)
-		return v4x_host_unsupported("image views other than the whole of a 2D image in its format");
+	const uint32_t layers = image->texture.dimension == XSDK_TEXTURE_CUBE ? XSDK_CUBE_FACES : 1;
+	const uint32_t layer_count = range->layerCount == VK_REMAINING_ARRAY_LAYERS ? layers : range->layerCount;
+	if (pCreateInfo->viewType != whole_view_type(image) || pCreateInfo->format != image->format ||
+		range->baseMipLevel || level_count != levels || range->baseArrayLayer || layer_count != layers)
+		return v4x_host_unsupported("image views other than the whole of an image in its format, a cube's as a cube");
 	const VkComponentMapping *const mapping = &pCreateInfo->components;
 	const V4xFormat *const format = v4x_format(image->format);
 	const uint8_t *const own = format ? format->channels : depth_channels;

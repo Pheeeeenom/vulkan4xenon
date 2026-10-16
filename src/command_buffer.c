@@ -393,37 +393,60 @@ static uint32_t buffer_address(const Buffer *buffer, VkDeviceSize offset)
 	return buffer->memory->cached ? 0 : buffer->memory->address + buffer->offset_bytes + (uint32_t)offset;
 }
 
-// Whether a region is the whole of a level of a colour image, one layer, from its corner.
+// The layers of a cube, or the slices of a 3D image, a copy region covers.
+typedef struct {
+	uint32_t first;
+	uint32_t count;
+} Slices;
+
+// Whether a region is the whole of a level of a colour image across and down, from its corner, in some of its layers
+// or 3D slices, and which: a cube's faces are its layers, a 3D image's slices its depth.
 static bool whole_level(
-	const Image *image, const VkImageSubresourceLayers *layers, VkOffset3D offset, VkExtent3D extent)
+	const Image *image, const VkImageSubresourceLayers *layers, VkOffset3D offset, VkExtent3D extent, Slices *slices)
 {
 	const uint32_t level = layers->mipLevel;
-	return image->is_texture && level < image->texture.levels && !offset.x && !offset.y && !offset.z &&
+	const bool is_3d = image->texture.dimension == XSDK_TEXTURE_3D;
+	*slices =
+		is_3d ? (Slices){ (uint32_t)offset.z, extent.depth } : (Slices){ layers->baseArrayLayer, layers->layerCount };
+	const bool one_layer = is_3d ? !layers->baseArrayLayer && layers->layerCount == 1 : !offset.z && extent.depth == 1;
+	return image->is_texture && level < image->texture.levels && !offset.x && !offset.y &&
 		extent.width == level_size(image->width, level) && extent.height == level_size(image->height, level) &&
-		extent.depth == 1 && !layers->baseArrayLayer && layers->layerCount == 1;
+		one_layer && slices->count && slices->first < image->texture.depth &&
+		slices->count <= image->texture.depth - slices->first;
 }
 
-// Whole levels between a buffer and an image, in tightly packed rows or rows bufferRowLength texels long.
+// Whole levels between a buffer and an image, in tightly packed rows or rows bufferRowLength texels long, each layer's
+// or slice's rows bufferImageHeight rows after the last's.
 static void record_level_copies(VkCommandBuffer commandBuffer, CommandType type, const Buffer *buffer, Image *image,
 	uint32_t regionCount, const VkBufferImageCopy *pRegions)
 {
 	for (uint32_t i = 0; i < regionCount; i++) {
 		const VkBufferImageCopy *const region = &pRegions[i];
 		const uint32_t level = region->imageSubresource.mipLevel;
-		if (!whole_level(image, &region->imageSubresource, region->imageOffset, region->imageExtent) ||
+		Slices slices;
+		if (!whole_level(image, &region->imageSubresource, region->imageOffset, region->imageExtent, &slices) ||
 			(region->bufferOffset + buffer->offset_bytes) % 4) {
 			commandBuffer->result = v4x_host_unsupported("copies of less than a whole level, or at unaligned offsets");
 			return;
 		}
+		const uint32_t row_texels = region->bufferRowLength ? region->bufferRowLength : level_size(image->width, level);
+		const uint32_t rows = region->bufferImageHeight ? region->bufferImageHeight : level_size(image->height, level);
+		const uint32_t row_bytes = v4x_texel_blocks(image->format, row_texels) * v4x_texel_bytes(image->format);
+		const LevelCopy copy = { .buffer = buffer_bytes(buffer, region->bufferOffset),
+			.address = buffer_address(buffer, region->bufferOffset),
+			.image = image,
+			.level = level,
+			.row_bytes = row_bytes,
+			.first_slice = slices.first,
+			.slice_count = slices.count,
+			.slice_bytes = v4x_texel_blocks(image->format, rows) * row_bytes };
+		uint32_t at = 0;
+		if (!record_data(commandBuffer, &copy, sizeof copy, &at))
+			return;
 		Command *const command = record(commandBuffer, type);
 		if (!command)
 			return;
-		const uint32_t row_texels = region->bufferRowLength ? region->bufferRowLength : level_size(image->width, level);
-		command->copy.buffer = (volatile uint32_t *)buffer_bytes(buffer, region->bufferOffset);
-		command->copy.address = buffer_address(buffer, region->bufferOffset);
-		command->copy.image = image;
-		command->copy.level = level;
-		command->copy.row_bytes = v4x_texel_blocks(image->format, row_texels) * v4x_texel_bytes(image->format);
+		command->state_at = at;
 	}
 }
 
@@ -444,16 +467,19 @@ VKAPI_ATTR void VKAPI_CALL vkCmdCopyImageToBuffer(VkCommandBuffer commandBuffer,
 }
 
 static void record_image_copy(VkCommandBuffer commandBuffer, CommandType type, Image *source, uint32_t source_level,
-	Image *destination, uint32_t destination_level, bool linear)
+	Slices source_slices, Image *destination, uint32_t destination_level, Slices destination_slices, bool linear)
 {
 	Command *const command = record(commandBuffer, type);
 	if (!command)
 		return;
 	command->image_copy.source = source;
 	command->image_copy.destination = destination;
-	command->image_copy.source_level = source_level;
-	command->image_copy.destination_level = destination_level;
+	command->image_copy.source_level = (uint8_t)source_level;
+	command->image_copy.destination_level = (uint8_t)destination_level;
 	command->image_copy.linear = linear;
+	command->image_copy.source_slice = (uint16_t)source_slices.first;
+	command->image_copy.destination_slice = (uint16_t)destination_slices.first;
+	command->image_copy.slice_count = (uint16_t)source_slices.count;
 }
 
 // Whether one image's texels are compressed blocks and the other's aren't, which a copy would have to swap
@@ -475,24 +501,28 @@ VKAPI_ATTR void VKAPI_CALL vkCmdCopyImage(VkCommandBuffer commandBuffer, VkImage
 	Image *const destination = v4x_object(dstImage);
 	for (uint32_t i = 0; i < regionCount; i++) {
 		const VkImageCopy *const region = &pRegions[i];
-		if (!whole_level(source, &region->srcSubresource, region->srcOffset, region->extent) ||
-			!whole_level(destination, &region->dstSubresource, region->dstOffset, region->extent) ||
-			v4x_texel_bytes(source->format) != v4x_texel_bytes(destination->format) ||
+		Slices from;
+		Slices to;
+		if (!whole_level(source, &region->srcSubresource, region->srcOffset, region->extent, &from) ||
+			!whole_level(destination, &region->dstSubresource, region->dstOffset, region->extent, &to) ||
+			from.count != to.count || v4x_texel_bytes(source->format) != v4x_texel_bytes(destination->format) ||
 			compressed_apart(source, destination)) {
 			commandBuffer->result = v4x_host_unsupported(
 				"image copies of less than a whole level, or between compressed and uncompressed formats");
 			return;
 		}
-		record_image_copy(commandBuffer, COMMAND_COPY_IMAGE, source, region->srcSubresource.mipLevel, destination,
-			region->dstSubresource.mipLevel, false);
+		record_image_copy(commandBuffer, COMMAND_COPY_IMAGE, source, region->srcSubresource.mipLevel, from, destination,
+			region->dstSubresource.mipLevel, to, false);
 	}
 }
 
-// Whether a blit's corners are a whole level's, unflipped.
-static bool whole_blit_level(const Image *image, const VkImageSubresourceLayers *layers, const VkOffset3D offsets[2])
+// Whether a blit's corners are a whole level's, unflipped, and its layers or 3D slices.
+static bool whole_blit_level(
+	const Image *image, const VkImageSubresourceLayers *layers, const VkOffset3D offsets[2], Slices *slices)
 {
-	const VkExtent3D extent = { (uint32_t)offsets[1].x, (uint32_t)offsets[1].y, (uint32_t)offsets[1].z };
-	return whole_level(image, layers, offsets[0], extent);
+	const VkExtent3D extent = { (uint32_t)offsets[1].x, (uint32_t)offsets[1].y,
+		(uint32_t)(offsets[1].z - offsets[0].z) };
+	return whole_level(image, layers, offsets[0], extent, slices);
 }
 
 // Whole levels to whole levels of an image of the same format, one the CPU unpacks (v4x_blit_format).
@@ -505,15 +535,20 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage
 	Image *const destination = v4x_object(dstImage);
 	for (uint32_t i = 0; i < regionCount; i++) {
 		const VkImageBlit *const region = &pRegions[i];
-		if (!whole_blit_level(source, &region->srcSubresource, region->srcOffsets) ||
-			!whole_blit_level(destination, &region->dstSubresource, region->dstOffsets) ||
-			source->format != destination->format || !v4x_blit_format(source->format) || filter > VK_FILTER_LINEAR) {
+		Slices from;
+		Slices to;
+		// Each layer or 3D slice into one of its own: a blit doesn't scale a 3D image's depth.
+		if (!whole_blit_level(source, &region->srcSubresource, region->srcOffsets, &from) ||
+			!whole_blit_level(destination, &region->dstSubresource, region->dstOffsets, &to) ||
+			from.count != to.count || source->format != destination->format || !v4x_blit_format(source->format) ||
+			filter > VK_FILTER_LINEAR) {
 			commandBuffer->result = v4x_host_unsupported(
-				"blits of less than a whole level, flipped, between formats or of formats that don't blit");
+				"blits of less than a whole level, flipped, scaled in depth, "
+				"between formats or of formats that don't blit");
 			return;
 		}
-		record_image_copy(commandBuffer, COMMAND_BLIT_IMAGE, source, region->srcSubresource.mipLevel, destination,
-			region->dstSubresource.mipLevel, filter == VK_FILTER_LINEAR);
+		record_image_copy(commandBuffer, COMMAND_BLIT_IMAGE, source, region->srcSubresource.mipLevel, from, destination,
+			region->dstSubresource.mipLevel, to, filter == VK_FILTER_LINEAR);
 	}
 }
 
@@ -528,19 +563,26 @@ VKAPI_ATTR void VKAPI_CALL vkCmdClearColorImage(VkCommandBuffer commandBuffer, V
 			? object->texture.levels - range->baseMipLevel
 			: range->levelCount;
 		const V4xFormat *const format = v4x_format(object->format);
+		// A cube's faces are its layers; a 3D image's one layer is all its slices.
+		const uint32_t layers = object->texture.dimension == XSDK_TEXTURE_CUBE ? XSDK_CUBE_FACES : 1;
+		const uint32_t layer_count =
+			range->layerCount == VK_REMAINING_ARRAY_LAYERS ? layers - range->baseArrayLayer : range->layerCount;
 		// Vulkan clears no compressed image.
-		if (!object->is_texture || !format || format->compressed || range->baseArrayLayer ||
-			(range->layerCount != 1 && range->layerCount != VK_REMAINING_ARRAY_LAYERS)) {
+		if (!object->is_texture || !format || format->compressed || range->baseArrayLayer >= layers || !layer_count ||
+			layer_count > layers - range->baseArrayLayer) {
 			commandBuffer->result =
 				v4x_host_unsupported("colour clears of images other than uncompressed colour images");
 			return;
 		}
+		const bool is_3d = object->texture.dimension == XSDK_TEXTURE_3D;
 		Command *const command = record(commandBuffer, COMMAND_CLEAR_COLOR_IMAGE);
 		if (!command)
 			return;
 		command->clear.image = object;
-		command->clear.first_level = range->baseMipLevel;
-		command->clear.level_count = levels;
+		command->clear.first_level = (uint8_t)range->baseMipLevel;
+		command->clear.level_count = (uint8_t)levels;
+		command->clear.first_slice = (uint16_t)(is_3d ? 0 : range->baseArrayLayer);
+		command->clear.slice_count = (uint16_t)(is_3d ? object->texture.depth : layer_count);
 		v4x_format_pack(format, pColor->float32, command->clear.texel);
 	}
 }

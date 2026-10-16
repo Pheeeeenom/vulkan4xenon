@@ -104,66 +104,83 @@ static void image_written(VkQueue queue, const Image *image)
 		queue->color = (EdramPart){ .contents = EDRAM_UNKNOWN };
 }
 
-// A compressed level a row of blocks at a time, swapped through a row of the CPU's.
-static void upload_blocks(Image *image, const Command *command)
+// A layer's or 3D slice's rows in the copy's buffer.
+static uint8_t *slice_rows(const LevelCopy *copy, uint32_t slice)
 {
-	const uint32_t level = command->copy.level;
+	return (uint8_t *)(uintptr_t)(copy->buffer + slice * copy->slice_bytes);
+}
+
+// A compressed level's layer or 3D slice a row of blocks at a time, swapped through a row of the CPU's.
+static void upload_blocks(Image *image, const LevelCopy *copy, uint32_t slice)
+{
 	const uint32_t row_bytes =
-		v4x_texel_blocks(image->format, level_size(image->width, level)) * v4x_texel_bytes(image->format);
-	for (uint32_t y = 0; y < level_rows(image, level); y++) {
-		swap_words(command->copy.buffer + y * command->copy.row_bytes / 4, (uint32_t *)rows[ROW_OUT], row_bytes);
-		xsdk_texture_upload_rows(&image->texture, level, y, 1, rows[ROW_OUT], 0);
+		v4x_texel_blocks(image->format, level_size(image->width, copy->level)) * v4x_texel_bytes(image->format);
+	const uint8_t *const from = slice_rows(copy, slice);
+	for (uint32_t y = 0; y < level_rows(image, copy->level); y++) {
+		swap_words((const uint32_t *)(from + y * copy->row_bytes), (uint32_t *)rows[ROW_OUT], row_bytes);
+		xsdk_texture_upload_slice_rows(&image->texture, copy->level, copy->first_slice + slice, y, 1, rows[ROW_OUT], 0);
 	}
 }
 
-void v4x_transfer_buffer_to_image(VkQueue queue, const Command *command)
+void v4x_transfer_buffer_to_image(VkQueue queue, const LevelCopy *copy)
 {
-	Image *const image = command->copy.image;
+	Image *const image = copy->image;
 	wait_for_image(queue, image);
-	if (is_compressed(image))
-		upload_blocks(image, command);
-	else
-		xsdk_texture_upload(&image->texture, command->copy.level, (const void *)(uintptr_t)command->copy.buffer,
-			command->copy.row_bytes);
+	for (uint32_t i = 0; i < copy->slice_count; i++) {
+		if (is_compressed(image))
+			upload_blocks(image, copy, i);
+		else
+			xsdk_texture_upload_slice_rows(&image->texture, copy->level, copy->first_slice + i, 0,
+				level_rows(image, copy->level), slice_rows(copy, i), copy->row_bytes);
+	}
 	image_written(queue, image);
 }
 
-static void download_blocks(const Image *image, const Command *command)
+static void download_blocks(const Image *image, const LevelCopy *copy, uint32_t slice)
 {
-	const uint32_t level = command->copy.level;
 	const uint32_t row_bytes =
-		v4x_texel_blocks(image->format, level_size(image->width, level)) * v4x_texel_bytes(image->format);
-	for (uint32_t y = 0; y < level_rows(image, level); y++) {
-		xsdk_texture_download_rows(&image->texture, level, y, 1, rows[ROW_OUT], 0);
-		swap_words((const uint32_t *)rows[ROW_OUT], command->copy.buffer + y * command->copy.row_bytes / 4, row_bytes);
+		v4x_texel_blocks(image->format, level_size(image->width, copy->level)) * v4x_texel_bytes(image->format);
+	uint8_t *const to = slice_rows(copy, slice);
+	for (uint32_t y = 0; y < level_rows(image, copy->level); y++) {
+		xsdk_texture_download_slice_rows(
+			&image->texture, copy->level, copy->first_slice + slice, y, 1, rows[ROW_OUT], 0);
+		swap_words((const uint32_t *)rows[ROW_OUT], (uint32_t *)(to + y * copy->row_bytes), row_bytes);
 	}
 }
 
-void v4x_transfer_image_to_buffer(VkQueue queue, const Command *command)
+void v4x_transfer_image_to_buffer(VkQueue queue, const LevelCopy *copy)
 {
-	const Image *const image = command->copy.image;
-	const uint32_t height = level_rows(image, command->copy.level);
+	const Image *const image = copy->image;
+	const uint32_t height = level_rows(image, copy->level);
 	wait_for_image(queue, image);
 	wait_for_draws(queue);
-	if (is_compressed(image))
-		download_blocks(image, command);
-	else
-		xsdk_texture_download_rows(&image->texture, command->copy.level, 0, height,
-			(void *)(uintptr_t)command->copy.buffer, command->copy.row_bytes);
-	buffer_written(command->copy.address, height * command->copy.row_bytes);
+	for (uint32_t i = 0; i < copy->slice_count; i++) {
+		if (is_compressed(image))
+			download_blocks(image, copy, i);
+		else
+			xsdk_texture_download_slice_rows(
+				&image->texture, copy->level, copy->first_slice + i, 0, height, slice_rows(copy, i), copy->row_bytes);
+	}
+	buffer_written(copy->address, (copy->slice_count - 1) * copy->slice_bytes + height * copy->row_bytes);
 }
 
-// A row at a time, as the two levels' layouts may differ.
+// A row at a time, as the two levels' layouts may differ, each layer or 3D slice into its own.
 void v4x_transfer_copy_image(VkQueue queue, const Command *command)
 {
 	const Image *const source = command->image_copy.source;
 	Image *const destination = command->image_copy.destination;
+	const uint32_t from_level = command->image_copy.source_level;
+	const uint32_t to_level = command->image_copy.destination_level;
 	wait_for_image(queue, source);
 	wait_for_image(queue, destination);
-	const uint32_t height = level_rows(source, command->image_copy.source_level);
-	for (uint32_t y = 0; y < height; y++) {
-		xsdk_texture_download_rows(&source->texture, command->image_copy.source_level, y, 1, rows[ROW_OUT], 0);
-		xsdk_texture_upload_rows(&destination->texture, command->image_copy.destination_level, y, 1, rows[ROW_OUT], 0);
+	const uint32_t height = level_rows(source, from_level);
+	for (uint32_t i = 0; i < command->image_copy.slice_count; i++) {
+		const uint32_t from = command->image_copy.source_slice + i;
+		const uint32_t to = command->image_copy.destination_slice + i;
+		for (uint32_t y = 0; y < height; y++) {
+			xsdk_texture_download_slice_rows(&source->texture, from_level, from, y, 1, rows[ROW_OUT], 0);
+			xsdk_texture_upload_slice_rows(&destination->texture, to_level, to, y, 1, rows[ROW_OUT], 0);
+		}
 	}
 	image_written(queue, destination);
 }
@@ -226,7 +243,25 @@ static void blit_row(const BlitRow *blit, float towards_below)
 	}
 }
 
-// Images of formats the CPU unpacks (vkCmdBlitImage), a destination row at a time.
+// A destination layer's or 3D slice's level from the source's.
+static void blit_slice(const Command *command, const BlitRow *blit, uint32_t from, uint32_t to)
+{
+	const Image *const source = command->image_copy.source;
+	Image *const destination = command->image_copy.destination;
+	const uint32_t from_level = command->image_copy.source_level;
+	const uint32_t to_level = command->image_copy.destination_level;
+	const uint32_t from_height = level_size(source->height, from_level);
+	const uint32_t to_height = level_size(destination->height, to_level);
+	for (uint32_t y = 0; y < to_height; y++) {
+		const Taps down = taps(y, to_height, from_height, blit->linear);
+		xsdk_texture_download_slice_rows(&source->texture, from_level, from, down.first, 1, rows[ROW_ABOVE], 0);
+		xsdk_texture_download_slice_rows(&source->texture, from_level, from, down.second, 1, rows[ROW_BELOW], 0);
+		blit_row(blit, down.towards_second);
+		xsdk_texture_upload_slice_rows(&destination->texture, to_level, to, y, 1, rows[ROW_OUT], 0);
+	}
+}
+
+// Images of formats the CPU unpacks (vkCmdBlitImage), a destination row at a time, each layer or 3D slice into its own.
 void v4x_transfer_blit(VkQueue queue, const Command *command)
 {
 	const Image *const source = command->image_copy.source;
@@ -237,17 +272,10 @@ void v4x_transfer_blit(VkQueue queue, const Command *command)
 		.from_width = level_size(source->width, from_level),
 		.to_width = level_size(destination->width, to_level),
 		.linear = command->image_copy.linear };
-	const uint32_t from_height = level_size(source->height, from_level);
-	const uint32_t to_height = level_size(destination->height, to_level);
 	wait_for_image(queue, source);
 	wait_for_image(queue, destination);
-	for (uint32_t y = 0; y < to_height; y++) {
-		const Taps down = taps(y, to_height, from_height, blit.linear);
-		xsdk_texture_download_rows(&source->texture, from_level, down.first, 1, rows[ROW_ABOVE], 0);
-		xsdk_texture_download_rows(&source->texture, from_level, down.second, 1, rows[ROW_BELOW], 0);
-		blit_row(&blit, down.towards_second);
-		xsdk_texture_upload_rows(&destination->texture, to_level, y, 1, rows[ROW_OUT], 0);
-	}
+	for (uint32_t i = 0; i < command->image_copy.slice_count; i++)
+		blit_slice(command, &blit, command->image_copy.source_slice + i, command->image_copy.destination_slice + i);
 	image_written(queue, destination);
 }
 
@@ -261,8 +289,12 @@ void v4x_transfer_clear(VkQueue queue, const Command *command)
 		memcpy(&rows[ROW_OUT][i], command->clear.texel, texel_bytes);
 	wait_for_image(queue, image);
 	const uint32_t end = command->clear.first_level + command->clear.level_count;
-	for (uint32_t level = command->clear.first_level; level < end; level++)
-		xsdk_texture_upload_rows(&image->texture, level, 0, level_size(image->height, level), rows[ROW_OUT], 0);
+	const uint32_t slices_end = command->clear.first_slice + command->clear.slice_count;
+	for (uint32_t level = command->clear.first_level; level < end; level++) {
+		for (uint32_t slice = command->clear.first_slice; slice < slices_end; slice++)
+			xsdk_texture_upload_slice_rows(
+				&image->texture, level, slice, 0, level_size(image->height, level), rows[ROW_OUT], 0);
+	}
 	image_written(queue, image);
 }
 

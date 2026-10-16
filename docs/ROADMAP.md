@@ -2312,6 +2312,40 @@ cube and 3D textures and border and mirror-once addressing (xsdk:TODO.md). xost 
 
 Done when vulkan4xenon_test samples each face and slice, each address mode and a depth comparison, checked by pixel.
 
+**Decided (2026-10-16),** in three steps, each with xsdk's and xost's part first:
+- cube and 3D textures in xsdk, laid out as Xenia has them, with uploads into each face and slice; xost's `sampler3D`;
+  and the layer's cube images (2D, six layers, `CUBE_COMPATIBLE`, viewed as a cube) and 3D images, with the copies at
+  replay taking layers and slices. Arrays of 2D images and cubes, and drawing into either, stay refused;
+- border and mirror-once addressing in xsdk; the layer's clamp to border, in the black the evidence favours and white,
+  with a check that tells black's alpha and the other black refused till the console settles it; and mirror clamp to
+  edge as `VK_KHR_sampler_mirror_clamp_to_edge`;
+- the comparison of a `sampler2DShadow` in xost, after the fetch, which works whatever the hardware does; whether
+  Xenos compares in the fetch is a question for a later probe. Comparison samplers on depth images through it, and
+  linear filtering of D24S8 reported, with a check that tries it: the console decides.
+
+**Step 1, built** (2026-10-16; not yet run on the console). xsdk lays out cubes of six faces with their mips and 3D
+textures of one level, tiled (xsdk:include/xsdk/texture.h): each cube level holds the faces in turn, +x, -x, +y, -y, +z
+then -z, a level's size apart rounded to a page, and a 3D texture's slices go in Xenia's 3D tiles, 4 slices deep
+(xenia:src/xenia/gpu/texture_util.cc:209-449, texture_address.h:213-238). `xsdk_texture_upload_slice_rows` and
+`xsdk_texture_download_slice_rows` copy a face's or slice's rows. xost samples a `sampler3D` with `tfetch3D`, and its
+simulator now runs the cube op, so `samplerCube`'s lowering is checked by its numbers (xost:tests/test_cube_and_3d.py).
+The layer makes cubes and 3D images in the colour formats, milestone 20's compressed ones too, sampled and copied,
+viewed whole as a cube or 3D; the copies, image copies, blits and colour clears at replay take a cube's layers and a 3D
+image's slices, a compressed image's blocks swapped in each as in a 2D image's, a blit never scaling depth; a copy
+between a buffer and an image keeps its region in the command buffer's data, so a command stays 24 bytes.
+`maxImageDimension3D` is 1024, `maxImageDimensionCube` 8192 and `maxImageArrayLayers` a cube's 6; image format
+properties give 2D images one layer. 3D mips, arrays and linear cubes and 3D images are refused (docs/SUPPORT.md,
+Images).
+- **The checks:** vulkan4xenon_test's `test_cube_3d.c` copies a buffer into a 16x16 cube's six faces at each of two
+  levels in one region a level, and into a 16x16x8 3D image's slices in two halves, the second from `imageOffset.z`,
+  each face and level and each slice its own colour, its quadrants apart in blue; draws each face at level 0 and at
+  level 1, by the sampler's LOD clamps, over a quad whose directions span the face, and each slice at its w, each
+  quadrant probed every frame; copies level 1's face 3 and slices 5 and 6 back out; copies face 1 into another cube's
+  face 4 and clears that cube's faces 0 and 1, reading them back; and checks the image format properties, the limits,
+  and the refusals of 2D arrays, cube arrays, cubes drawn into and a 2D view of a face. xsdk_test's `test_cube_volume.c`
+  draws each face of a 32x32 cube at levels 0 and 1, and of an 8x8 one at levels 0 and 2, from its packed tails, and
+  each slice of a 32x32x8 3D texture and an 8x8x3 one, one texel to a pixel, through xost's shaders.
+
 ### Milestone 24: instancing and long strips
 
 **Why.** Foliage, crowds and particles are drawn instanced, and the layer draws one instance a draw (docs/SUPPORT.md,

@@ -747,10 +747,10 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 			buffer->data + command->push_constants.data_at, command->push_constants.size_bytes);
 		break;
 	case COMMAND_COPY_BUFFER_TO_IMAGE:
-		v4x_transfer_buffer_to_image(queue, command);
+		v4x_transfer_buffer_to_image(queue, (const LevelCopy *)(buffer->data + command->state_at));
 		break;
 	case COMMAND_COPY_IMAGE_TO_BUFFER:
-		v4x_transfer_image_to_buffer(queue, command);
+		v4x_transfer_image_to_buffer(queue, (const LevelCopy *)(buffer->data + command->state_at));
 		break;
 	case COMMAND_COPY_IMAGE:
 		v4x_transfer_copy_image(queue, command);

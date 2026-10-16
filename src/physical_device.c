@@ -26,6 +26,8 @@ enum {
 	MIN_SAMPLER_ALLOCATIONS = 4000,
 	// A level for each halving down to 1x1 (xsdk:src/texture.c, level_count).
 	MAX_IMAGE_LEVELS = 14,
+	// A 3D texture's sides go to 2048 and its depth to 1024 (xsdk:include/xsdk/texture.h); one limit takes all three.
+	MAX_IMAGE_3D = XSDK_TEXTURE_3D_MAX_DEPTH,
 	MAX_LOD_BIAS = 15,
 	// xsdk sets VGT_MAX_VTX_INDX to 24 bits (xsdk:src/gpu_draw.c).
 	MAX_INDEX_VALUE = 0x00FFFFFF,
@@ -53,7 +55,10 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 		.deviceName = "Xenos (vulkan4xenon)",
 		.limits = {
 			.maxImageDimension2D = XSDK_TEXTURE_MAX_SIZE,
-			.maxImageArrayLayers = 1,
+			.maxImageDimension3D = MAX_IMAGE_3D,
+			.maxImageDimensionCube = XSDK_TEXTURE_MAX_SIZE,
+			// A cube's; a 2D image has one layer (vkGetPhysicalDeviceImageFormatProperties).
+			.maxImageArrayLayers = XSDK_CUBE_FACES,
 			.maxUniformBufferRange = MAX_UNIFORM_BUFFER_BYTES,
 			.maxPushConstantsSize = V4X_MAX_PUSH_CONSTANT_BYTES,
 			.maxMemoryAllocationCount = HEAP_BYTES / MAP_ALIGNMENT,
@@ -169,6 +174,27 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 		pFormatProperties->bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
 }
 
+// Cubes of the colour formats with their mips, and 3D images of one level, sampled and copied (image.c).
+static VkResult cube_or_3d_properties(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage,
+	VkImageCreateFlags flags, VkImageFormatProperties *properties)
+{
+	const bool cube = type == VK_IMAGE_TYPE_2D && flags == VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+	if (!v4x_format(format) || (!cube && (type != VK_IMAGE_TYPE_3D || flags)) || tiling != VK_IMAGE_TILING_OPTIMAL ||
+		(usage & ~(VkImageUsageFlags)V4X_CUBE_AND_3D_USAGE)) {
+		*properties = (VkImageFormatProperties){ 0 };
+		return VK_ERROR_FORMAT_NOT_SUPPORTED;
+	}
+	*properties = (VkImageFormatProperties){
+		.maxExtent = cube ? (VkExtent3D){ XSDK_TEXTURE_MAX_SIZE, XSDK_TEXTURE_MAX_SIZE, 1 }
+						  : (VkExtent3D){ MAX_IMAGE_3D, MAX_IMAGE_3D, MAX_IMAGE_3D },
+		.maxMipLevels = cube ? MAX_IMAGE_LEVELS : 1,
+		.maxArrayLayers = cube ? XSDK_CUBE_FACES : 1,
+		.sampleCounts = VK_SAMPLE_COUNT_1_BIT,
+		.maxResourceSize = HEAP_BYTES,
+	};
+	return VK_SUCCESS;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice,
 	VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage, VkImageCreateFlags flags,
 	VkImageFormatProperties *pImageFormatProperties)
@@ -185,6 +211,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 		};
 		return VK_SUCCESS;
 	}
+	if (flags == VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT || type == VK_IMAGE_TYPE_3D)
+		return cube_or_3d_properties(format, type, tiling, usage, flags, pImageFormatProperties);
 	const V4xFormat *const image = v4x_format(format);
 	const bool linear = tiling == VK_IMAGE_TILING_LINEAR;
 	const VkImageUsageFlags usages = linear ? V4X_LINEAR_IMAGE_USAGE : V4X_IMAGE_USAGE;

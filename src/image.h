@@ -12,6 +12,9 @@ enum {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 	// Linear images are only copied to and from.
 	V4X_LINEAR_IMAGE_USAGE = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+	// Cube and 3D images are sampled and copied to and from, not drawn into (docs/ROADMAP.md, milestone 23).
+	V4X_CUBE_AND_3D_USAGE =
+		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 	// What depth images may be used for: attachments, sampled after a pass stores them and leaves them to be read, and
 	// cleared by vkCmdClearDepthStencilImage.
 	V4X_DEPTH_IMAGE_USAGE = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |

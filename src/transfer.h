@@ -8,8 +8,8 @@
 // Copies, clears and blits, which the CPU runs as it replays them (docs/ROADMAP.md, section 3), each waiting first for
 // the GPU to be done with what it reads or writes.
 
-void v4x_transfer_buffer_to_image(VkQueue queue, const Command *command);
-void v4x_transfer_image_to_buffer(VkQueue queue, const Command *command);
+void v4x_transfer_buffer_to_image(VkQueue queue, const LevelCopy *copy);
+void v4x_transfer_image_to_buffer(VkQueue queue, const LevelCopy *copy);
 void v4x_transfer_copy_image(VkQueue queue, const Command *command);
 void v4x_transfer_blit(VkQueue queue, const Command *command);
 void v4x_transfer_clear(VkQueue queue, const Command *command);

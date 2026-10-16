@@ -332,6 +332,21 @@ typedef struct {
 	uint32_t height;
 } FramebufferSubpasses;
 
+// A copy between a buffer and the whole of an image's level, in some of its layers or 3D slices, kept in the command
+// buffer's data.
+typedef struct {
+	// The buffer's bytes at the copy's offset, and their GPU address, 0 in cached memory.
+	volatile uint8_t *buffer;
+	uint32_t address;
+	Image *image;
+	uint32_t level;
+	uint32_t row_bytes;
+	// The image's first layer or slice and how many, each one's rows slice_bytes after the last's in the buffer.
+	uint32_t first_slice;
+	uint32_t slice_count;
+	uint32_t slice_bytes;
+} LevelCopy;
+
 typedef enum {
 	COMMAND_BEGIN_RENDER_PASS,
 	COMMAND_END_RENDER_PASS,
@@ -408,22 +423,17 @@ typedef struct {
 			uint32_t size_bytes;
 			uint32_t data_at;
 		} push_constants;
-		// Between a buffer and the whole of an image's level.
-		struct {
-			// The buffer's words at the copy's offset, and their GPU address, 0 in cached memory.
-			volatile uint32_t *buffer;
-			uint32_t address;
-			Image *image;
-			uint32_t level;
-			uint32_t row_bytes;
-		} copy;
-		// The whole of a level into the whole of another, copied, or blitted to its size.
+		// The whole of a level into the whole of another, copied, or blitted to its size, in as many of each one's
+		// layers or 3D slices from the first given; small, so a command stays 24 bytes.
 		struct {
 			Image *source;
 			Image *destination;
-			uint32_t source_level;
-			uint32_t destination_level;
+			uint8_t source_level;
+			uint8_t destination_level;
 			bool linear;
+			uint16_t source_slice;
+			uint16_t destination_slice;
+			uint16_t slice_count;
 		} image_copy;
 		// Into a buffer, from another's bytes, the command buffer's data or one word over and over.
 		struct {
@@ -437,8 +447,10 @@ typedef struct {
 		} buffer_copy;
 		struct {
 			Image *image;
-			uint32_t first_level;
-			uint32_t level_count;
+			uint8_t first_level;
+			uint8_t level_count;
+			uint16_t first_slice;
+			uint16_t slice_count;
 			// A texel's bytes as the image holds them.
 			uint8_t texel[V4X_MAX_TEXEL_BYTES];
 		} clear;
@@ -482,7 +494,7 @@ typedef struct {
 			uint32_t query;
 			bool after_work;
 		} timestamp;
-		// A VkViewport, VkRect2D or ClearRect in the command buffer's data.
+		// A VkViewport, VkRect2D, ClearRect, QueryCopy or LevelCopy in the command buffer's data.
 		uint32_t state_at;
 		struct {
 			uint32_t address;

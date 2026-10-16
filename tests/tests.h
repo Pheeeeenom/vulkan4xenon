@@ -33,6 +33,8 @@ void test_vertex_formats(const Harness *harness);
 void test_texture(const Harness *harness);
 // Every image format on xsdk's sampled, filtered, copied, blitted and cleared, each texel checked (milestone 20).
 void test_formats(const Harness *harness);
+// A cube and a 3D image copied in face by face and slice by slice, sampled, copied and cleared (milestone 23).
+void test_cube_3d(const Harness *harness);
 // Quads placed and coloured by push constants (milestone 2).
 void test_push_constants(const Harness *harness);
 // Quads placed by a matrix and coloured from uniform buffers, one dynamic, in two sets (milestone 2).

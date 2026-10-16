@@ -265,14 +265,29 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 ## Images
 
-- 2D, one layer, one sample, optimal tiling, used for sampling, copying to and from and as colour attachments; anything
-  else returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1. None is sparse, so
+- 2D, one layer, one sample, optimal tiling, used for sampling, copying to and from and as colour attachments; cubes and
+  3D images, below; anything else returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1. None is sparse, so
   `vkGetImageSparseMemoryRequirements` and `vkGetPhysicalDeviceSparseImageFormatProperties` find nothing.
 - Formats: each on the xsdk format that holds its bits as Vulkan does (Formats, "On xsdk").
 - Compressed images, BC1 to BC5, are optimal-tiled. Vulkan's blocks are the Khronos Data Format Specification's
   bytes, each 16-bit word least significant byte first, and xsdk's DXT formats take each word in the CPU's order
   (xsdk:include/xsdk/texture.h), so copies into and out of a compressed image swap each word's bytes, a row of blocks
   at a time (milestone 20). The image's memory holds xsdk's order, which is opaque to the app, as Vulkan has it.
+- Cubes (milestone 23): `VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT`, six layers, square, one sample, optimal tiling, in the
+  colour formats (Formats), compressed or not, but not D24S8, with mips, sampled and copied to and from. Layers 0 to 5
+  are xsdk's faces, +x, -x, +y, -y, +z then -z, Vulkan's order too (xsdk:include/xsdk/texture.h,
+  `xsdk_texture_init_cube`). A cube clamps to each face's edge whatever the sampler's address modes, as Vulkan has it
+  (xenia:src/xenia/gpu/texture_util.cc:556-577).
+- 3D images (milestone 23): one level and one layer, one sample, optimal tiling, in the colour formats, compressed or
+  not, but not D24S8, sampled and copied to and from, up to `maxImageDimension3D`, 1024, on each side
+  (xsdk:include/xsdk/texture.h, `xsdk_texture_init_3d`). A 3D image of more levels returns
+  `VK_ERROR_FEATURE_NOT_PRESENT`, as xsdk lays out a 3D texture's base alone (xsdk:TODO.md, "Cube and 3D textures, the
+  rest").
+- Arrays of 2D images or of cubes, and cubes or 3D images used as attachments, return `VK_ERROR_FEATURE_NOT_PRESENT`.
+  `vkGetPhysicalDeviceImageFormatProperties` gives a 2D image one layer, a cube six and 14 levels, and a 3D image 1024
+  on each side and one level, so `maxImageArrayLayers` is a cube's 6.
+- **Deviation:** a linear filter at a cube face's edge stays inside the face, where Vulkan blends in the face beside it:
+  Xenos likely has no seamless cube filtering (xenia:src/xenia/gpu/ucode.h:592-593). Not checked on the console.
 - Linear images: one level of an uncompressed format, only copied to and from, which they're for, as xsdk's linear
   textures are one level (xsdk:src/texture.c). Their rows start a whole 256 bytes apart, as Xenos's linear textures need
   (xenia:src/xenia/gpu/xenos.h:1179-1181), and `vkGetImageSubresourceLayout` gives that pitch, offset 0 and the rows'
@@ -297,10 +312,11 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     mask;
   - cleared by `vkCmdClearDepthStencilImage`, every word of its memory takes the clear on the CPU at replay, for a
     shader to sample, as well as the next pass to load it.
-- Image views: the whole of a 2D image in its format. A component mapping sets the fetch constant's swizzle
-  (`xsdk_texture_swizzle`), so a view samples any of the format's channels, 0 or 1 as each of red, green, blue and
-  alpha, the format's own picked as Formats ("On xsdk") has them; a swizzled view of a depth image returns
-  `VK_ERROR_FEATURE_NOT_PRESENT`.
+- Image views: the whole of an image in its format, a 2D image's as 2D, a cube's as a cube and a 3D image's as 3D; a 2D
+  view of a face, or an array view, returns `VK_ERROR_FEATURE_NOT_PRESENT`. A component mapping sets the fetch
+  constant's swizzle (`xsdk_texture_swizzle`), so a view samples any of the format's channels, 0 or 1 as each of red,
+  green, blue and alpha, the format's own picked as Formats ("On xsdk") has them; a swizzled view of a depth image
+  returns `VK_ERROR_FEATURE_NOT_PRESENT`.
 
 ## Samplers
 
@@ -353,21 +369,24 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   no longer what eDRAM holds. Copies of depth images return `VK_ERROR_FEATURE_NOT_PRESENT`.
 - `vkCmdCopyBufferToImage` and `vkCmdCopyImageToBuffer` copy whole mip levels, to or from tightly packed rows or rows
   `bufferRowLength` texels long, at 4-byte-aligned offsets, in runs of whole words where the rows are word-aligned
-  (`xsdk_texture_upload_rows`, `xsdk_texture_download_rows`). A compressed level goes a row of blocks at a time, each
-  16-bit word's bytes swapped (Images). A copy out reads the GPU's write-combined memory, so it's slow.
+  (`xsdk_texture_upload_slice_rows`, `xsdk_texture_download_slice_rows`). A compressed level goes a row of blocks at a
+  time, each 16-bit word's bytes swapped (Images). A copy out reads the GPU's write-combined memory, so it's slow. A
+  region may cover any of a cube's layers or a 3D image's slices, each one's rows `bufferImageHeight` rows, or the
+  level's height, after the last's (milestone 23).
 - `vkCmdCopyImage` copies whole levels of one size between formats of one texel size, the bits as they are, a row at a
-  time. A copy between a compressed and an uncompressed format, which Vulkan allows, fails the command buffer, as
-  their 16-bit words lie in different orders.
+  time, as many of a cube's layers or a 3D image's slices as the other gives. A copy between a compressed and an
+  uncompressed format, which Vulkan allows, fails the command buffer, as their 16-bit words lie in different orders.
 - `vkCmdBlitImage` blits whole levels to whole levels, unflipped, between images of one format reporting
   `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT` (Formats): every uncompressed format but `R32_SFLOAT`, the half
   floats and 10-10-10-2 nearest alone, as they don't report linear filtering. Each destination texel samples the
   source at its centre, nearest or between the four texels around it, edges clamped:
   the CPU unpacks each texel's channels to floats, an sRGB format's colours through sRGB's curve, mixes them, and
   packs them again rounded to the nearest (src/format.c). A chain of levels blitted down from the base makes an
-  image's mips.
+  image's mips, a cube's a layer at a time. Each layer or 3D slice goes into one of its own; a blit that scales a 3D
+  image's depth fails the command buffer.
 - `vkCmdClearColorImage` fills whole levels with the colour, packed as the format holds it, an sRGB format's colours
-  through sRGB's curve, each channel rounded to the nearest. A compressed image's clear, which Vulkan doesn't allow,
-  fails the command buffer.
+  through sRGB's curve, each channel rounded to the nearest; the range's layers of a cube, or every slice of a 3D
+  image. A compressed image's clear, which Vulkan doesn't allow, fails the command buffer.
 - `vkCmdClearDepthStencilImage` clears depth and stencil together, as one register holds both; a range of one alone
   fails the command buffer. Its clear waits for the next pass to use the image (Render passes), and a sampled image's
   memory takes it at once (Images).
@@ -546,15 +565,16 @@ Vulkan 1.0 requires many more formats and features; each missing one is a deviat
 
 ## Physical device
 
-Only these limits are set. Every other limit is 0: what it measures isn't implemented yet, such as 1D, 3D and cube
-images, storage and texel buffers, input attachments, clip and cull distances, and compute. Where Vulkan 1.0 has a
-minimum for one of those, the 0 is below it. `mipmapPrecisionBits` and `subTexelPrecisionBits` are 0 too, under the
+Only these limits are set. Every other limit is 0: what it measures isn't implemented yet, such as 1D images, storage
+and texel buffers, input attachments, clip and cull distances, and compute. Where Vulkan 1.0 has a minimum for one of
+those, the 0 is below it. `mipmapPrecisionBits` and `subTexelPrecisionBits` are 0 too, under the
 minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
 
 | Limit | Value |
 |---|---|
-| `maxImageDimension2D` | 8192 |
-| `maxImageArrayLayers` | 1 |
+| `maxImageDimension2D`, `maxImageDimensionCube` | 8192 |
+| `maxImageDimension3D` | 1024 |
+| `maxImageArrayLayers` | 6 |
 | `maxUniformBufferRange` | 4096 |
 | `maxPushConstantsSize` | 128 |
 | `maxMemoryAllocationCount` | 4096 |
@@ -601,7 +621,7 @@ Set limits below Vulkan 1.0's minimum:
 | `maxFragmentOutputAttachments`, `maxColorAttachments` 1 (4) | One colour target until multiple render targets are built (xsdk:TODO.md). |
 | `maxFramebufferWidth`, `maxFramebufferHeight` 1280, 720 (4096) | A 1280x720 colour and depth target fills eDRAM (xsdk:SCOPE.md 3.4). |
 | `maxFramebufferLayers` 1 (256) | No layered rendering. |
-| `maxImageArrayLayers` 1 (256) | No image arrays yet. |
+| `maxImageArrayLayers` 6 (256) | A cube's six layers; arrays of images aren't built yet. |
 | `maxUniformBufferRange` 4096 (16384) | A block is copied into a stage's 256 float constants of 16 bytes. |
 | `maxPerStageResources` 28 (128) | 12 uniform buffers and 16 samplers: a stage's constants, and the fetch constants the two stages share with the vertex streams (Pipelines). |
 
