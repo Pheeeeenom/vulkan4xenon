@@ -41,6 +41,9 @@ enum {
 	// Fetch constants a shader may sample from: below the ones the 16 vertex streams take (xsdk:src/gpu_draw.c).
 	V4X_MAX_SAMPLERS = 16,
 	V4X_MAX_SHADER_RESOURCES = 2 * (1 + V4X_MAX_DESCRIPTOR_SETS * V4X_MAX_DESCRIPTOR_BINDINGS),
+	// A render pass's subpasses and attachments: a budget, not a limit of Xenos's.
+	V4X_MAX_SUBPASSES = 8,
+	V4X_MAX_ATTACHMENTS = 8,
 };
 
 struct VkPhysicalDevice_T {
@@ -277,6 +280,8 @@ typedef struct {
 	uint32_t resource_count;
 } Pipeline;
 
+// One subpass as the replay draws it, a render pass of its own: its colour attachment and its depth if it has one, with
+// the load and store ops they take there, an attachment's own at its first and last subpass and kept between.
 typedef struct {
 	VkFormat format;
 	VkAttachmentLoadOp load_op;
@@ -291,12 +296,28 @@ typedef struct {
 	bool leaves_depth_to_read;
 } RenderPass;
 
+// A VkRenderPass: its subpasses in order.
+typedef struct {
+	RenderPass subpasses[V4X_MAX_SUBPASSES];
+	uint32_t subpass_count;
+	uint32_t attachment_count;
+} RenderPassSubpasses;
+
+// One subpass's attachments' images.
 typedef struct {
 	Image *attachment;
 	Image *depth;
 	uint32_t width;
 	uint32_t height;
 } Framebuffer;
+
+// A VkFramebuffer: each subpass's images, as the render pass it was made with places its attachments; a compatible pass
+// places them the same.
+typedef struct {
+	Framebuffer subpasses[V4X_MAX_SUBPASSES];
+	uint32_t width;
+	uint32_t height;
+} FramebufferSubpasses;
 
 typedef enum {
 	COMMAND_BEGIN_RENDER_PASS,
@@ -325,6 +346,7 @@ typedef enum {
 	COMMAND_SET_BLEND_CONSTANTS,
 	COMMAND_CLEAR_ATTACHMENTS,
 	COMMAND_CLEAR_DEPTH_IMAGE,
+	COMMAND_EXECUTE_COMMANDS,
 } CommandType;
 
 // The dynamic state a command buffer sets past the viewport and scissor, as it last set it in a replay.
@@ -419,6 +441,8 @@ typedef struct {
 			float depth;
 			uint8_t stencil;
 		} depth_clear;
+		// A secondary command buffer, replayed in place.
+		struct VkCommandBuffer_T *secondary;
 		// A VkViewport, VkRect2D or ClearRect in the command buffer's data.
 		uint32_t state_at;
 		struct {
@@ -451,9 +475,16 @@ struct VkCommandBuffer_T {
 	uint8_t *data;
 	uint32_t data_bytes;
 	uint32_t data_capacity_bytes;
-	bool in_render_pass;
+	// The render pass being recorded, its framebuffer, the subpass it's in and the clear values it began with, for
+	// vkCmdNextSubpass to begin the next subpass as a pass of its own.
+	const RenderPassSubpasses *render_pass;
+	const FramebufferSubpasses *framebuffer;
+	uint32_t subpass;
+	VkClearValue clears[V4X_MAX_ATTACHMENTS];
 	// The pipeline bound last while recording, to check draws against its topology.
 	const Pipeline *pipeline;
+	// Allocated as a secondary command buffer, which vkCmdExecuteCommands replays in place.
+	bool secondary;
 };
 
 typedef struct CommandPool {

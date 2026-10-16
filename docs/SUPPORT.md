@@ -27,7 +27,7 @@ required minimums.
 | Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkGetImageSparseMemoryRequirements`, `vkGetImageSubresourceLayout`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
 | Descriptor sets | `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`, `vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`, `vkFreeDescriptorSets`, `vkUpdateDescriptorSets` |
 | Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer`, `vkGetRenderAreaGranularity` |
-| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBias`, `vkCmdSetBlendConstants`, `vkCmdSetDepthBounds`, `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask`, `vkCmdSetStencilReference`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdClearDepthStencilImage`, `vkCmdClearAttachments`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdNextSubpass`, `vkCmdEndRenderPass`, `vkCmdExecuteCommands`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBias`, `vkCmdSetBlendConstants`, `vkCmdSetDepthBounds`, `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask`, `vkCmdSetStencilReference`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdClearDepthStencilImage`, `vkCmdClearAttachments`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
 | Sync and submit | `vkQueueSubmit`, `vkQueueBindSparse`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore`, `vkCreateEvent`, `vkDestroyEvent`, `vkGetEventStatus`, `vkSetEvent`, `vkResetEvent` |
 | Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
 | Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
@@ -177,8 +177,15 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 ## Render passes
 
-- One subpass with one colour attachment, `VK_FORMAT_R8G8B8A8_UNORM` or `VK_FORMAT_B8G8R8A8_UNORM`, one sample, and
-  optionally a depth attachment, `VK_FORMAT_D24_UNORM_S8_UINT`.
+- Up to 8 subpasses over up to 8 attachments. Each subpass has one colour attachment, `VK_FORMAT_R8G8B8A8_UNORM` or
+  `VK_FORMAT_B8G8R8A8_UNORM`, one sample, and optionally a depth attachment, `VK_FORMAT_D24_UNORM_S8_UINT`; input and
+  resolve attachments return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- **Subpasses, each a pass of its own** (milestone 19): `vkCmdBeginRenderPass` and `vkCmdNextSubpass` begin each
+  subpass as the replay begins a render pass, and `vkCmdNextSubpass` and `vkCmdEndRenderPass` end it. An attachment
+  takes its own load op in the first subpass that uses it and its store op in the last; the subpasses between load and
+  store it, so a colour attachment is resolved at each subpass that draws it and found in eDRAM, or drawn back, by the
+  next, and depth stays in eDRAM throughout. Preserved attachments need nothing, as every attachment a later subpass
+  uses is kept, and replay in order makes the dependencies nothing.
 - Every load op: clear, load or don't-care. Store op store or don't-care.
 - Depth and stencil clear together, as one register holds both (xsdk:src/gpu_resolve.c). A depth attachment that
   clears one and loads the other returns `VK_ERROR_FEATURE_NOT_PRESENT`.
@@ -279,10 +286,13 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 ## Commands
 
-- Primary command buffers only. Each starts with room for 4096 commands, and 16 KB of data for push constants,
-  dynamic offsets and copy regions; each doubles when it fills, and keeps its size through resets. If host memory runs
-  out, `vkEndCommandBuffer` returns `VK_ERROR_OUT_OF_HOST_MEMORY`.
+- Each command buffer starts with room for 4096 commands, and 16 KB of data for push constants, dynamic offsets and
+  copy regions; each doubles when it fills, and keeps its size through resets. If host memory runs out,
+  `vkEndCommandBuffer` returns `VK_ERROR_OUT_OF_HOST_MEMORY`.
 - `vkQueueSubmit` replays them on the caller's thread into xsdk's ring.
+- Secondary command buffers record the same commands; `vkCmdExecuteCommands` replays each in place, at the submit, with
+  the state the replay has bound, which is more than Vulkan promises a secondary command buffer, as it begins with
+  none (milestone 19).
 - **Copies, clears and blits run on the CPU at replay** (src/transfer.c), in order with the draws around them, each
   waiting first for the GPU to be done with what it reads or writes:
   - an image: the submission that last sampled it, resolved into it or drew it back into eDRAM, for the fence that

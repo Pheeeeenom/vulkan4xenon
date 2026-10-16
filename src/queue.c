@@ -722,6 +722,11 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 	case COMMAND_CLEAR_DEPTH_IMAGE:
 		clear_depth_image(queue, command);
 		break;
+	// In place, with the state the replay has bound; a secondary command buffer begins and ends no render pass.
+	case COMMAND_EXECUTE_COMMANDS:
+		for (uint32_t c = 0; c < command->secondary->count; c++)
+			replay_command(queue, command->secondary, replay, c);
+		break;
 	case COMMAND_BIND_INDEX_BUFFER:
 		replay->index_address = command->index_buffer.address;
 		replay->index_32_bit = command->index_buffer.is_32_bit;

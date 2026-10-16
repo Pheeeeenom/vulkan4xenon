@@ -201,7 +201,8 @@ static VkResult create_pipeline(
 	Pipeline *const pipeline = v4x_host_alloc(allocator, sizeof *pipeline, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!pipeline)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
-	VkResult result = v4x_pipeline_state(info, v4x_object(info->renderPass), pipeline);
+	const RenderPassSubpasses *const render_pass = v4x_object(info->renderPass);
+	VkResult result = v4x_pipeline_state(info, &render_pass->subpasses[info->subpass], pipeline);
 	if (result == VK_SUCCESS)
 		result = find_stages(info, pipeline);
 	const PipelineLayout *const layout = v4x_object(info->layout);

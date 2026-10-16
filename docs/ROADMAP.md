@@ -1845,8 +1845,9 @@ cached memory type, so one an image is read back into maps fast.
   because the new test left the harness's fence signaled; it now resets it, as the other tests do
   (`vulkan4xenon_test_fence_left_signaled.log`). xsdk_test passed 318 of 318 with the user at the pad; broken on
   purpose, rows written past the first landing on the first and words read back off by one, its two new checks
-  failed and the rest passed. Dusklight, built clean against both, ran its title scene at 29.4 to 30 fps with
-  nothing refused, until the user left it through the Guide's Xbox Home (`dusklight_m19.log`).
+  failed and the rest passed. Dusklight, built clean against both, ran its title scene at 29.4 to 30 fps, refusing
+  only the 20x11 copy, 16 texels or less on a side, as since milestone 14, until the user left it through the Guide's
+  Xbox Home (`dusklight_m19.log`).
 
 Step 2 is done.
 
@@ -1893,6 +1894,31 @@ once. Depth images take `TRANSFER_DST` for it, and a range of depth or stencil a
   depth images refused `TRANSFER_DST` failed the scene's making and the checks after it (`_d`).
 
 Step 4 is done.
+
+**Step 5 on the console** (2026-10-16; `results/2026-10-16-milestone-19-step-5/`). A render pass keeps a pass for each
+of up to 8 subpasses, over up to 8 attachments: an attachment takes its own load op in the first subpass that uses it
+and its own store op in the last, and the subpasses between load and store it; depth stays in eDRAM from one subpass to
+the next unless a subpass gives it up. A framebuffer keeps each subpass's colour and depth images. `vkCmdNextSubpass`
+ends one subpass's pass and begins the next's, with the clears `vkCmdBeginRenderPass` was given; a pipeline takes the
+settings of its own subpass. `vkCmdExecuteCommands` replays each secondary command buffer's commands in place, and a
+pass may take its contents from them. Input and resolve attachments, a subpass with other than one colour attachment
+and a render area short of the framebuffer are refused.
+- **The checks:** vulkan4xenon_test's `test_subpasses.c` draws a render pass of three subpasses, an offscreen RGBA8
+  image, then the swapchain image, then the offscreen image again, through one D24S8 depth: the first draws a red quad
+  at depth 0.2, the second, from two secondary command buffers, a green quad at 0.5 that the first's depth hides and a
+  yellow one, and the third a blue quad into the offscreen image. Five probes check the swapchain image each frame, and
+  the offscreen image, copied into cached memory, is checked for the first's quad, the third's over it, the clear and
+  nothing of the second's. An input attachment is refused.
+- **On the console:** vulkan4xenon_test passed 176 of 176, twice, its 6 checks new. Broken on purpose, in three builds
+  (`breaks.py`): secondary command buffers skipped, a later subpass taking its attachment's own load op, input
+  attachments taken and `vkCmdNextSubpass` missing from the names failed those four checks
+  (`vulkan4xenon_test_broken_a.log`); depth cleared again between subpasses failed the second subpass's check alone
+  (`_b`); secondary command buffers refused failed the scene's making and the checks after it (`_c`). Dusklight, built
+  clean against it, ran its warning screen at 59.6 to 60 fps and its title scene at 28.7 to 30 between stage loads,
+  refusing only the 20x11 copy, 16 texels or less on a side, as since milestone 14, until the user left it through the
+  Guide's Xbox Home (`dusklight_m19.log`).
+
+Step 5 is done.
 
 ## 5. The Dusklight track
 

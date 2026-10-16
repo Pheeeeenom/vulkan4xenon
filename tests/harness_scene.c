@@ -223,6 +223,7 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.pDynamicState = dynamic_count ? &dynamic : NULL,
 		.layout = spec->layout,
 		.renderPass = render_pass,
+		.subpass = spec->subpass,
 	};
 	return vkCreateGraphicsPipelines(harness->device, VK_NULL_HANDLE, 1, &info, NULL, pipeline);
 }

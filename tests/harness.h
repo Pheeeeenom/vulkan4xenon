@@ -82,6 +82,8 @@ typedef struct {
 	uint32_t dynamic_state_count;
 	// The colour constant blend factors take, red to alpha; NULL for 0.
 	const float *blend_constants;
+	// The render pass's subpass it draws in.
+	uint32_t subpass;
 } HarnessPipeline;
 
 // Whether an image the test drew holds what it should; failures are counted and the first few logged by the test.

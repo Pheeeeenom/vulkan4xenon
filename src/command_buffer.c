@@ -50,7 +50,9 @@ static void reset_buffer(struct VkCommandBuffer_T *buffer)
 	buffer->result = VK_SUCCESS;
 	buffer->count = 0;
 	buffer->data_bytes = 0;
-	buffer->in_render_pass = false;
+	buffer->render_pass = NULL;
+	buffer->framebuffer = NULL;
+	buffer->subpass = 0;
 	buffer->pipeline = NULL;
 }
 
@@ -114,8 +116,6 @@ VKAPI_ATTR void VKAPI_CALL vkFreeCommandBuffers(
 VKAPI_ATTR VkResult VKAPI_CALL vkAllocateCommandBuffers(
 	VkDevice device, const VkCommandBufferAllocateInfo *pAllocateInfo, VkCommandBuffer *pCommandBuffers)
 {
-	if (pAllocateInfo->level != VK_COMMAND_BUFFER_LEVEL_PRIMARY)
-		return v4x_host_unsupported("secondary command buffers");
 	CommandPool *const pool = v4x_object(pAllocateInfo->commandPool);
 	for (uint32_t i = 0; i < pAllocateInfo->commandBufferCount; i++) {
 		pCommandBuffers[i] = allocate_buffer(device, pool);
@@ -125,6 +125,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAllocateCommandBuffers(
 				pCommandBuffers[j] = VK_NULL_HANDLE;
 			return VK_ERROR_OUT_OF_HOST_MEMORY;
 		}
+		pCommandBuffers[i]->secondary = pAllocateInfo->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 	}
 	return VK_SUCCESS;
 }
@@ -211,43 +212,76 @@ static uint32_t unorm8(float value)
 	return (uint32_t)lrintf(clamped * 255.0f);
 }
 
-VKAPI_ATTR void VKAPI_CALL vkCmdBeginRenderPass(
-	VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo *pRenderPassBegin, VkSubpassContents contents)
+// Each subpass begins as a render pass of its own, its clears from the values the render pass began with.
+static void record_subpass(VkCommandBuffer commandBuffer)
 {
-	const RenderPass *const render_pass = v4x_object(pRenderPassBegin->renderPass);
-	const Framebuffer *const framebuffer = v4x_object(pRenderPassBegin->framebuffer);
-	const VkRect2D *const area = &pRenderPassBegin->renderArea;
-	if (contents != VK_SUBPASS_CONTENTS_INLINE || area->offset.x || area->offset.y ||
-		area->extent.width != framebuffer->width || area->extent.height != framebuffer->height) {
-		commandBuffer->result = v4x_host_unsupported("render areas smaller than the framebuffer");
-		return;
-	}
+	const RenderPass *const render_pass = &commandBuffer->render_pass->subpasses[commandBuffer->subpass];
 	Command *const command = record(commandBuffer, COMMAND_BEGIN_RENDER_PASS);
 	if (!command)
 		return;
 	uint32_t argb = 0;
 	if (render_pass->load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {
-		const float *const rgba = pRenderPassBegin->pClearValues[render_pass->color_index].color.float32;
+		const float *const rgba = commandBuffer->clears[render_pass->color_index].color.float32;
 		argb = unorm8(rgba[3]) << 24 | unorm8(rgba[0]) << 16 | unorm8(rgba[1]) << 8 | unorm8(rgba[2]);
 	}
 	command->begin.render_pass = render_pass;
-	command->begin.framebuffer = framebuffer;
+	command->begin.framebuffer = &commandBuffer->framebuffer->subpasses[commandBuffer->subpass];
 	command->begin.clear_argb = argb;
 	command->begin.clear_depth = 1.0f;
 	command->begin.clear_stencil = 0;
 	if (render_pass->clears_depth) {
-		const VkClearDepthStencilValue *const value =
-			&pRenderPassBegin->pClearValues[render_pass->depth_index].depthStencil;
+		const VkClearDepthStencilValue *const value = &commandBuffer->clears[render_pass->depth_index].depthStencil;
 		command->begin.clear_depth = value->depth;
 		command->begin.clear_stencil = value->stencil;
 	}
-	commandBuffer->in_render_pass = true;
+}
+
+// The subpass's draws are recorded here or in secondary command buffers, which vkCmdExecuteCommands replays in place.
+VKAPI_ATTR void VKAPI_CALL vkCmdBeginRenderPass(
+	VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo *pRenderPassBegin, VkSubpassContents contents)
+{
+	(void)contents;
+	const FramebufferSubpasses *const framebuffer = v4x_object(pRenderPassBegin->framebuffer);
+	const VkRect2D *const area = &pRenderPassBegin->renderArea;
+	if (area->offset.x || area->offset.y || area->extent.width != framebuffer->width ||
+		area->extent.height != framebuffer->height) {
+		commandBuffer->result = v4x_host_unsupported("render areas smaller than the framebuffer");
+		return;
+	}
+	const uint32_t clears = pRenderPassBegin->clearValueCount < V4X_MAX_ATTACHMENTS ? pRenderPassBegin->clearValueCount
+																					: V4X_MAX_ATTACHMENTS;
+	if (clears)
+		memcpy(commandBuffer->clears, pRenderPassBegin->pClearValues, clears * sizeof(VkClearValue));
+	commandBuffer->render_pass = v4x_object(pRenderPassBegin->renderPass);
+	commandBuffer->framebuffer = framebuffer;
+	commandBuffer->subpass = 0;
+	record_subpass(commandBuffer);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassContents contents)
+{
+	(void)contents;
+	(void)record(commandBuffer, COMMAND_END_RENDER_PASS);
+	commandBuffer->subpass++;
+	record_subpass(commandBuffer);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
 {
 	(void)record(commandBuffer, COMMAND_END_RENDER_PASS);
-	commandBuffer->in_render_pass = false;
+	commandBuffer->render_pass = NULL;
+}
+
+// Replayed in place, at vkQueueSubmit, as recorded by then.
+VKAPI_ATTR void VKAPI_CALL vkCmdExecuteCommands(
+	VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer *pCommandBuffers)
+{
+	for (uint32_t i = 0; i < commandBufferCount; i++) {
+		Command *const command = record(commandBuffer, COMMAND_EXECUTE_COMMANDS);
+		if (!command)
+			return;
+		command->secondary = pCommandBuffers[i];
+	}
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdBindPipeline(

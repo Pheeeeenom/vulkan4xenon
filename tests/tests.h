@@ -17,6 +17,8 @@ void test_copies(const Harness *harness);
 void test_dynamic_state(const Harness *harness);
 // A depth image cleared outside a pass, and rectangles of colour, depth and stencil cleared inside one (milestone 19).
 void test_clears(const Harness *harness);
+// A render pass of three subpasses, the second drawn from secondary command buffers (milestone 19).
+void test_subpasses(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.
 void test_triangle(const Harness *harness);
 // The triangle again, its shaders read back from the layer's cache by a second device (milestone 13).
