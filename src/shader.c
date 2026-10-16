@@ -100,9 +100,16 @@ static uint64_t now_us(void)
 
 static uint8_t resource_kind(XsdkXscResourceKind kind)
 {
-	if (kind == XSDK_XSC_PUSH_CONSTANTS)
+	switch (kind) {
+	case XSDK_XSC_PUSH_CONSTANTS:
 		return V4X_RESOURCE_PUSH_CONSTANTS;
-	return kind == XSDK_XSC_UNIFORM_BUFFER ? V4X_RESOURCE_UNIFORM_BUFFER : V4X_RESOURCE_SAMPLER;
+	case XSDK_XSC_UNIFORM_BUFFER:
+		return V4X_RESOURCE_UNIFORM_BUFFER;
+	case XSDK_XSC_COMPARISON:
+		return V4X_RESOURCE_COMPARISON;
+	default:
+		return V4X_RESOURCE_SAMPLER;
+	}
 }
 
 // What the layer can't take: the constants of a hardware loop a bare uniform counts, as tools/build_shaders.py refuses,

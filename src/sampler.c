@@ -77,8 +77,11 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSampler(VkDevice device, const VkSamplerC
 		setting.address_w == XSDK_ADDRESS_BORDER;
 	if (!border_colour(info->borderColor, &setting.border) && reads_border)
 		return v4x_host_unsupported("border colours other than transparent black and opaque white");
-	if (info->compareEnable || info->unnormalizedCoordinates)
-		return v4x_host_unsupported("comparison and unnormalized coordinates");
+	if (info->unnormalizedCoordinates)
+		return v4x_host_unsupported("unnormalized coordinates");
+	// xost compares after the fetch, so a filter would blend depths before they're compared (xost:docs/xsc.md).
+	if (info->compareEnable && (info->magFilter != VK_FILTER_NEAREST || info->minFilter != VK_FILTER_NEAREST))
+		return v4x_host_unsupported("comparison samplers that filter linearly");
 	// The most anisotropy goes to xsdk's sampler, which rounds it down to a power of two.
 	if (info->anisotropyEnable) {
 		if (!device->sampler_anisotropy || info->maxAnisotropy < 1.0f || info->maxAnisotropy > XSDK_MAX_ANISOTROPY)
@@ -99,6 +102,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSampler(VkDevice device, const VkSamplerC
 	if (!sampler)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 	xsdk_texture_sampler_state(&sampler->state, &setting);
+	// VkCompareOp's bits 0 to 2 pass the reference below, equal to and above the depth.
+	for (uint32_t i = 0; i < 3 && info->compareEnable; i++)
+		sampler->compare_weights[i] = (float)((uint32_t)info->compareOp >> i & 1);
 	*pSampler = v4x_handle(sampler);
 	return VK_SUCCESS;
 }

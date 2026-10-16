@@ -10,9 +10,10 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 29, part of 8 and none of 10, counting milestone 23's cube and 3D images and border and
-mirror-once addressing, which wait for the console. Xenos has all but three: occlusion queries hang it today, its gamma
-only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is software.
+Of the 47 rows, the layer has 30, part of 7 and none of 10, counting milestone 23's cube and 3D images, border and
+mirror-once addressing and shadow comparison, which wait for the console. Xenos has all but three: occlusion queries
+hang it today, its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked, which
+xost's comparison after the fetch doesn't need. Every other gap is software.
 
 ## Shaders
 
@@ -57,7 +58,7 @@ only approximates sRGB, and whether it compares depth in a fetch hasn't been che
 | Point, linear and anisotropic filtering, LOD bias, mip clamps | Yes | Yes | Yes, clamped to whole levels |
 | Wrap, mirror and clamp | Yes | Yes | Yes |
 | Border and mirror-once addressing | Yes, a black or white border only (xenia:src/xenia/gpu/xenos.h:104-162) | Yes, not yet run on the console (xsdk:tests/test_sampling.c) | Yes: clamp to border in transparent black and opaque white, mirror clamp to edge by its extension, not yet run on the console (milestone 23) |
-| Depth textures and shadow comparison | Depth sampling yes; comparison not checked | Depth resolves into textures | Partial: D24S8 sampled raw, nearest; no comparison |
+| Depth textures and shadow comparison | Depth sampling yes; comparison in the fetch not checked | Depth resolves into textures; xost compares a `sampler2DShadow` after the fetch (xost:docs/xsc.md:43) | Yes: comparison samplers, nearest, and D24S8 filtered linearly, not yet run on the console (milestone 23) |
 
 ## Render targets and output
 

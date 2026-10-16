@@ -48,7 +48,9 @@ enum {
 	V4X_MAX_LOOP_PASSES = 255,
 	// Fetch constant slots a texture can take (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_texture).
 	V4X_TEXTURE_SLOTS = 32,
-	V4X_MAX_SHADER_RESOURCES = 2 * (1 + V4X_MAX_DESCRIPTOR_SETS * V4X_MAX_DESCRIPTOR_BINDINGS + V4X_MAX_LOOPS),
+	// A stage's push constants, every binding, a comparison for each sampler, and its loops' counts.
+	V4X_MAX_SHADER_RESOURCES =
+		2 * (1 + V4X_MAX_DESCRIPTOR_SETS * V4X_MAX_DESCRIPTOR_BINDINGS + V4X_MAX_SAMPLERS + V4X_MAX_LOOPS),
 	// A render pass's subpasses and attachments: a budget, not a limit of Xenos's.
 	V4X_MAX_SUBPASSES = 8,
 	V4X_MAX_ATTACHMENTS = 8,
@@ -208,6 +210,9 @@ typedef struct {
 
 typedef struct {
 	XsdkSamplerState state;
+	// A comparison sampler's weights for xost's comparison: 1 for each of the reference below, equal to and above the
+	// depth that its op passes, then 0 (xost:docs/xsc.md, "Interface conventions").
+	float compare_weights[4];
 } Sampler;
 
 typedef struct {

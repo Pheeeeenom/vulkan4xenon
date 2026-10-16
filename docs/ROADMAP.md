@@ -2361,6 +2361,28 @@ which the device lists; `addressModeW` is taken too.
   to a border, a black and a white border, filtered and not, and reads the black border's alpha; its cube and 3D check
   draws a 3D texture's w wrapped, clamped and filtered between two slices.
 
+**Step 3, built** (2026-10-16; not yet run on the console). xost compares a `sampler2DShadow`'s depth after the fetch:
+the reference clamped to 0 to 1, below, equal to and above the depth, 1 or 0 each, dotted with a register past the
+blocks, its resource `XSDK_XSC_COMPARISON` (xost:docs/xsc.md, "Interface conventions";
+xost:tests/test_shadow_compare.py). The layer takes comparison samplers, nearest, writes the bound sampler's compare op
+into that register at each draw, VkCompareOp's bits 0 to 2 as the weights, and reports D24S8 filtered linearly. A
+comparison sampler that filters linearly is refused, as comparing after the fetch would blend depths, not results.
+- **The checks:** vulkan4xenon_test's `test_shadow.c` draws a 64x32 D24S8 image once, cleared to 0.25 and its right
+  half drawn at 0.75, and every frame compares a reference of 0.5 with it by less, greater, never and always, probing
+  each half; samples it linearly at four times its size, probing either side of the edge between the depths, where the
+  filter weighs 3/8 and 5/8 of the far texel, a check of its own that the console decides; and checks the format
+  reports the filter and a comparison sampler that filters linearly is refused.
+
+**Not in milestone 23,** each refused until it's built:
+- a 3D image's mips, which Xenia sizes and packs in ways the console hasn't been asked about, and linear cubes and 3D
+  images (xsdk:TODO.md, "Cube and 3D textures, the rest");
+- arrays of 2D images or of cubes;
+- drawing into a cube's face or a 3D image's slice, with milestone 25's render targets;
+- seamless filtering across a cube's faces, which Xenos likely lacks (docs/SUPPORT.md, Images);
+- comparisons filtered linearly, which would need four fetches compared apart; `samplerCubeShadow`; and comparing in
+  the fetch, for a probe to try;
+- opaque black borders, till the console tells black's alpha, and the integer borders.
+
 ### Milestone 24: instancing and long strips
 
 **Why.** Foliage, crowds and particles are drawn instanced, and the layer draws one instance a draw (docs/SUPPORT.md,

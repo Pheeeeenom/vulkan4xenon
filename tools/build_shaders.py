@@ -27,7 +27,7 @@ from pathlib import Path
 # include/vulkan4xenon.h's V4X_RESOURCE_* kinds.
 RESOURCE_KINDS = {"push": "V4X_RESOURCE_PUSH_CONSTANTS", "uniform": "V4X_RESOURCE_UNIFORM_BUFFER",
                   "sampler": "V4X_RESOURCE_SAMPLER", "push_loop": "V4X_RESOURCE_PUSH_LOOP",
-                  "uniform_loop": "V4X_RESOURCE_UNIFORM_LOOP"}
+                  "uniform_loop": "V4X_RESOURCE_UNIFORM_LOOP", "comparison": "V4X_RESOURCE_COMPARISON"}
 DEFAULT_BUNDLE = "v4x_shader_bundle"
 FNV_OFFSET_BASIS = 0xCBF29CE484222325
 FNV_PRIME = 0x100000001B3
@@ -61,6 +61,7 @@ def lower(xost, spirv_bytes, source, optimize=False):
     interface = resolve_interface(spirv.Module.parse(spirv_bytes))
     resources = [(b.kind, b.descriptor_set or 0, b.binding or 0, b.reg, b.regs) for b in interface.blocks]
     resources += [("sampler", v.descriptor_set or 0, v.binding or 0, slot, 1) for v, slot in interface.samplers]
+    resources += [("comparison", v.descriptor_set or 0, v.binding or 0, reg, 1) for v, reg, _ in interface.comparisons]
     # The layer runs on xsdk, whose set-up gives each kind of shader 64 registers (xsdk:src/gpu_setup.c); xost
     # refuses a shader past its kind's share, which would hang the GPU.
     container, manifest = lower_ex(spirv.Module.parse(spirv_bytes), XSDK_REGISTERS, optimize)

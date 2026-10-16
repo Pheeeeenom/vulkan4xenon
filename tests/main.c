@@ -36,6 +36,7 @@ int main(void)
 		test_formats(&harness);
 		test_cube_3d(&harness);
 		test_addressing(&harness);
+		test_shadow(&harness);
 		test_push_constants(&harness);
 		test_uniform_buffers(&harness);
 		test_indexed(&harness);

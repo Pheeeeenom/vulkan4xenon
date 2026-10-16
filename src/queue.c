@@ -271,6 +271,11 @@ static void apply_resources(const Pipeline *pipeline, Replay *replay)
 			}
 			continue;
 		}
+		if (resource->kind == V4X_RESOURCE_COMPARISON) {
+			const Sampler *const sampler = replay->sets[resource->set]->descriptors[resource->binding].sampler;
+			write_constants(vertex, resource->first, sampler->compare_weights, 1);
+			continue;
+		}
 		point_texture(replay, resource->first, &replay->sets[resource->set]->descriptors[resource->binding]);
 	}
 }

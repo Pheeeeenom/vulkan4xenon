@@ -140,7 +140,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   - push constants take the shader's first float constant registers, then each uniform block in (set, binding) order,
     each holding the block's std140 bytes from its first;
   - combined image samplers take fetch constants from 0 in (set, binding) order, in each stage; the layer moves the
-    vertex shader's past the fragment shader's (Pipelines).
+    vertex shader's past the fragment shader's (Pipelines);
+  - a `sampler2DShadow`'s comparison takes a float constant past the blocks, which the layer writes at each draw with
+    the bound sampler's compare op (Samplers).
 
 ## Pipelines
 
@@ -310,7 +312,7 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     **Deviation:** Vulkan leaves an optimal-tiled image's memory opaque; a mapped read of it is how an app reads depth
     back without a copy that waits for the GPU;
   - sampled, it returns the depth from 0 to 1 in red, 0 in green and blue and 1 in alpha, whatever the view's aspect
-    mask;
+    mask, filtered linearly or not, and compared through a comparison sampler (Samplers);
   - cleared by `vkCmdClearDepthStencilImage`, every word of its memory takes the clear on the CPU at replay, for a
     shader to sample, as well as the next pass to load it.
 - Image views: the whole of an image in its format, a 2D image's as 2D, a cube's as a cube and a 3D image's as 3D; a 2D
@@ -337,7 +339,13 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   `VK_ERROR_FEATURE_NOT_PRESENT`.
 - `minLod` and `maxLod` from 0 to 15, a `maxLod` past 15 keeping every level; past that, or a `maxLod` below the
   `minLod`, `VK_ERROR_FEATURE_NOT_PRESENT` (milestone 18).
-- Comparison and unnormalized coordinates return `VK_ERROR_FEATURE_NOT_PRESENT`; they're xsdk TODO items.
+- Comparison samplers (`compareEnable`), for D24S8 images sampled by a `sampler2DShadow` (milestone 23). xost fetches
+  the depth and compares it in the shader with the reference, clamped to 0 to 1, by the compare op the layer writes
+  into the shader's constants at each draw (xost:docs/xsc.md, "Interface conventions"); whether Xenos compares in the
+  fetch itself hasn't been checked. A comparison sampler that filters linearly returns `VK_ERROR_FEATURE_NOT_PRESENT`,
+  as comparing after the fetch would blend depths, not results. `samplerCubeShadow` and `textureProj`'s comparison
+  aren't lowered (Shaders).
+- Unnormalized coordinates return `VK_ERROR_FEATURE_NOT_PRESENT`; they're an xsdk TODO item.
 - **Deviation:** Xenos clamps to whole levels (xenia:src/xenia/gpu/xenos.h:1265-1266), so `minLod` and `maxLod` go to
   the nearest; a fraction of a level past either isn't sampled.
 
@@ -488,7 +496,7 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 | Format | Features |
 |---|---|
 | `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending, blit source and destination; buffer: vertex buffer (milestone 20) |
-| `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, nearest filtering only, as filtering depth hasn't been tried on the console |
+| `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, with linear filtering, which vulkan4xenon_test's shadow check tries on the console (milestone 23) |
 | `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
 | `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering, blit source and destination |
 | `VK_FORMAT_R5G6B5_UNORM_PACK16`, `B5G6R5_UNORM_PACK16`, `A1R5G5B5_UNORM_PACK16`, `R4G4B4A4_UNORM_PACK16`, `B4G4R4A4_UNORM_PACK16`, `R16_UNORM`, `R16_SNORM`, `R8_SNORM`, `R8G8_SNORM`, `B8G8R8A8_SNORM`, `R8_SRGB`, `R8G8_SRGB`, `R8G8B8A8_SRGB`, `B8G8R8A8_SRGB` | optimal tiling: sampled, linear filtering, blit source and destination (milestone 20) |

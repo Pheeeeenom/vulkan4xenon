@@ -37,6 +37,8 @@ void test_formats(const Harness *harness);
 void test_cube_3d(const Harness *harness);
 // Every address mode past 0 and 1, borders in white and in black blended over the clear colour (milestone 23).
 void test_addressing(const Harness *harness);
+// A D24S8 image compared against a reference by comparison samplers, and filtered linearly (milestone 23).
+void test_shadow(const Harness *harness);
 // Quads placed and coloured by push constants (milestone 2).
 void test_push_constants(const Harness *harness);
 // Quads placed by a matrix and coloured from uniform buffers, one dynamic, in two sets (milestone 2).

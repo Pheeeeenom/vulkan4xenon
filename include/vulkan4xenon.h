@@ -25,10 +25,12 @@ enum {
 	// count (xost:docs/xsc.md, "Loops a block counts").
 	V4X_RESOURCE_PUSH_LOOP,
 	V4X_RESOURCE_UNIFORM_LOOP,
+	// A sampler2DShadow's comparison: the float constant its sampler's compare op is written to.
+	V4X_RESOURCE_COMPARISON,
 };
 
-// Where xost put a block or sampler the shader reads (xost:docs/xsc.md, "Interface conventions"), or where a loop's
-// count is.
+// Where xost put a block, sampler or comparison the shader reads (xost:docs/xsc.md, "Interface conventions"), or where
+// a loop's count is.
 typedef struct {
 	uint8_t kind;
 	// The descriptor set and binding; 0 for push constants.

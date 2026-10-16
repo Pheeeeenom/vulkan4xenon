@@ -166,10 +166,10 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 	const V4xFormat *const image = v4x_format(format);
 	if (image)
 		pFormatProperties->optimalTilingFeatures = image->features;
-	// Sampled, its depth in red: nearest only, as filtering depth hasn't been tried on the console.
+	// Sampled, its depth in red, filtered linearly; vulkan4xenon_test's shadow check tries the filter on the console.
 	if (format == VK_FORMAT_D24_UNORM_S8_UINT)
-		pFormatProperties->optimalTilingFeatures =
-			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+		pFormatProperties->optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT |
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 	XsdkVertexElement element;
 	if (v4x_format_vertex(format, &element))
 		pFormatProperties->bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;

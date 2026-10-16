@@ -140,7 +140,7 @@ static bool layout_has(const PipelineLayout *layout, const V4xShaderResource *re
 	const LayoutBinding *const binding = &layout->sets[resource->set]->bindings[resource->binding];
 	if (!binding->used || !(binding->stages & stage))
 		return false;
-	if (resource->kind == V4X_RESOURCE_SAMPLER)
+	if (resource->kind == V4X_RESOURCE_SAMPLER || resource->kind == V4X_RESOURCE_COMPARISON)
 		return binding->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	return binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
 		binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
