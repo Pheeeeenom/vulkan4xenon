@@ -88,7 +88,7 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
 | Push constants | Float constants, set at replay. |
 | Images | `XsdkTexture`: optimal tiling is Xenos's tiled layout; linear tiling is linear with one level. Formats and mips as xsdk milestones 15 and 16 settled. |
 | Image views, samplers | The texture's and the sampler state's halves of a fetch constant (`xsdk_gpu_set_texture`). |
-| Descriptor sets | Combined image samplers fill fetch-constant slots 0 up; uniform buffers fill constant blocks. Bindings are numbered in order across the pipeline layout. |
+| Descriptor sets | Combined image samplers fill fetch-constant slots 0 up, the fragment shader's, then the vertex shader's (milestone 22); uniform buffers fill constant blocks. Bindings are numbered in order across the pipeline layout. |
 | Graphics pipelines | Built once at creation from xsdk's depth and stencil, blend and raster state blocks. The vertex input state gives a patched copy of the vertex shader (xsdk milestone 17). |
 | Render passes, framebuffers | One subpass. A render pass instance draws into eDRAM, and each attachment's store op is a resolve into its image. A clear load op is the resolve's clear; a load op draws the image back in. 1280x720 colour and depth fit eDRAM (xsdk:SCOPE.md 3.4). |
 | Command buffers | Recorded into the layer's own list and replayed into the ring at `vkQueueSubmit`. xsdk's recorded command buffers (milestone 18) can take over where a buffer's state is all known when it's recorded. |
@@ -2236,11 +2236,12 @@ vertex fetches, at the LOD it gives, as a vertex shader works none out
 (xenia:src/xenia/gpu/spirv_shader_translator_fetch.cc:639-641): glslang gives `texture()` there LOD 0. Each fetches for
 every vertex, and two precautions the console has to judge go with it: an exec's vertex cache bits mark its vertex
 fetches and none of its texture fetches, and a fetch reading what another fetch wrote in its exec is serialized
-(xost:docs/xsc.md, "Vertex textures"). Both stages' samplers take fetch constants from 0, so xsdk gains `xsdk_shader_move_textures`, which moves
-a shader's texture fetches up by a base: the layer moves the vertex shader's past the fragment shader's when a
-pipeline is made, and the streams keep a slot for every three bindings from 31 down, 31 always, as the layer's blits
-and clears draw from stream 0. A pipeline that needs more is refused with a log line of the counts; the per-stage
-limit stays 16, so two stages of 16 are within the limits and refused, a deviation (docs/SUPPORT.md, Pipelines).
+(xost:docs/xsc.md, "Vertex textures"). Both stages' samplers take fetch constants from 0, so xsdk gains
+`xsdk_shader_move_textures`, which moves a shader's texture fetches up by a base: the layer moves the vertex shader's
+past the fragment shader's when a pipeline is made, and the streams keep a slot for every three bindings from 31 down,
+31 always, as the layer's blits and clears draw from stream 0. A pipeline that needs more is refused with a log line of
+the counts; the per-stage limit stays 16, so two stages of 16 are within the limits and refused, a deviation
+(docs/SUPPORT.md, Pipelines).
 - **The checks:** vulkan4xenon_test's `test_vertex_textures.c` draws two rows of eight columns. Its vertex shader
   samples a height map, the first row's heights 48 to 188 pixels, the second's 0, and moves each vertex up by its
   height; it colours the second row by textureLod of a texture whose eight levels are each a colour, at each column's
@@ -2264,6 +2265,17 @@ ones (their SQ_PROGRAM_CNTL counts), so any of those splits would hold it. Verte
 with as many as 32 registers, isn't measured.
 - **The checks:** none in vulkan4xenon_test; xsdk's `build/probe_texel_rate.xex` logs a line a measurement, such as
   `texel rate: <layout>, 32 registers declared, split 96 pixel: bilinear: ... a clock`, for the reviewer to run.
+
+**Broken on purpose,** for the console's run: `results/2026-10-16-milestone-22/builds.sh` builds each set of
+`breaks.py` in a copy of xsdk and the layer, the test's shaders built again by the copy's xost, into
+`vulkan4xenon_test_m22_broken_a.xex` to `_c`, and `changed.py` names the shaders each set reaches. Set a, a check each:
+textureGrad's gradients unread (shader_lod's gradients), a bias's register LOD unread (its bias), the bias field written
+0 (its constant LODs), a discard on a bool taken where the bool doesn't hold (facing's discard), and the fetch
+constants' limit one past 32 (vertex_textures' refusal). Set b: a pixel shader's explicit LOD added to the computed one
+(shader_lod's LOD per pixel and constant LODs), gl_FrontFacing inverted (all three of facing's), and the vertex
+shader's samplers bound at xost's slots though its fetches moved (vertex_textures' heights and levels). Set c: a vertex
+shader's register LOD unread (vertex_textures' levels alone). xsdk's `results/2026-10-16-milestone-22/` breaks
+`xsdk_shader_move_textures` to write each constant back unmoved, which xsdk_test's texture test should catch.
 
 ### Milestone 23: cube and volume textures, and the rest of sampling
 
