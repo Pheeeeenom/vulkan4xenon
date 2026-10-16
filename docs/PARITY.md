@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 26, part of 8 and none of 13. Xenos has all but three: occlusion queries hang it today,
+Of the 47 rows, the layer has 27, part of 7 and none of 13. Xenos has all but three: occlusion queries hang it today,
 its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked. Every other gap is
 software.
 
@@ -29,7 +29,7 @@ software.
 | The pixel's position and facing (`vPos`, `vFace`) | Yes | Yes: `gl_FragCoord.xy`, and `gl_FrontFacing`, not yet confirmed on the console (xost:docs/xsc.md:72, "Facing") | Yes |
 | Depth output | Yes | Yes: outside any `if`, or in both arms of one; written on one path alone, refused, as nothing else gives the pixel a depth (xost:docs/xsc.md, "Control flow") | Yes |
 | Vertex texture fetch | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md, "Vertex textures") | Yes, sharing the fetch constants with the fragment shader and the vertex streams (SUPPORT.md, Pipelines) |
-| 32 temporary registers | Yes | Partial: 16 a pixel shader | Partial |
+| 32 temporary registers | Yes | Yes: 64 a shader of each kind under xsdk's split, confirmed on the console (xsdk:docs/HARDWARE.md, "Pixel shaders past 16 registers, milestone 24") | Yes |
 
 ## Vertex input and draws
 
@@ -90,8 +90,7 @@ software.
 
 - **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
   formats, and the vertex formats came with milestone 20.
-- **xost:** breaks on data and counted loops inside others, a computed LOD and gradients, facing, vertex texture fetch
-  and the register budget. Almost every ported shader meets one.
+- **xost:** breaks on data, and loops a block counts inside other loops. Almost every ported shader meets one.
 - **xsdk, then the layer:** four targets and their formats, predicated tiling, cube and volume textures, border
   addressing, two-sided stencil, clip planes, point sprites, fill modes and instancing.
 

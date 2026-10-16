@@ -2251,6 +2251,20 @@ limit stays 16, so two stages of 16 are within the limits and refused, a deviati
   each stage is refused, one of 15 and 16 made. xsdk_test's texture test moves its pixel shader's fetch to slot 5 and
   back, finding that dword alone changed, leaves its vertex shader as it was and refuses a move past slot 31.
 
+**Step 4: the register budget.** The milestone's premise was out of date: xsdk's set-up has given pixel and vertex
+shaders 64 registers each since xsdk milestone 24, and the layer's shader builds and its compiler on the console both
+take that split (xsdk:docs/HARDWARE.md, "Pixel shaders past 16 registers, milestone 24"; tools/build_shaders.py), so
+Shader Model 3's 32 temporaries fit either stage. docs/SUPPORT.md and PARITY.md now say so, and the split stays. What a
+bigger pixel share would cost is left to measure. The registers a shader takes hold threads in flight: four samples ran
+12.2 texels a clock with 12 registers and 7.5 with 17 under xsdk's split, and 16.6 with 12 under 112 pixel registers
+(xsdk:docs/HARDWARE.md, "The texel rate, milestone 36"). So xsdk's texel-rate probe now also declares 32 registers, and
+steps the split to 96 pixel and 32 vertex registers as well as 112 and 16, for that curve; a split past xsdk's leaves
+vertex shaders fewer, and none of the 150 programs in Dusklight's pack takes more than 15 vertex registers or 17 pixel
+ones (their SQ_PROGRAM_CNTL counts), so any of those splits would hold it. Vertex shaders' cost under a smaller share,
+with as many as 32 registers, isn't measured.
+- **The checks:** none in vulkan4xenon_test; xsdk's `build/probe_texel_rate.xex` logs a line a measurement, such as
+  `texel rate: <layout>, 32 registers declared, split 96 pixel: bilinear: ... a clock`, for the reviewer to run.
+
 ### Milestone 23: cube and volume textures, and the rest of sampling
 
 **Why.** Skies and reflections sample cube maps, and a port's samplers clamp to a border, mirror once, or compare

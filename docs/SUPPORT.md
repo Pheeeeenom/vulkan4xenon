@@ -97,8 +97,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - SPIR-V xost refuses returns `VK_ERROR_FEATURE_NOT_PRESENT`, logged with xost's reason, and so does a shader whose
   hardware loop a bare uniform counts, which Vulkan's GLSL has none of. `vkCreateShaderModule` doesn't list that
   result: a deviation.
-- The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, a break on data in a loop raises an error,
-  and 16 registers a pixel shader.
+- The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, and a break on data in a loop raises an
+  error. A shader of each kind has 64 registers, xsdk's split, which xost builds for (xsdk:docs/HARDWARE.md, "Pixel
+  shaders past 16 registers, milestone 24").
 - `if`/`else` in either stage, nested, in an unrolled loop's body and around `gl_FragDepth` (milestone 21;
   xost:docs/xsc.md, "Control flow"). In a pixel shader, where the condition reads only push constants, uniform blocks
   and literals, so every pixel takes the same arm, and an arm has work of its own, the arms go in execs on the predicate
