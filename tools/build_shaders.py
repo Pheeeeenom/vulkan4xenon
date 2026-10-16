@@ -26,7 +26,8 @@ from pathlib import Path
 
 # include/vulkan4xenon.h's V4X_RESOURCE_* kinds.
 RESOURCE_KINDS = {"push": "V4X_RESOURCE_PUSH_CONSTANTS", "uniform": "V4X_RESOURCE_UNIFORM_BUFFER",
-                  "sampler": "V4X_RESOURCE_SAMPLER"}
+                  "sampler": "V4X_RESOURCE_SAMPLER", "push_loop": "V4X_RESOURCE_PUSH_LOOP",
+                  "uniform_loop": "V4X_RESOURCE_UNIFORM_LOOP"}
 DEFAULT_BUNDLE = "v4x_shader_bundle"
 FNV_OFFSET_BASIS = 0xCBF29CE484222325
 FNV_PRIME = 0x100000001B3
@@ -65,9 +66,14 @@ def lower(xost, spirv_bytes, source, optimize=False):
     container, manifest = lower_ex(spirv.Module.parse(spirv_bytes), XSDK_REGISTERS, optimize)
     literals = []
     for entry in manifest:
-        if len(entry) != 2:
+        # A hardware loop's count, which the layer reads from the block for each draw: a resource of its own.
+        if entry[0] == "block_loop":
+            _, loop, kind, dset, binding, offset = entry
+            resources.append((f"{kind}_loop", dset, binding, offset, loop))
+        elif len(entry) != 2:
             sys.exit(f"{source}: xost wants a constant the layer doesn't set yet: {entry}")
-        literals.append(entry)
+        else:
+            literals.append(entry)
     return container, literals, resources
 
 

@@ -14,6 +14,7 @@
 #include "host.h"
 #include "objects.h"
 #include "vulkan4xenon.h"
+#include "xsdk/gpu.h"
 #include "xsdk/log.h"
 #include "xsdk/xsc.h"
 
@@ -104,11 +105,16 @@ static uint8_t resource_kind(XsdkXscResourceKind kind)
 	return kind == XSDK_XSC_UNIFORM_BUFFER ? V4X_RESOURCE_UNIFORM_BUFFER : V4X_RESOURCE_SAMPLER;
 }
 
-// What the layer can't take: a hardware loop's constants, as tools/build_shaders.py refuses, or too wide a resource.
+// What the layer can't take: the constants of a hardware loop a bare uniform counts, as tools/build_shaders.py refuses,
+// or too wide a resource or loop count.
 static bool layer_takes(const XsdkXscShader *compiled)
 {
 	for (size_t i = 0; i < compiled->need_count; i++) {
-		if (compiled->needs[i].kind != XSDK_XSC_LITERAL)
+		const XsdkXscNeed *const need = &compiled->needs[i];
+		const bool loop = need->kind == XSDK_XSC_BLOCK_LOOP && need->block != XSDK_XSC_SAMPLER &&
+			need->set <= MAX_RESOURCE_INDEX && need->binding <= MAX_RESOURCE_INDEX &&
+			need->offset_bytes <= MAX_RESOURCE_REGISTER && need->reg < XSDK_LOOP_CONSTANTS;
+		if (need->kind != XSDK_XSC_LITERAL && !loop)
 			return false;
 	}
 	for (size_t i = 0; i < compiled->resource_count; i++) {
@@ -162,25 +168,38 @@ static CacheHeader header_of(const V4xShader *shader)
 		shader->container_size_bytes, shader->literal_count, shader->resource_count };
 }
 
+// The literals, then the resources, each loop's count among them after the blocks and samplers, as the bundle has them.
 static V4xShader *shader_from(
 	const VkAllocationCallbacks *allocator, const XsdkXscShader *compiled, uint64_t hash, uint32_t size_bytes)
 {
+	uint32_t loops = 0;
+	for (size_t i = 0; i < compiled->need_count; i++)
+		loops += compiled->needs[i].kind == XSDK_XSC_BLOCK_LOOP;
 	const CacheHeader sizes = { CACHE_MAGIC, CACHE_LAYOUT, hash, size_bytes, (uint32_t)compiled->container_bytes,
-		(uint32_t)compiled->need_count, (uint32_t)compiled->resource_count };
+		(uint32_t)compiled->need_count - loops, (uint32_t)compiled->resource_count + loops };
 	ShaderParts parts;
 	V4xShader *const shader = new_shader(allocator, &sizes, &parts);
 	if (!shader)
 		return NULL;
 	memcpy(parts.container, compiled->container, compiled->container_bytes);
-	for (size_t i = 0; i < compiled->need_count; i++) {
-		const XsdkXscNeed *const need = &compiled->needs[i];
-		parts.literals[i] = (V4xShaderLiteral){ need->reg,
-			{ (float)need->value[0], (float)need->value[1], (float)need->value[2], (float)need->value[3] } };
-	}
 	for (size_t i = 0; i < compiled->resource_count; i++) {
 		const XsdkXscResource *const r = &compiled->resources[i];
 		parts.resources[i] = (V4xShaderResource){ resource_kind(r->kind), (uint8_t)r->set, (uint8_t)r->binding,
 			(uint16_t)r->reg, (uint16_t)r->regs };
+	}
+	uint32_t literal = 0;
+	uint32_t resource = (uint32_t)compiled->resource_count;
+	for (size_t i = 0; i < compiled->need_count; i++) {
+		const XsdkXscNeed *const need = &compiled->needs[i];
+		if (need->kind == XSDK_XSC_BLOCK_LOOP) {
+			const uint8_t kind =
+				need->block == XSDK_XSC_PUSH_CONSTANTS ? V4X_RESOURCE_PUSH_LOOP : V4X_RESOURCE_UNIFORM_LOOP;
+			parts.resources[resource++] = (V4xShaderResource){ kind, (uint8_t)need->set, (uint8_t)need->binding,
+				(uint16_t)need->offset_bytes, (uint16_t)need->reg };
+			continue;
+		}
+		parts.literals[literal++] = (V4xShaderLiteral){ need->reg,
+			{ (float)need->value[0], (float)need->value[1], (float)need->value[2], (float)need->value[3] } };
 	}
 	return shader;
 }
@@ -300,8 +319,8 @@ static V4xShader *compile(VkDevice device, const uint32_t *code, uint32_t size_b
 	}
 	V4xShader *shader = NULL;
 	if (!layer_takes(&compiled))
-		xsdk_log_write("vulkan4xenon: SPIR-V %08X%08X wants a hardware loop's constants or a resource past %u", high,
-			low, (unsigned)MAX_RESOURCE_REGISTER);
+		xsdk_log_write("vulkan4xenon: SPIR-V %08X%08X wants a bare uniform's loop constants or a resource past %u",
+			high, low, (unsigned)MAX_RESOURCE_REGISTER);
 	else
 		shader = shader_from(v4x_host_device_allocator(device, NULL), &compiled, hash, size_bytes);
 	xsdk_xsc_free(&compiled);

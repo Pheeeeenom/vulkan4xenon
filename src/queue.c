@@ -207,8 +207,54 @@ static void point_texture(Replay *replay, uint32_t slot, const Descriptor *descr
 	*pointed = (PointedTexture){ .texture = descriptor->texture, .sampler = descriptor->sampler };
 }
 
+// A loop's count as the draw has its block: the int at the resource's byte offset, none where the block isn't bound or
+// its range doesn't reach it. A loop constant runs 0 to 255 passes (xenia:src/xenia/gpu/xenos.h:1086-1097).
+static uint32_t loop_count(const Replay *replay, const V4xShaderResource *resource)
+{
+	int32_t count = 0;
+	if (resource->kind == V4X_RESOURCE_PUSH_LOOP) {
+		memcpy(&count, (const uint8_t *)replay->push + resource->first, sizeof count);
+	} else if (replay->sets[resource->set]) {
+		const DescriptorSet *const set = replay->sets[resource->set];
+		const Descriptor *const descriptor = &set->descriptors[resource->binding];
+		const LayoutBinding *const binding = &set->layout->bindings[resource->binding];
+		uint32_t offset = resource->first;
+		if (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+			offset += replay->dynamic_offsets[resource->set][binding->dynamic_index];
+		if (resource->first + sizeof count <= descriptor->range_bytes)
+			count = (int32_t)descriptor->buffer[offset / 4];
+	}
+	return count < 0 ? 0 : count > V4X_MAX_LOOP_PASSES ? V4X_MAX_LOOP_PASSES : (uint32_t)count;
+}
+
+// xsdk rewrites every boolean and loop word together (xsdk:include/xsdk/gpu.h), so they're written only when one of
+// the loop constants changes.
+static void write_loops(VkQueue queue, const uint32_t *values)
+{
+	if (queue->loops_written && !memcmp(values, queue->loop_constants, sizeof queue->loop_constants))
+		return;
+	xsdk_gpu_set_loop_constants(0, values, XSDK_LOOP_CONSTANTS);
+	memcpy(queue->loop_constants, values, sizeof queue->loop_constants);
+	queue->loops_written = true;
+}
+
+// The loop constants a pipeline's hardware loops read, each from its count.
+static void apply_loops(const Pipeline *pipeline, const Replay *replay)
+{
+	uint32_t values[XSDK_LOOP_CONSTANTS];
+	memcpy(values, replay->queue->loop_constants, sizeof values);
+	for (uint32_t i = 0; i < pipeline->resource_count; i++) {
+		const V4xShaderResource *const resource = &pipeline->resources[i].resource;
+		if (resource->kind == V4X_RESOURCE_PUSH_LOOP || resource->kind == V4X_RESOURCE_UNIFORM_LOOP)
+			values[resource->count] = xsdk_gpu_loop_constant(loop_count(replay, resource), 0, 1);
+	}
+	write_loops(replay->queue, values);
+}
+
 static void apply_resources(const Pipeline *pipeline, Replay *replay)
 {
+	if (pipeline->loop_count)
+		apply_loops(pipeline, replay);
 	for (uint32_t i = 0; i < pipeline->resource_count; i++) {
 		const V4xShaderResource *const resource = &pipeline->resources[i].resource;
 		const bool vertex = pipeline->resources[i].vertex;
@@ -216,6 +262,8 @@ static void apply_resources(const Pipeline *pipeline, Replay *replay)
 			write_constants(vertex, resource->first, replay->push, resource->count);
 			continue;
 		}
+		if (resource->kind == V4X_RESOURCE_PUSH_LOOP || resource->kind == V4X_RESOURCE_UNIFORM_LOOP)
+			continue;
 		if (!replay->sets[resource->set])
 			continue;
 		if (resource->kind == V4X_RESOURCE_UNIFORM_BUFFER) {

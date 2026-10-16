@@ -6,6 +6,7 @@
 #include "host.h"
 #include "objects.h"
 #include "pipeline_state.h"
+#include "xsdk/gpu.h"
 #include "xsdk/log.h"
 #include "xsdk/shader.h"
 
@@ -129,7 +130,7 @@ static VkResult load_shaders(Pipeline *pipeline)
 // Whether the layout has what a shader resource reads, for the shader's stage.
 static bool layout_has(const PipelineLayout *layout, const V4xShaderResource *resource, VkShaderStageFlags stage)
 {
-	if (resource->kind == V4X_RESOURCE_PUSH_CONSTANTS)
+	if (resource->kind == V4X_RESOURCE_PUSH_CONSTANTS || resource->kind == V4X_RESOURCE_PUSH_LOOP)
 		return layout->push_stages & stage;
 	if (resource->set >= layout->set_count || resource->binding >= V4X_MAX_DESCRIPTOR_BINDINGS)
 		return false;
@@ -154,10 +155,18 @@ static VkResult gather_resources(const PipelineLayout *layout, const V4xShader *
 				vertex ? "vertex" : "fragment");
 			return VK_ERROR_INITIALIZATION_FAILED;
 		}
+		const bool loop = resource->kind == V4X_RESOURCE_PUSH_LOOP || resource->kind == V4X_RESOURCE_UNIFORM_LOOP;
+		const bool block =
+			resource->kind == V4X_RESOURCE_PUSH_CONSTANTS || resource->kind == V4X_RESOURCE_UNIFORM_BUFFER;
 		if (resource->kind == V4X_RESOURCE_SAMPLER && (vertex || resource->first >= V4X_MAX_SAMPLERS))
 			return v4x_host_unsupported("sampling in vertex shaders, and more than 16 samplers");
-		if (resource->kind != V4X_RESOURCE_SAMPLER && resource->first + resource->count > V4X_FLOAT_CONSTANTS)
+		if (block && resource->first + resource->count > V4X_FLOAT_CONSTANTS)
 			return v4x_host_unsupported("blocks past the 256 float constants");
+		if (loop &&
+			(resource->count >= XSDK_LOOP_CONSTANTS ||
+				(resource->kind == V4X_RESOURCE_PUSH_LOOP && resource->first + 4u > V4X_MAX_PUSH_CONSTANT_BYTES)))
+			return v4x_host_unsupported("a loop counted past the push constants or the loop constants");
+		pipeline->loop_count += loop;
 		pipeline->resources[pipeline->resource_count++] = (StageResource){ .resource = *resource, .vertex = vertex };
 	}
 	return VK_SUCCESS;

@@ -41,7 +41,11 @@ enum {
 	V4X_FLOAT_CONSTANTS = 256,
 	// Fetch constants a shader may sample from: below the ones the 16 vertex streams take (xsdk:src/gpu_draw.c).
 	V4X_MAX_SAMPLERS = 16,
-	V4X_MAX_SHADER_RESOURCES = 2 * (1 + V4X_MAX_DESCRIPTOR_SETS * V4X_MAX_DESCRIPTOR_BINDINGS),
+	// Hardware loops a stage's shader has, each its own loop constant (xost:docs/xsc.md, "Loops a block counts"), and
+	// the passes a loop constant runs at most (xenia:src/xenia/gpu/xenos.h:1089).
+	V4X_MAX_LOOPS = 16,
+	V4X_MAX_LOOP_PASSES = 255,
+	V4X_MAX_SHADER_RESOURCES = 2 * (1 + V4X_MAX_DESCRIPTOR_SETS * V4X_MAX_DESCRIPTOR_BINDINGS + V4X_MAX_LOOPS),
 	// A render pass's subpasses and attachments: a budget, not a limit of Xenos's.
 	V4X_MAX_SUBPASSES = 8,
 	V4X_MAX_ATTACHMENTS = 8,
@@ -129,6 +133,9 @@ struct VkQueue_T {
 	// A draw went into the ring since the CPU last waited for the GPU, so a copy into a buffer waits first
 	// (transfer.c).
 	bool drawn;
+	// The loop constants as last written, once one has been: the GPU keeps them from one submission to the next.
+	uint32_t loop_constants[XSDK_LOOP_CONSTANTS];
+	bool loops_written;
 };
 
 struct VkDevice_T {
@@ -279,6 +286,8 @@ typedef struct {
 	float blend_constants[4];
 	StageResource resources[V4X_MAX_SHADER_RESOURCES];
 	uint32_t resource_count;
+	// Its resources that are hardware loops' counts, so a pipeline with none spends nothing on them.
+	uint32_t loop_count;
 } Pipeline;
 
 // One subpass as the replay draws it, a render pass of its own: its colour attachment and its depth if it has one, with

@@ -51,6 +51,7 @@ int main(void)
 		test_aurora_points(&harness);
 		test_lod(&harness);
 		test_branches(&harness);
+		test_loops(&harness);
 		// Last, so the GPU's clock is past its first 2^32 ticks, 8.6 s, and a time stamp's high word counts.
 		test_events(&harness);
 	}

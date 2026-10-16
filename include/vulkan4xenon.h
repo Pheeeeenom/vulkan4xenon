@@ -21,17 +21,23 @@ enum {
 	V4X_RESOURCE_PUSH_CONSTANTS,
 	V4X_RESOURCE_UNIFORM_BUFFER,
 	V4X_RESOURCE_SAMPLER,
+	// A hardware loop's count, the int at byte first of the push constants or of the uniform buffer, for loop constant
+	// count (xost:docs/xsc.md, "Loops a block counts").
+	V4X_RESOURCE_PUSH_LOOP,
+	V4X_RESOURCE_UNIFORM_LOOP,
 };
 
-// Where xost put a block or sampler the shader reads (xost:docs/xsc.md, "Interface conventions").
+// Where xost put a block or sampler the shader reads (xost:docs/xsc.md, "Interface conventions"), or where a loop's
+// count is.
 typedef struct {
 	uint8_t kind;
 	// The descriptor set and binding; 0 for push constants.
 	uint8_t set;
 	uint8_t binding;
-	// The first float constant register, holding the block's first 16 bytes, or the fetch constant.
+	// The first float constant register, holding the block's first 16 bytes, the fetch constant, or a loop's count's
+	// byte in its block.
 	uint16_t first;
-	// Registers the block fills; 1 for a sampler.
+	// Registers the block fills; 1 for a sampler; a loop's loop constant.
 	uint16_t count;
 } V4xShaderResource;
 

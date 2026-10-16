@@ -94,9 +94,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   written. A later device reads a shader back rather than compile it; a file that doesn't match its name, or whose size
   doesn't add up, is logged and the shader compiled again. `v4x_shader_counts` says how many the layer compiled and
   read back. With no folder named, nothing is kept.
-- SPIR-V xost refuses returns `VK_ERROR_FEATURE_NOT_PRESENT`, logged with xost's reason, and so does a shader that
-  wants a hardware loop's constants, which the layer doesn't set. `vkCreateShaderModule` doesn't list that result: a
-  deviation.
+- SPIR-V xost refuses returns `VK_ERROR_FEATURE_NOT_PRESENT`, logged with xost's reason, and so does a shader whose
+  hardware loop a bare uniform counts, which Vulkan's GLSL has none of. `vkCreateShaderModule` doesn't list that
+  result: a deviation.
 - The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, a break on data in a loop raises an error,
   and 16 registers a pixel shader.
 - `if`/`else` in either stage, nested, in an unrolled loop's body and around `gl_FragDepth` (milestone 21;
@@ -110,6 +110,16 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   an arm; written on one path alone, it's refused, as nothing else gives the pixel a depth (xost:docs/xsc.md,
   "Control flow"). Its draws skip no hidden pixels early, as xsdk turns hierarchical depth off for them
   (xsdk:docs/HARDWARE.md, "A pixel shader's depth").
+- A loop counted by an int in a push constant or uniform block, `for (int i = 0; i < b.n; i++)`, is a hardware loop
+  (milestone 21; xost:docs/xsc.md, "Loops a block counts"). The bundle names where the int is, and each draw the layer
+  reads it, from the push constants or the bound buffer at its dynamic offset, and sets the loop constant xost gave the
+  loop: a vertex shader's from 0, a fragment shader's from 16. The loop constants are written only when one changes.
+  **Deviation:** a count past 255 runs 255 passes, the most a loop constant counts
+  (xenia:src/xenia/gpu/xenos.h:1086-1097); 0 or less runs none, as Vulkan does. Refused, with xost's reason: such a
+  loop inside another loop or an `if`/`else` on data, a `continue`, a break but `if (c) break;` ending a pass on a
+  value every vertex or pixel shares, a store into part of an output in the loop, and a sample or derivative at
+  coordinates a pass works out. A pipeline whose loop's int lies past the push constants returns
+  `VK_ERROR_FEATURE_NOT_PRESENT`.
 - Vertex input location n feeds the usage xost gives it: 0 position, 1 colour, 2 and up texture coordinates
   (xsdk:src/xsc_resolve.c:344-346).
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's

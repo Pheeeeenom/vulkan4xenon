@@ -62,6 +62,9 @@ void test_lod(const Harness *harness);
 // If/else in vertex shaders, on data and a push constant, in unrolled loops' bodies and around gl_FragDepth, each arm's
 // output where it alone puts it (milestone 21).
 void test_branches(const Harness *harness);
+// Hardware loops counted by push constants and uniform buffers, in either stage and both, with an if/else, an array at
+// the pass's index and a break (milestone 21).
+void test_loops(const Harness *harness);
 // Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
 void test_shader_cache_start(void);
 // The files the layer kept, and a second device reading the triangle's shaders back; called after the first goes.

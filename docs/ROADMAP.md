@@ -2101,7 +2101,7 @@ Shader Model 3 has all of it, and Xenos runs it with conditional execs, predicat
 
 Done when GLSL with each runs through the layer on the console, checked by pixel, and xost's tests cover it.
 
-**Built in steps** (2026-10-16), each an xsdk commit for xost and a layer commit for its checks:
+**Built in three steps** (2026-10-16), each an xsdk commit for xost and a layer commit for its checks:
 1. **An if/else on data, by selects** (xsdk `37f3946`, `7f0e26e`). xost's unroller runs both arms of an if/else on
    data in a vertex shader, in a loop's body or around `gl_FragDepth`, each from the locals and outputs as they were,
    and merges each value they leave apart with a select where they meet, glslang's Phis for `&&` and `||` too.
@@ -2114,8 +2114,26 @@ Done when GLSL with each runs through the layer on the console, checked by pixel
    p0 (ucode.h:1162-1204) and the arms go in `(p0)` and `(!p0)` execs, every instruction in them predicated as its
    exec is (ucode.h:114-124), so the arm not taken runs no instructions. An if/else inside such an arm is selects, as
    there's one predicate.
-- **The checks:** vulkan4xenon_test's `test_branches.c`, each scene 30 frames, checked by pixel on every frame and on
-  the screen after, a check line of its own for each:
+3. **Hardware loops a block counts** (xsdk `0d68da2`). Vulkan's GLSL has no bare uniforms, and the hardware loops xost
+   lowered took their counts from one, so it now keeps `for (int i = 0; i < b.n; i++)`, `n` an int in a push constant or
+   uniform block, as a hardware loop: what the loop carries in registers, `i` a float counter, an if/else on data in the
+   pass as selects, and `if (c) break;` ending a pass as a predicated LOOP_END, on a value every vertex or pixel shares,
+   as LOOP_END breaks only when all 64 agree (ucode.h:372-373). Its manifest names the int's block and offset and the
+   loop constant: a vertex shader's from 0, a pixel shader's from 16, as a pixel shader's loop ran 0, 1 and 3 passes on
+   the console as loop constant 0 said (xsdk:docs/HARDWARE.md, "Shader constants: partial writes hang the GPU,
+   libxenon's whole blocks don't"), so the stages share the 32. The bundle carries each as a resource,
+   `V4X_RESOURCE_PUSH_LOOP` or `V4X_RESOURCE_UNIFORM_LOOP`, beside the blocks and samplers, so `V4xShader` keeps its
+   layout; the layer takes them from the console's compiler too. At each draw of a pipeline with loops the layer reads
+   each int, from the push constants or the bound buffer at its dynamic offset, clamps it to the 0 to 255 passes a loop
+   constant counts (xenia:src/xenia/gpu/xenos.h:1086-1097), a deviation past 255, and writes the loop constants, all 32
+   with the booleans as xsdk always does, only when one changed.
+
+**Changed from the plan:** the loop constants are written at each draw that changes one, not when a pipeline is
+bound, as the count is in a block that changes without a bind: a push constant, or a buffer at another dynamic offset.
+A draw whose pipeline has no loop costs one test.
+
+- **The checks:** vulkan4xenon_test's `test_branches.c` and `test_loops.c`, each scene 30 frames, checked by pixel on
+  every frame and on the screen after, a check line of its own for each:
   - `branch_data.vert`: four quads whose colour's w picks each arm, moving the quad right or down and picking its
     colour, one arm with an `if` of its own, then an `&&` greening the quad that ends at the bottom right; each quad
     probed where its arm puts it, and the clear where the other would.
@@ -2126,9 +2144,17 @@ Done when GLSL with each runs through the layer on the console, checked by pixel
     screen for each value.
   - `depth_if.frag` and `depth_before.frag`: `gl_FragDepth` in both arms, and before an if/else and again in an arm,
     then a green quad between the two depths, showing where the arms wrote the far depth alone.
-  - `branch_data.vert` and `branch_uniform.vert` again, compiled on the console from SPIR-V the bundle doesn't hold.
-  - xsdk_test's compiler check takes `vk_vertex_if.vert` and `vk_vertex_uniform_if.vert`, the console's containers
-    and needs against the PC's.
+  - `loop_count.frag`: six quads counted 0, 1, 3, 6, 300 and -5 by the push constants, 300 run as 255 and -5 as none.
+  - `loop_count.vert`: three rows counted 1, 2 and 4 by a dynamic uniform buffer, each quad moved and coloured a pass,
+    probed where its count puts it and clear a pass either side; then the same with `loop_count.frag` colouring the
+    rows, counted 3, 5 and 6, both stages' loops in one draw.
+  - `loop_count_if.frag`: a uniform buffer's count of 7 over the screen, an if/else on u, the block's colour at `i`
+    and `float(i)` in each pass, and a break once the colours' alpha sums to 5, so eight bands show the five passes
+    before it.
+  - `branch_data.vert`, `branch_uniform.vert`, `loop_count.frag` and `loop_count_if.frag` again, compiled on the
+    console from SPIR-V the bundle doesn't hold.
+  - xsdk_test's compiler check takes `vk_vertex_if.vert`, `vk_vertex_uniform_if.vert` and `vk_loop_count_if.frag`, the
+    console's containers and needs against the PC's.
 
 ### Milestone 22: Shader Model 3's fetches and inputs
 
