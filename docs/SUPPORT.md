@@ -24,10 +24,10 @@ required minimums.
 | Device | `vkCreateDevice`, `vkDestroyDevice`, `vkGetDeviceProcAddr`, `vkGetDeviceQueue`, `vkDeviceWaitIdle` |
 | Memory and buffers | `vkAllocateMemory`, `vkFreeMemory`, `vkMapMemory`, `vkUnmapMemory`, `vkFlushMappedMemoryRanges`, `vkInvalidateMappedMemoryRanges`, `vkGetDeviceMemoryCommitment`, `vkCreateBuffer`, `vkDestroyBuffer`, `vkGetBufferMemoryRequirements`, `vkBindBufferMemory`, `vkCreateBufferView`, `vkDestroyBufferView` |
 | Pipelines | `vkCreateShaderModule`, `vkDestroyShaderModule`, `vkCreatePipelineLayout`, `vkDestroyPipelineLayout`, `vkCreateGraphicsPipelines`, `vkCreateComputePipelines`, `vkDestroyPipeline`, `vkCreatePipelineCache`, `vkDestroyPipelineCache`, `vkGetPipelineCacheData`, `vkMergePipelineCaches` |
-| Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkGetImageSparseMemoryRequirements`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
+| Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkGetImageSparseMemoryRequirements`, `vkGetImageSubresourceLayout`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
 | Descriptor sets | `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`, `vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`, `vkFreeDescriptorSets`, `vkUpdateDescriptorSets` |
 | Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer`, `vkGetRenderAreaGranularity` |
-| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBounds`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBounds`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
 | Sync and submit | `vkQueueSubmit`, `vkQueueBindSparse`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore`, `vkCreateEvent`, `vkDestroyEvent`, `vkGetEventStatus`, `vkSetEvent`, `vkResetEvent` |
 | Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
 | Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
@@ -63,8 +63,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   - 0: device-local, host-visible and coherent. Each allocation is `xsdk_gpu_alloc`'s write-combined physical memory,
     in 64 KB pages, so `minMemoryMapAlignment` is 64 KB.
   - 1: host-visible, coherent and cached: the CPU's own memory, from newlib's heap, 128-byte aligned. The GPU never
-    reads it, so only buffers whose sole usage is `VK_BUFFER_USAGE_TRANSFER_SRC_BIT` list it in their
-    `memoryTypeBits`: copies run on the CPU, which reads it at the cache's speed (milestone 12). Another buffer, or an
+    reads it, so only buffers whose usages are `VK_BUFFER_USAGE_TRANSFER_SRC_BIT` and `VK_BUFFER_USAGE_TRANSFER_DST_BIT`
+    alone list it in their `memoryTypeBits`: copies run on the CPU, which reads and writes it at the cache's speed
+    (milestones 12 and 19), so a buffer an image is read back into is quick to map and read. Another buffer, or an
     image, bound to it makes the bind return `VK_ERROR_OUT_OF_DEVICE_MEMORY`.
 - Memory of type 0 is write-combined:
   - `memcpy` into it is safe, since the toolchain's `memcpy` stores bytes or aligned words;
@@ -201,9 +202,15 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 ## Images
 
-- 2D, one layer, one sample, optimal tiling, used for sampling, copying in and as colour attachments; anything else
-  returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1. None is sparse, so
+- 2D, one layer, one sample, optimal tiling, used for sampling, copying to and from and as colour attachments; anything
+  else returns `VK_ERROR_FEATURE_NOT_PRESENT`. Mip levels down to 1x1. None is sparse, so
   `vkGetImageSparseMemoryRequirements` and `vkGetPhysicalDeviceSparseImageFormatProperties` find nothing.
+- Linear images: one level, only copied to and from, which they're for, as xsdk's linear textures are one level
+  (xsdk:src/texture.c). Their rows start a whole 256 bytes apart, as Xenos's linear textures need
+  (xenia:src/xenia/gpu/xenos.h:1179-1181), and `vkGetImageSubresourceLayout` gives that pitch, offset 0 and the rows'
+  size; for an optimal image, which is invalid use, it gives zeros. `vkGetPhysicalDeviceImageFormatProperties` takes
+  linear tiling for those usages alone, one level; the formats report no linear tiling features, which copies don't
+  need.
 - Colour attachment images are `VK_FORMAT_R8G8B8A8_UNORM` or `VK_FORMAT_B8G8R8A8_UNORM`, with one level, and both
   sides over 16 texels: a smaller base level sits in the packed mip tail, where a resolve can't write
   (xsdk:src/gpu_resolve.c). Others return `VK_ERROR_FEATURE_NOT_PRESENT`.
@@ -257,18 +264,46 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   dynamic offsets and copy regions; each doubles when it fills, and keeps its size through resets. If host memory runs
   out, `vkEndCommandBuffer` returns `VK_ERROR_OUT_OF_HOST_MEMORY`.
 - `vkQueueSubmit` replays them on the caller's thread into xsdk's ring.
-- `vkCmdCopyBufferToImage` copies whole mip levels, from tightly packed rows or rows `bufferRowLength` texels long, at
-  4-byte-aligned offsets, in runs of whole words (`xsdk_texture_upload`). It runs on the CPU at replay, so it waits
-  for the GPU to be done with what used the image: the submission that last sampled it, resolved into it or drew it
-  back into eDRAM, for the fence that submission ended with; earlier in its own, for the GPU to finish what came
-  before. An image no submission used isn't waited for (milestone 12).
-- `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for what used their image. One that
+- **Copies, clears and blits run on the CPU at replay** (src/transfer.c), in order with the draws around them, each
+  waiting first for the GPU to be done with what it reads or writes:
+  - an image: the submission that last sampled it, resolved into it or drew it back into eDRAM, for the fence that
+    submission ended with; earlier in its own, for the GPU to finish what came before. An image no submission used
+    isn't waited for (milestone 12);
+  - a buffer it writes: every draw since the CPU last waited for the GPU, as draws read vertex, index and uniform
+    buffers. **Shortcut:** a copy into a buffer after a draw waits for the GPU to finish all of it, a millisecond at
+    least, as `xsdk_gpu_wait` looks between 1 ms sleeps (xsdk:include/xsdk/gpu.h); keeping each memory's last use, as
+    images keep theirs, would cut that if a port's copies stall on it.
+
+  What they write the GPU reads afresh: the range goes out of its vertex and texture caches, and an image written is
+  no longer what eDRAM holds. Copies of depth images return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- `vkCmdCopyBufferToImage` and `vkCmdCopyImageToBuffer` copy whole mip levels, to or from tightly packed rows or rows
+  `bufferRowLength` texels long, at 4-byte-aligned offsets, in runs of whole words where the rows are word-aligned
+  (`xsdk_texture_upload_rows`, `xsdk_texture_download_rows`). A copy out reads the GPU's write-combined memory, so
+  it's slow.
+- `vkCmdCopyImage` copies whole levels of one size between formats of one texel size, the bits as they are, a row at a
+  time.
+- `vkCmdBlitImage` blits whole levels to whole levels, unflipped, between images of one format whose channels are 8
+  bits: `VK_FORMAT_R8_UNORM`, `R8G8_UNORM`, `R8G8B8A8_UNORM` and `B8G8R8A8_UNORM`, the formats reporting
+  `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT`. Each destination texel samples the source at its centre,
+  nearest or between the four texels around it, edges clamped, rounded to the nearest byte. A chain of levels
+  blitted down from the base makes an image's mips.
+- `vkCmdClearColorImage` fills whole levels with the colour, as the format holds it: bytes for the 8-bit formats, the
+  red float for `R32_SFLOAT`.
+- `vkCmdCopyBuffer` copies bytes at any offsets; `vkCmdUpdateBuffer` copies the bytes it recorded; `vkCmdFillBuffer`
+  writes its word in the CPU's byte order, as the spec has it, a store a word.
+- `vkCmdPipelineBarrier` records nothing: replay is in order, and copies wait for what used what they copy. One that
   would have a sampled depth image read from an attachment fails the command buffer (Render passes).
 - `vkCmdDraw` and `vkCmdDrawIndexed`: one instance, `firstInstance` 0.
   - `firstVertex` and `vertexOffset` move each stream's address, since xsdk draws from vertex 0.
   - `firstIndex` moves the index buffer's address. Indices are 16 or 32 bits, with values up to 2^24 - 1.
   - Lists of more than 65535 vertices or indices are split on whole primitives, as the draw packets count in 16 bits
     (xsdk:src/gpu_draw.c:219, 309). Strips and fans that long return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- `vkCmdDrawIndirect` and `vkCmdDrawIndexedIndirect`: one draw each, as there's no `multiDrawIndirect` and
+  `maxDrawIndirectCount` is 1; more fail the command buffer. The parameters are read at replay, in order with it:
+  the host wrote them before the submit, or a copy earlier in the replay did, as nothing else writes buffers.
+  **Deviation:** what a direct draw refuses as it's recorded, an indirect one can only refuse as it's replayed, after
+  the command buffer ended: more than one instance, a first instance, or a strip or fan past 65535. It logs that and
+  draws nothing.
 
 ## Sync
 
@@ -308,10 +343,10 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 | Format | Features |
 |---|---|
-| `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending |
+| `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending, blit source and destination |
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, nearest filtering only, as filtering depth hasn't been tried on the console |
 | `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
-| `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering |
+| `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering, blit source and destination |
 | `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
 
 Vulkan 1.0 requires many more formats and features; each missing one is a deviation.
@@ -319,9 +354,9 @@ Vulkan 1.0 requires many more formats and features; each missing one is a deviat
 ## Physical device
 
 Only these limits are set. Every other limit is 0: what it measures isn't implemented yet, such as 1D, 3D and cube
-images, storage and texel buffers, input attachments, indirect draws, clip and cull distances, and
-compute. Where Vulkan 1.0 has a minimum for one of those, the 0 is below it. `mipmapPrecisionBits` and
-`subTexelPrecisionBits` are 0 too, under the minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
+images, storage and texel buffers, input attachments, clip and cull distances, and compute. Where Vulkan 1.0 has a
+minimum for one of those, the 0 is below it. `mipmapPrecisionBits` and `subTexelPrecisionBits` are 0 too, under the
+minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
 
 | Limit | Value |
 |---|---|
@@ -333,6 +368,7 @@ compute. Where Vulkan 1.0 has a minimum for one of those, the 0 is below it. `mi
 | `maxSamplerAllocationCount` | 4000 |
 | `bufferImageGranularity` | 1 |
 | `maxDrawIndexedIndexValue` | 2^24 - 1 |
+| `maxDrawIndirectCount` | 1 |
 | `maxBoundDescriptorSets` | 4 |
 | `maxPerStageDescriptorSamplers`, `maxPerStageDescriptorSampledImages` | 16 |
 | `maxPerStageDescriptorUniformBuffers` | 12 |

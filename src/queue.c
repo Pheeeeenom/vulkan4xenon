@@ -9,6 +9,7 @@
 #include "host.h"
 #include "objects.h"
 #include "sync.h"
+#include "transfer.h"
 #include "xsdk/gpu.h"
 #include "xsdk/log.h"
 #include "xsdk/texture.h"
@@ -37,6 +38,7 @@ typedef struct {
 
 // What one replay has bound so far.
 typedef struct {
+	VkQueue queue;
 	// The submission it belongs to (VkQueue_T's serial).
 	uint32_t serial;
 	const Pipeline *pipeline;
@@ -208,37 +210,6 @@ static void apply_resources(const Pipeline *pipeline, Replay *replay)
 		}
 		point_texture(replay, resource->first, &replay->sets[resource->set]->descriptors[resource->binding]);
 	}
-}
-
-// The CPU writes the image, so the GPU must be done with what used it: nothing to wait for if no submission has; the
-// fence the last one that did ended with; a fence now if this one did (docs/ROADMAP.md, milestones 2 and 12).
-static void wait_for_image(VkQueue queue, const Image *image)
-{
-	if (!image->used_serial)
-		return;
-	uint32_t fence;
-	if (image->used_serial == queue->serial)
-		fence = xsdk_gpu_fence();
-	else if (queue->serial - image->used_serial < V4X_SUBMIT_FENCES)
-		fence = queue->submit_fences[image->used_serial % V4X_SUBMIT_FENCES];
-	else
-		// Older than the fences kept: the last submission's covers it.
-		fence = queue->submit_fences[(queue->serial - 1) % V4X_SUBMIT_FENCES];
-	if (xsdk_gpu_fence_done(fence))
-		return;
-	const NTSTATUS status = xsdk_gpu_wait(fence, IDLE_TIMEOUT_MS);
-	if (!NT_SUCCESS(status))
-		xsdk_log_write("vulkan4xenon: the GPU didn't finish with an image for a copy: 0x%08X", (unsigned)status);
-}
-
-static void copy_buffer_to_image(VkQueue queue, const Command *command)
-{
-	wait_for_image(queue, command->copy.image);
-	xsdk_texture_upload(&command->copy.image->texture, command->copy.level,
-		(const void *)(uintptr_t)command->copy.source, command->copy.row_bytes);
-	xsdk_gpu_invalidate(command->copy.image->texture.address, command->copy.image->texture.size_bytes);
-	if (queue->color.image == command->copy.image)
-		queue->color = (EdramPart){ .contents = EDRAM_UNKNOWN };
 }
 
 // Resolves clear eDRAM's depth and stencil to what xsdk_gpu_set_depth_clear last took.
@@ -508,6 +479,7 @@ static const Command *next_render_pass(VkCommandBuffer buffer, uint32_t after)
 static void prepare_draw(Replay *replay)
 {
 	const Pipeline *const pipeline = replay->pipeline;
+	replay->queue->drawn = true;
 	if (replay->pipeline_dirty)
 		apply_pipeline(pipeline, replay);
 	else if (replay->viewport_dirty)
@@ -552,18 +524,50 @@ static void draw(Replay *replay, uint32_t vertex_count, uint32_t first_vertex)
 	}
 }
 
-static void draw_indexed(Replay *replay, const Command *command)
+static void draw_indexed(Replay *replay, uint32_t count, uint32_t first_index, int32_t vertex_offset)
 {
 	prepare_draw(replay);
-	point_streams(replay, command->draw_indexed.vertex_offset);
+	point_streams(replay, vertex_offset);
 	const uint32_t index_bytes = replay->index_32_bit ? 4 : 2;
 	const uint32_t chunk = chunk_vertices(replay->pipeline);
-	const uint32_t count = command->draw_indexed.index_count;
 	for (uint32_t done = 0; done < count; done += chunk) {
-		const uint32_t address = replay->index_address + (command->draw_indexed.first_index + done) * index_bytes;
+		const uint32_t address = replay->index_address + (first_index + done) * index_bytes;
 		const uint32_t left = count - done;
 		xsdk_gpu_draw_indexed(replay->pipeline->primitive, address, left < chunk ? left : chunk, replay->index_32_bit);
 	}
+}
+
+// What a direct draw refuses as it's recorded, an indirect one refuses as it's replayed, drawing nothing.
+static bool drawable(const Replay *replay, uint32_t count, uint32_t instances, uint32_t first_instance)
+{
+	if (!count || !instances)
+		return false;
+	if (instances != 1 || first_instance) {
+		(void)v4x_host_unsupported("instanced draws");
+		return false;
+	}
+	if (count > V4X_MAX_DRAW_VERTICES && !replay->pipeline->list_vertices) {
+		(void)v4x_host_unsupported("strips and fans of more than 65535 vertices");
+		return false;
+	}
+	return true;
+}
+
+// Its parameters are read now, in order with the replay: the host wrote them before the submit, or a copy in it did.
+// They're a VkDrawIndirectCommand: vertexCount, instanceCount, firstVertex, firstInstance.
+static void draw_indirect(Replay *replay, volatile const uint32_t *parameters)
+{
+	const uint32_t count = parameters[0];
+	if (drawable(replay, count, parameters[1], parameters[3]))
+		draw(replay, count, parameters[2]);
+}
+
+// The same with a VkDrawIndexedIndirectCommand: indexCount, instanceCount, firstIndex, vertexOffset, firstInstance.
+static void draw_indexed_indirect(Replay *replay, volatile const uint32_t *parameters)
+{
+	const uint32_t count = parameters[0];
+	if (drawable(replay, count, parameters[1], parameters[4]))
+		draw_indexed(replay, count, parameters[2], (int32_t)parameters[3]);
 }
 
 static void begin_command(VkQueue queue, Replay *replay, const Command *command)
@@ -607,7 +611,28 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 			buffer->data + command->push_constants.data_at, command->push_constants.size_bytes);
 		break;
 	case COMMAND_COPY_BUFFER_TO_IMAGE:
-		copy_buffer_to_image(queue, command);
+		v4x_transfer_buffer_to_image(queue, command);
+		break;
+	case COMMAND_COPY_IMAGE_TO_BUFFER:
+		v4x_transfer_image_to_buffer(queue, command);
+		break;
+	case COMMAND_COPY_IMAGE:
+		v4x_transfer_copy_image(queue, command);
+		break;
+	case COMMAND_BLIT_IMAGE:
+		v4x_transfer_blit(queue, command);
+		break;
+	case COMMAND_CLEAR_COLOR_IMAGE:
+		v4x_transfer_clear(queue, command);
+		break;
+	case COMMAND_COPY_BUFFER:
+		v4x_transfer_copy_buffer(queue, command, command->buffer_copy.source);
+		break;
+	case COMMAND_UPDATE_BUFFER:
+		v4x_transfer_copy_buffer(queue, command, buffer->data + command->buffer_copy.data);
+		break;
+	case COMMAND_FILL_BUFFER:
+		v4x_transfer_fill_buffer(queue, command);
 		break;
 	case COMMAND_SET_VIEWPORT:
 		memcpy(&replay->viewport, buffer->data + command->state_at, sizeof replay->viewport);
@@ -622,7 +647,14 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 		replay->index_32_bit = command->index_buffer.is_32_bit;
 		break;
 	case COMMAND_DRAW_INDEXED:
-		draw_indexed(replay, command);
+		draw_indexed(replay, command->draw_indexed.index_count, command->draw_indexed.first_index,
+			command->draw_indexed.vertex_offset);
+		break;
+	case COMMAND_DRAW_INDIRECT:
+		draw_indirect(replay, command->parameters);
+		break;
+	case COMMAND_DRAW_INDEXED_INDIRECT:
+		draw_indexed_indirect(replay, command->parameters);
 		break;
 	}
 }
@@ -639,7 +671,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkQueueSubmit(
 	for (uint32_t i = 0; i < submitCount; i++) {
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
 			const VkCommandBuffer buffer = pSubmits[i].pCommandBuffers[j];
-			Replay replay = { .serial = queue->serial, .pipeline_dirty = true };
+			Replay replay = { .queue = queue, .serial = queue->serial, .pipeline_dirty = true };
 			for (uint32_t c = 0; c < buffer->count; c++)
 				replay_command(queue, buffer, &replay, c);
 		}
@@ -664,11 +696,11 @@ VKAPI_ATTR VkResult VKAPI_CALL vkQueueBindSparse(
 
 VKAPI_ATTR VkResult VKAPI_CALL vkQueueWaitIdle(VkQueue queue)
 {
-	(void)queue;
 	const NTSTATUS status = xsdk_gpu_wait(xsdk_gpu_fence(), IDLE_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
 		xsdk_log_write("vulkan4xenon: the GPU didn't go idle: 0x%08X", (unsigned)status);
 		return VK_ERROR_DEVICE_LOST;
 	}
+	queue->drawn = false;
 	return VK_SUCCESS;
 }

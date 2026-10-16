@@ -28,6 +28,7 @@ int main(void)
 		test_boot_logo(&harness, shown_before_device);
 		test_objects(&harness);
 		test_commands(&harness);
+		test_copies(&harness);
 		test_triangle(&harness);
 		test_packed_colour(&harness);
 		test_texture(&harness);

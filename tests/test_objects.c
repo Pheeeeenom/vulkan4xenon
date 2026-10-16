@@ -38,10 +38,11 @@ static void check_memory(const Harness *harness)
 		memory.memoryTypeCount == 2 && memory.memoryTypes[0].propertyFlags == gpu &&
 			memory.memoryTypes[1].propertyFlags == cached && memory.memoryTypes[1].heapIndex == 0 &&
 			memory.memoryHeapCount == 1);
-	const VkBufferUsageFlags usages[2] = { VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_BUFFER_USAGE_TRANSFER_SRC_BIT };
-	VkMemoryRequirements requirements[2] = { { 0 } };
+	const VkBufferUsageFlags usages[] = { VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT };
+	VkMemoryRequirements requirements[3] = { { 0 } };
 	bool made = true;
-	for (uint32_t i = 0; i < 2; i++) {
+	for (uint32_t i = 0; i < 3; i++) {
 		const VkBufferCreateInfo info = {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 			.size = BUFFER_BYTES,
@@ -57,8 +58,9 @@ static void check_memory(const Harness *harness)
 	}
 	check("objects: a buffer's requirements round its size up to its alignment",
 		made && requirements[0].size == ROUNDED_BYTES && requirements[0].alignment == BUFFER_ALIGNMENT);
-	check("objects: the cached memory type is offered to a transfer-source buffer alone",
-		made && requirements[0].memoryTypeBits == 1 && requirements[1].memoryTypeBits == 3);
+	check("objects: the cached memory type is offered to buffers only copied to and from",
+		made && requirements[0].memoryTypeBits == 1 && requirements[1].memoryTypeBits == 3 &&
+			requirements[2].memoryTypeBits == 3);
 }
 
 static void check_refusals(const Harness *harness)

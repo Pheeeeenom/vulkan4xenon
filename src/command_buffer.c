@@ -346,34 +346,207 @@ static uint32_t level_size(uint32_t size, uint32_t level)
 	return size >> level ? size >> level : 1;
 }
 
-// Whole mip levels of a texture image, from tightly packed rows or rows bufferRowLength texels long.
-VKAPI_ATTR void VKAPI_CALL vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage,
-	VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy *pRegions)
+// A buffer's bytes at an offset, as the CPU maps them.
+static volatile uint8_t *buffer_bytes(const Buffer *buffer, VkDeviceSize offset)
 {
-	(void)dstImageLayout;
-	const Buffer *const buffer = v4x_object(srcBuffer);
-	Image *const image = v4x_object(dstImage);
+	return (volatile uint8_t *)buffer->memory->pointer + buffer->offset_bytes + (uint32_t)offset;
+}
+
+// The same as the GPU addresses them; 0 in cached memory, which the GPU never reads.
+static uint32_t buffer_address(const Buffer *buffer, VkDeviceSize offset)
+{
+	return buffer->memory->cached ? 0 : buffer->memory->address + buffer->offset_bytes + (uint32_t)offset;
+}
+
+// Whether a region is the whole of a level of a colour image, one layer, from its corner.
+static bool whole_level(
+	const Image *image, const VkImageSubresourceLayers *layers, VkOffset3D offset, VkExtent3D extent)
+{
+	const uint32_t level = layers->mipLevel;
+	return image->is_texture && level < image->texture.levels && !offset.x && !offset.y && !offset.z &&
+		extent.width == level_size(image->width, level) && extent.height == level_size(image->height, level) &&
+		extent.depth == 1 && !layers->baseArrayLayer && layers->layerCount == 1;
+}
+
+// Whole levels between a buffer and an image, in tightly packed rows or rows bufferRowLength texels long.
+static void record_level_copies(VkCommandBuffer commandBuffer, CommandType type, const Buffer *buffer, Image *image,
+	uint32_t regionCount, const VkBufferImageCopy *pRegions)
+{
 	for (uint32_t i = 0; i < regionCount; i++) {
 		const VkBufferImageCopy *const region = &pRegions[i];
 		const uint32_t level = region->imageSubresource.mipLevel;
-		const uint32_t width = level_size(image->width, level);
-		if (!image->is_texture || region->imageOffset.x || region->imageOffset.y || region->imageOffset.z ||
-			region->imageExtent.width != width || region->imageExtent.height != level_size(image->height, level) ||
-			region->imageSubresource.baseArrayLayer || region->imageSubresource.layerCount != 1 ||
+		if (!whole_level(image, &region->imageSubresource, region->imageOffset, region->imageExtent) ||
 			(region->bufferOffset + buffer->offset_bytes) % 4) {
-			commandBuffer->result =
-				v4x_host_unsupported("copies of less than a whole level, or from unaligned offsets");
+			commandBuffer->result = v4x_host_unsupported("copies of less than a whole level, or at unaligned offsets");
 			return;
 		}
-		Command *const command = record(commandBuffer, COMMAND_COPY_BUFFER_TO_IMAGE);
+		Command *const command = record(commandBuffer, type);
 		if (!command)
 			return;
-		const uint32_t row_texels = region->bufferRowLength ? region->bufferRowLength : width;
-		command->copy.source = buffer->memory->pointer + (buffer->offset_bytes + (uint32_t)region->bufferOffset) / 4;
+		const uint32_t row_texels = region->bufferRowLength ? region->bufferRowLength : level_size(image->width, level);
+		command->copy.buffer = (volatile uint32_t *)buffer_bytes(buffer, region->bufferOffset);
+		command->copy.address = buffer_address(buffer, region->bufferOffset);
 		command->copy.image = image;
 		command->copy.level = level;
 		command->copy.row_bytes = row_texels * v4x_texel_bytes(image->format);
 	}
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage,
+	VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy *pRegions)
+{
+	(void)dstImageLayout;
+	record_level_copies(commandBuffer, COMMAND_COPY_BUFFER_TO_IMAGE, v4x_object(srcBuffer), v4x_object(dstImage),
+		regionCount, pRegions);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdCopyImageToBuffer(VkCommandBuffer commandBuffer, VkImage srcImage,
+	VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy *pRegions)
+{
+	(void)srcImageLayout;
+	record_level_copies(commandBuffer, COMMAND_COPY_IMAGE_TO_BUFFER, v4x_object(dstBuffer), v4x_object(srcImage),
+		regionCount, pRegions);
+}
+
+static void record_image_copy(VkCommandBuffer commandBuffer, CommandType type, Image *source, uint32_t source_level,
+	Image *destination, uint32_t destination_level, bool linear)
+{
+	Command *const command = record(commandBuffer, type);
+	if (!command)
+		return;
+	command->image_copy.source = source;
+	command->image_copy.destination = destination;
+	command->image_copy.source_level = source_level;
+	command->image_copy.destination_level = destination_level;
+	command->image_copy.linear = linear;
+}
+
+// Whole levels of the same size, their bits as they are between formats of one texel size.
+VKAPI_ATTR void VKAPI_CALL vkCmdCopyImage(VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
+	VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy *pRegions)
+{
+	(void)srcImageLayout;
+	(void)dstImageLayout;
+	Image *const source = v4x_object(srcImage);
+	Image *const destination = v4x_object(dstImage);
+	for (uint32_t i = 0; i < regionCount; i++) {
+		const VkImageCopy *const region = &pRegions[i];
+		if (!whole_level(source, &region->srcSubresource, region->srcOffset, region->extent) ||
+			!whole_level(destination, &region->dstSubresource, region->dstOffset, region->extent) ||
+			v4x_texel_bytes(source->format) != v4x_texel_bytes(destination->format)) {
+			commandBuffer->result = v4x_host_unsupported("image copies of less than a whole level");
+			return;
+		}
+		record_image_copy(commandBuffer, COMMAND_COPY_IMAGE, source, region->srcSubresource.mipLevel, destination,
+			region->dstSubresource.mipLevel, false);
+	}
+}
+
+// Whether a blit's corners are a whole level's, unflipped.
+static bool whole_blit_level(const Image *image, const VkImageSubresourceLayers *layers, const VkOffset3D offsets[2])
+{
+	const VkExtent3D extent = { (uint32_t)offsets[1].x, (uint32_t)offsets[1].y, (uint32_t)offsets[1].z };
+	return whole_level(image, layers, offsets[0], extent);
+}
+
+// Whole levels to whole levels of an image of the same format, its channels 8 bits (v4x_blit_format).
+VKAPI_ATTR void VKAPI_CALL vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
+	VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit *pRegions, VkFilter filter)
+{
+	(void)srcImageLayout;
+	(void)dstImageLayout;
+	Image *const source = v4x_object(srcImage);
+	Image *const destination = v4x_object(dstImage);
+	for (uint32_t i = 0; i < regionCount; i++) {
+		const VkImageBlit *const region = &pRegions[i];
+		if (!whole_blit_level(source, &region->srcSubresource, region->srcOffsets) ||
+			!whole_blit_level(destination, &region->dstSubresource, region->dstOffsets) ||
+			source->format != destination->format || !v4x_blit_format(source->format) || filter > VK_FILTER_LINEAR) {
+			commandBuffer->result = v4x_host_unsupported(
+				"blits of less than a whole level, flipped, between formats or of formats past 8 bits a channel");
+			return;
+		}
+		record_image_copy(commandBuffer, COMMAND_BLIT_IMAGE, source, region->srcSubresource.mipLevel, destination,
+			region->dstSubresource.mipLevel, filter == VK_FILTER_LINEAR);
+	}
+}
+
+// A texel's bytes for a clear colour, as an image of the format holds them.
+static uint32_t clear_texel(VkFormat format, const VkClearColorValue *color)
+{
+	const float *const rgba = color->float32;
+	const bool bgra = format == VK_FORMAT_B8G8R8A8_UNORM;
+	const uint8_t bytes[4] = { (uint8_t)unorm8(rgba[bgra ? 2 : 0]), (uint8_t)unorm8(rgba[1]),
+		(uint8_t)unorm8(rgba[bgra ? 0 : 2]), (uint8_t)unorm8(rgba[3]) };
+	uint32_t texel;
+	memcpy(&texel, format == VK_FORMAT_R32_SFLOAT ? (const void *)rgba : (const void *)bytes, sizeof texel);
+	return texel;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdClearColorImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout,
+	const VkClearColorValue *pColor, uint32_t rangeCount, const VkImageSubresourceRange *pRanges)
+{
+	(void)imageLayout;
+	Image *const object = v4x_object(image);
+	for (uint32_t i = 0; i < rangeCount; i++) {
+		const VkImageSubresourceRange *const range = &pRanges[i];
+		const uint32_t levels = range->levelCount == VK_REMAINING_MIP_LEVELS
+			? object->texture.levels - range->baseMipLevel
+			: range->levelCount;
+		if (!object->is_texture || range->baseArrayLayer ||
+			(range->layerCount != 1 && range->layerCount != VK_REMAINING_ARRAY_LAYERS)) {
+			commandBuffer->result = v4x_host_unsupported("colour clears of images other than colour images");
+			return;
+		}
+		Command *const command = record(commandBuffer, COMMAND_CLEAR_COLOR_IMAGE);
+		if (!command)
+			return;
+		command->clear.image = object;
+		command->clear.first_level = range->baseMipLevel;
+		command->clear.level_count = levels;
+		command->clear.texel = clear_texel(object->format, pColor);
+	}
+}
+
+static void record_buffer_copy(VkCommandBuffer commandBuffer, CommandType type, volatile const uint8_t *source,
+	const Buffer *destination, VkDeviceSize offset, uint32_t size_bytes, uint32_t data)
+{
+	Command *const command = record(commandBuffer, type);
+	if (!command)
+		return;
+	command->buffer_copy.source = source;
+	command->buffer_copy.destination = buffer_bytes(destination, offset);
+	command->buffer_copy.address = buffer_address(destination, offset);
+	command->buffer_copy.size_bytes = size_bytes;
+	command->buffer_copy.data = data;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdCopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer,
+	uint32_t regionCount, const VkBufferCopy *pRegions)
+{
+	for (uint32_t i = 0; i < regionCount; i++)
+		record_buffer_copy(commandBuffer, COMMAND_COPY_BUFFER,
+			buffer_bytes(v4x_object(srcBuffer), pRegions[i].srcOffset), v4x_object(dstBuffer), pRegions[i].dstOffset,
+			(uint32_t)pRegions[i].size, 0);
+}
+
+// The bytes go into the command buffer's data as it's recorded, as the spec has it.
+VKAPI_ATTR void VKAPI_CALL vkCmdUpdateBuffer(
+	VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void *pData)
+{
+	uint32_t at = 0;
+	if (record_data(commandBuffer, pData, (uint32_t)dataSize, &at))
+		record_buffer_copy(
+			commandBuffer, COMMAND_UPDATE_BUFFER, NULL, v4x_object(dstBuffer), dstOffset, (uint32_t)dataSize, at);
+}
+
+// The word goes in the CPU's byte order, as the spec has it: the host's.
+VKAPI_ATTR void VKAPI_CALL vkCmdFillBuffer(
+	VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data)
+{
+	const Buffer *const buffer = v4x_object(dstBuffer);
+	const VkDeviceSize bytes = size == VK_WHOLE_SIZE ? (buffer->size - dstOffset) & ~(VkDeviceSize)3 : size;
+	record_buffer_copy(commandBuffer, COMMAND_FILL_BUFFER, NULL, buffer, dstOffset, (uint32_t)bytes, data);
 }
 
 // Replay is in order and copies wait for the GPU, so barriers need nothing. But a sampled depth image's depth reaches
@@ -505,4 +678,31 @@ VKAPI_ATTR void VKAPI_CALL vkCmdDrawIndexed(VkCommandBuffer commandBuffer, uint3
 	command->draw_indexed.index_count = indexCount;
 	command->draw_indexed.first_index = firstIndex;
 	command->draw_indexed.vertex_offset = vertexOffset;
+}
+
+// One draw at most, without multiDrawIndirect; its parameters are read at replay (queue.c).
+static void record_indirect(
+	VkCommandBuffer commandBuffer, CommandType type, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount)
+{
+	if (drawCount > 1) {
+		commandBuffer->result = v4x_host_unsupported("indirect draws of more than one draw");
+		return;
+	}
+	Command *const command = drawCount ? record(commandBuffer, type) : NULL;
+	if (command)
+		command->parameters = (volatile const uint32_t *)buffer_bytes(v4x_object(buffer), offset);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdDrawIndirect(
+	VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+{
+	(void)stride;
+	record_indirect(commandBuffer, COMMAND_DRAW_INDIRECT, buffer, offset, drawCount);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdDrawIndexedIndirect(
+	VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+{
+	(void)stride;
+	record_indirect(commandBuffer, COMMAND_DRAW_INDEXED_INDIRECT, buffer, offset, drawCount);
 }

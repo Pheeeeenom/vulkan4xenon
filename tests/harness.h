@@ -149,5 +149,8 @@ void harness_push_quad(VkCommandBuffer commands, VkPipelineLayout layout, const 
 // The same in a target of another size than the screen, with a viewport over all of it.
 void harness_push_quad_in(
 	VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad, uint32_t width, uint32_t height);
+// Pushes the place and colour alone, for a draw of the app's own after.
+void harness_push_place_in(
+	VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad, uint32_t width, uint32_t height);
 
 #endif

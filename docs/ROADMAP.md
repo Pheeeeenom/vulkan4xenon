@@ -1818,6 +1818,38 @@ Broken on purpose, one break a check (`breaks.py`), the 11 failed and the other 
 
 Step 1 is done.
 
+**Step 2 on the console** (2026-10-16; `results/2026-10-16-milestone-19-step-2/`). The copies, clears and blits run on
+the CPU at replay, in src/transfer.c, beside `vkCmdCopyBufferToImage`'s, which moved there. xsdk reads a level's rows
+back (`xsdk_texture_download_rows`) and writes some of them (`xsdk_texture_upload_rows`), the upload's runs of whole
+words going either way (xsdk:results/2026-10-16-texture-read-back/). Image copies go a row at a time through one row
+of the CPU's, as two levels' layouts may differ; blits filter 8-bit channels on the CPU, a destination row from the
+two source rows about it; clears upload one row of the texel over and over. Indirect draws read their parameters at
+replay, one draw each. Linear images are one level, copied to and from, their rows 256 bytes apart. A copy into a
+buffer waits for the draws before it, which may read it, and, as images' last uses are kept and buffers' aren't, for
+all of them (docs/SUPPORT.md, "Commands"). Not in the plan, as small: a buffer only copied to and from is offered the
+cached memory type, so one an image is read back into maps fast.
+- **The checks:** vulkan4xenon_test's `test_copies.c` draws into a target the CPU cleared, a quad directly and one
+  through each indirect command, the plain one's count from a `vkCmdUpdateBuffer` before it; halves the vertices
+  between two passes; clears the target in a pass that draws nothing; blits a 64x64 chain down to 1x1 and a 2x2 up
+  to 4x4; clears an R8 image's tail; copies between optimal and linear images, the host's at its row pitch; fills,
+  updates and copies buffers at unaligned offsets. Each image comes back through `vkCmdCopyImageToBuffer` into cached
+  memory and is checked texel by texel.
+- **On the console:** vulkan4xenon_test passed 154 of 154, twice, its 16 checks new. Broken on purpose, in four
+  builds as some breaks fail several draw checks at once (`breaks.py`), each new check failed with its break and no
+  older one did but the memory check this step changed: 13 failed with twelve breaks of copies, clears, blits,
+  indirect draws, linear pitches, refusals, limits and names (`vulkan4xenon_test_broken_a1.log`); the clear-only
+  pass failed with the read-back not waiting for its image (`_a2`); the quads drawn before the halving failed with
+  the copy into a buffer not waiting for the draws (`_a3`); and the buffers' making and the objects' memory check
+  failed with the cached type kept from a buffer copied into (`_b`). The read-back's wait for its image was caught only once the clear-only pass came in,
+  as a draw's wait covers it otherwise (`before_clear_pass/`). The first run's triangle check failed on frame 0
+  because the new test left the harness's fence signaled; it now resets it, as the other tests do
+  (`vulkan4xenon_test_fence_left_signaled.log`). xsdk_test passed 318 of 318 with the user at the pad; broken on
+  purpose, rows written past the first landing on the first and words read back off by one, its two new checks
+  failed and the rest passed. Dusklight, built clean against both, ran its title scene at 29.4 to 30 fps with
+  nothing refused, until the user left it through the Guide's Xbox Home (`dusklight_m19.log`).
+
+Step 2 is done.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

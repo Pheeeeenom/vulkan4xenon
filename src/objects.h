@@ -108,6 +108,9 @@ struct VkQueue_T {
 	// The submission being replayed, numbered from 1, and the fence each recent one ended with, at serial % the count.
 	uint32_t serial;
 	uint32_t submit_fences[V4X_SUBMIT_FENCES];
+	// A draw went into the ring since the CPU last waited for the GPU, so a copy into a buffer waits first
+	// (transfer.c).
+	bool drawn;
 };
 
 struct VkDevice_T {
@@ -280,6 +283,15 @@ typedef enum {
 	COMMAND_SET_SCISSOR,
 	COMMAND_BIND_INDEX_BUFFER,
 	COMMAND_DRAW_INDEXED,
+	COMMAND_COPY_IMAGE_TO_BUFFER,
+	COMMAND_COPY_IMAGE,
+	COMMAND_BLIT_IMAGE,
+	COMMAND_CLEAR_COLOR_IMAGE,
+	COMMAND_COPY_BUFFER,
+	COMMAND_UPDATE_BUFFER,
+	COMMAND_FILL_BUFFER,
+	COMMAND_DRAW_INDIRECT,
+	COMMAND_DRAW_INDEXED_INDIRECT,
 } CommandType;
 
 typedef struct {
@@ -313,12 +325,42 @@ typedef struct {
 			uint32_t size_bytes;
 			uint32_t data_at;
 		} push_constants;
+		// Between a buffer and the whole of an image's level.
 		struct {
-			volatile const uint32_t *source;
+			// The buffer's words at the copy's offset, and their GPU address, 0 in cached memory.
+			volatile uint32_t *buffer;
+			uint32_t address;
 			Image *image;
 			uint32_t level;
 			uint32_t row_bytes;
 		} copy;
+		// The whole of a level into the whole of another, copied, or blitted to its size.
+		struct {
+			Image *source;
+			Image *destination;
+			uint32_t source_level;
+			uint32_t destination_level;
+			bool linear;
+		} image_copy;
+		// Into a buffer, from another's bytes, the command buffer's data or one word over and over.
+		struct {
+			volatile const uint8_t *source;
+			volatile uint8_t *destination;
+			// The destination's GPU address, 0 in cached memory.
+			uint32_t address;
+			uint32_t size_bytes;
+			// vkCmdUpdateBuffer's bytes in the command buffer's data, or vkCmdFillBuffer's word.
+			uint32_t data;
+		} buffer_copy;
+		struct {
+			Image *image;
+			uint32_t first_level;
+			uint32_t level_count;
+			// A texel's bytes as the image holds them.
+			uint32_t texel;
+		} clear;
+		// An indirect draw's parameters, read at replay.
+		volatile const uint32_t *parameters;
 		// A VkViewport or VkRect2D in the command buffer's data.
 		uint32_t state_at;
 		struct {

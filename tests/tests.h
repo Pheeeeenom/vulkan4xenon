@@ -11,6 +11,8 @@ void test_boot_logo(Harness *harness, uint32_t shown_before_device);
 void test_objects(const Harness *harness);
 // Milestone 19's commands that answer without drawing, and those refused, step 1.
 void test_commands(const Harness *harness);
+// Copies, clears and blits on the CPU, indirect draws and linear images, each read back texel by texel (milestone 19).
+void test_copies(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.
 void test_triangle(const Harness *harness);
 // The triangle again, its shaders read back from the layer's cache by a second device (milestone 13).

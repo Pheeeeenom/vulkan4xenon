@@ -375,8 +375,15 @@ void harness_push_quad(VkCommandBuffer commands, VkPipelineLayout layout, const 
 	harness_push_quad_in(commands, layout, quad, HARNESS_WIDTH, HARNESS_HEIGHT);
 }
 
-// push.vert works out position = unit quad * scale + offset, so the quad's pixels become clip space here.
 void harness_push_quad_in(
+	VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad, uint32_t width, uint32_t height)
+{
+	harness_push_place_in(commands, layout, quad, width, height);
+	vkCmdDraw(commands, 6, 1, 0, 0);
+}
+
+// push.vert works out position = unit quad * scale + offset, so the quad's pixels become clip space here.
+void harness_push_place_in(
 	VkCommandBuffer commands, VkPipelineLayout layout, const HarnessQuad *quad, uint32_t width, uint32_t height)
 {
 	const float half_width = (float)width / 2.0f;
@@ -394,5 +401,4 @@ void harness_push_quad_in(
 	};
 	vkCmdPushConstants(commands, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof place, place);
 	vkCmdPushConstants(commands, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 32, 16, quad->color);
-	vkCmdDraw(commands, 6, 1, 0, 0);
 }

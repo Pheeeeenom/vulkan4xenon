@@ -17,6 +17,8 @@ enum {
 	MEMORY_TYPE_CACHED = 1,
 	// Cache lines, so a copy's reads don't share a line with anything else.
 	CACHED_ALIGNMENT = 128,
+	// Copies run on the CPU, so a buffer only copied to and from never meets the GPU.
+	TRANSFER_USAGE = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 };
 
 VKAPI_ATTR VkResult VKAPI_CALL vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo *pAllocateInfo,
@@ -131,9 +133,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetBufferMemoryRequirements(
 	*pMemoryRequirements = (VkMemoryRequirements){
 		.size = (object->size + BUFFER_ALIGNMENT - 1) & ~(VkDeviceSize)(BUFFER_ALIGNMENT - 1),
 		.alignment = BUFFER_ALIGNMENT,
-		// Copies run on the CPU, so a buffer only ever copied from can be in memory the GPU doesn't read.
-		.memoryTypeBits =
-			1u << MEMORY_TYPE_GPU | (object->usage == VK_BUFFER_USAGE_TRANSFER_SRC_BIT ? 1u << MEMORY_TYPE_CACHED : 0),
+		.memoryTypeBits = 1u << MEMORY_TYPE_GPU | (object->usage & ~TRANSFER_USAGE ? 0 : 1u << MEMORY_TYPE_CACHED),
 	};
 }
 
@@ -143,8 +143,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory(
 	(void)device;
 	Buffer *const object = v4x_object(buffer);
 	const DeviceMemory *const bound = v4x_object(memory);
-	// Invalid use: only transfer-source buffers take cached memory (vkGetBufferMemoryRequirements).
-	if (bound->cached && object->usage != VK_BUFFER_USAGE_TRANSFER_SRC_BIT) {
+	// Invalid use: only buffers copied to and from take cached memory (vkGetBufferMemoryRequirements).
+	if (bound->cached && (object->usage & ~TRANSFER_USAGE)) {
 		xsdk_log_write("vulkan4xenon: a buffer the GPU reads bound to cached memory");
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}

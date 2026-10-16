@@ -75,6 +75,8 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			// Vertices land on 1/16 pixel under xsdk's PA_SU_VTX_CNTL (xenia:src/xenia/gpu/xenos.h:877-884).
 			.subPixelPrecisionBits = 4,
 			.maxDrawIndexedIndexValue = MAX_INDEX_VALUE,
+			// No multiDrawIndirect: an indirect command draws once.
+			.maxDrawIndirectCount = 1,
 			.maxSamplerLodBias = MAX_LOD_BIAS,
 			.maxSamplerAnisotropy = XSDK_MAX_ANISOTROPY,
 			.minMemoryMapAlignment = MAP_ALIGNMENT,
@@ -143,9 +145,11 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 {
 	(void)physicalDevice;
 	*pFormatProperties = (VkFormatProperties){ 0 };
+	// Blits run on the CPU, for formats of 8-bit channels (vkCmdBlitImage).
+	const VkFormatFeatureFlags blit = VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
 	const VkFormatFeatureFlags color = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
 		VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-		VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+		VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT | blit;
 	switch (format) {
 	case VK_FORMAT_R8G8B8A8_UNORM:
 	case VK_FORMAT_B8G8R8A8_UNORM:
@@ -159,7 +163,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties(
 	case VK_FORMAT_R8_UNORM:
 	case VK_FORMAT_R8G8_UNORM:
 		pFormatProperties->optimalTilingFeatures =
-			VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT | blit;
 		break;
 	case VK_FORMAT_R32_SFLOAT:
 		// Sampled, as xsdk's R32F: nearest only, since filtering 32-bit floats hasn't been tried on the console.
@@ -194,15 +198,16 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 		return VK_SUCCESS;
 	}
 	uint32_t xsdk_format;
-	if (!v4x_image_format(format, &xsdk_format) || type != VK_IMAGE_TYPE_2D || tiling != VK_IMAGE_TILING_OPTIMAL ||
-		(usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE) || flags ||
+	const bool linear = tiling == VK_IMAGE_TILING_LINEAR;
+	const VkImageUsageFlags usages = linear ? V4X_LINEAR_IMAGE_USAGE : V4X_IMAGE_USAGE;
+	if (!v4x_image_format(format, &xsdk_format) || type != VK_IMAGE_TYPE_2D || (usage & ~usages) || flags ||
 		((usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && !v4x_attachment_format(format))) {
 		*pImageFormatProperties = (VkImageFormatProperties){ 0 };
 		return VK_ERROR_FORMAT_NOT_SUPPORTED;
 	}
 	*pImageFormatProperties = (VkImageFormatProperties){
 		.maxExtent = { XSDK_TEXTURE_MAX_SIZE, XSDK_TEXTURE_MAX_SIZE, 1 },
-		.maxMipLevels = (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? 1 : MAX_IMAGE_LEVELS,
+		.maxMipLevels = linear || (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? 1 : MAX_IMAGE_LEVELS,
 		.maxArrayLayers = 1,
 		.sampleCounts = VK_SAMPLE_COUNT_1_BIT,
 		.maxResourceSize = HEAP_BYTES,

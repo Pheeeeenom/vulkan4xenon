@@ -50,6 +50,11 @@ uint32_t v4x_texel_bytes(VkFormat format)
 	}
 }
 
+bool v4x_blit_format(VkFormat format)
+{
+	return format != VK_FORMAT_R32_SFLOAT && v4x_image_format(format, &(uint32_t){ 0 });
+}
+
 bool v4x_attachment_format(VkFormat format)
 {
 	return format == VK_FORMAT_R8G8B8A8_UNORM || format == VK_FORMAT_B8G8R8A8_UNORM;
@@ -78,8 +83,9 @@ static VkResult check_create_info(const VkImageCreateInfo *info)
 		return v4x_host_unsupported(
 			"image formats other than R8G8B8A8_UNORM, B8G8R8A8_UNORM, R32_SFLOAT, R8_UNORM and "
 			"R8G8_UNORM, single-sampled");
-	if (info->tiling != VK_IMAGE_TILING_OPTIMAL)
-		return v4x_host_unsupported("linear images");
+	if (info->tiling == VK_IMAGE_TILING_LINEAR &&
+		(info->mipLevels != 1 || (info->usage & ~(VkImageUsageFlags)V4X_LINEAR_IMAGE_USAGE)))
+		return v4x_host_unsupported("linear images other than one level, only copied to and from");
 	if (info->usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE)
 		return v4x_host_unsupported("image usages other than sampling, copying in and colour attachments");
 	if ((info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && !v4x_attachment_format(info->format))
@@ -112,8 +118,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(
 	uint32_t format = XSDK_FORMAT_D24S8;
 	if (!is_depth)
 		(void)v4x_image_format(pCreateInfo->format, &format);
-	const NTSTATUS status = xsdk_texture_init(
-		&image->texture, format, pCreateInfo->extent.width, pCreateInfo->extent.height, pCreateInfo->mipLevels, true);
+	const NTSTATUS status = xsdk_texture_init(&image->texture, format, pCreateInfo->extent.width,
+		pCreateInfo->extent.height, pCreateInfo->mipLevels, pCreateInfo->tiling == VK_IMAGE_TILING_OPTIMAL);
 	if (!NT_SUCCESS(status)) {
 		xsdk_log_write("vulkan4xenon: xsdk_texture_init failed: 0x%08X", (unsigned)status);
 		v4x_host_free(allocator, image);
@@ -142,6 +148,24 @@ VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements(
 		.alignment = IMAGE_ALIGNMENT,
 		.memoryTypeBits = MEMORY_TYPE_BITS,
 	};
+}
+
+// A linear image's one level, its rows a pitch apart, whole 256 bytes (xsdk:src/texture.c). An optimal image has no
+// layout to give, so its is zero, though asking is invalid use.
+VKAPI_ATTR void VKAPI_CALL vkGetImageSubresourceLayout(
+	VkDevice device, VkImage image, const VkImageSubresource *pSubresource, VkSubresourceLayout *pLayout)
+{
+	(void)device;
+	(void)pSubresource;
+	const Image *const object = v4x_object(image);
+	*pLayout = (VkSubresourceLayout){ 0 };
+	if (!object->is_texture || object->texture.tiled)
+		return;
+	const VkDeviceSize row_bytes = (VkDeviceSize)object->texture.pitch * v4x_texel_bytes(object->format);
+	*pLayout = (VkSubresourceLayout){ .rowPitch = row_bytes,
+		.size = row_bytes * object->height,
+		.arrayPitch = row_bytes * object->height,
+		.depthPitch = row_bytes * object->height };
 }
 
 // Sparse images are refused (vkCreateImage), so an image has no sparse requirements.
