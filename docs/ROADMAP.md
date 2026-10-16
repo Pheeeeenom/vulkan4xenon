@@ -2871,6 +2871,49 @@ xsdk's probe (xsdk:docs/HARDWARE.md, "Queries and events").
 Done when a query counts a draw's samples on the console, or the probe's runs show none of the tries does, recorded in
 xsdk:docs/HARDWARE.md.
 
+**The probe's runs, planned (2026-10-16), none run yet.** xsdk's `tests/probe_occlusion.c` holds the tries, a build
+each: `bash results/2026-10-16-vulkan4xenon-milestone-28/builds.sh` in xsdk builds `build/probe_occlusion_<try>.xex` for
+all of them. Each runs from a fresh boot, as a try that hangs leaves the GPU hung once the title exits, and the group
+tries must find the dashboard's state, not a title's. A log starts with the registers xsdk's set-up writes, as found and
+as set up; then the probe draws a 256x128 quad and a quad hidden behind it and counts their pixels, 32768 of the quad's
+colour and none of the hidden quad's if the draws are right; then the try counts across the same two draws. Its last
+line says it finished, or the step it hung at, and how many of its events wrote their counts. In order, with what each
+outcome means for the layer:
+1. **`registers`:** Yamato's sample counters at 0x0F0F to 0x0F12, read by the CPU and copied by the command processor,
+   without `ZPASS_DONE`; the one try that can't hang. If `RB_ZPASS_SAMPLES` rises by 32768 across the quad and not
+   across the hidden quad, in the copies too, a query is the difference of two copies, at `vkCmdBeginQuery` and
+   `vkCmdEndQuery`, each once the GPU is idle as a time stamp after work is, and the layer reports
+   `occlusionQueryPrecise`. If the registers don't move, or move only as the CPU reads them, on to the next.
+2. **`viz_query`:** D3D's visibility query. If the quad's bit is set and the hidden quad's and the empty query's are
+   clear, the layer takes occlusion queries without `occlusionQueryPrecise`, under which a query that passed any sample
+   may return any non-zero value (the Vulkan spec, "Occlusion Queries"): 1 here, the status register copied at
+   `vkCmdEndQuery`, at once if the log's copy at the query's end already holds the bit and once idle if not, with up to
+   64 queries in flight, their bits in two status registers (xenia:src/xenia/gpu/command_processor.cc:1624-1630). If
+   the hidden quad's bit is set too, the answer is conservative, and whether the layer takes it, as a deviation in
+   docs/SUPPORT.md, is the user's call.
+3. **`reset`, `reset_copy`, `reset_event`, `flush` and `resolve`:** `ZPASS_DONE` with what the six runs didn't try
+   around it. The first whose slots are written, with 32768 z passes across the quad and none across the hidden quad,
+   is the layer's sequence: two records a query, the end's z passes less the begin's, A and B summed as D3D sums them
+   (xenia:src/xenia/gpu/xenos.h:1525-1537), in the byte order the log's swapped and stored sums show; precise. What a
+   flush or a resolve after each query costs is measured then.
+4. **`no_counters`:** if its events don't hang, the hang is the counts' write to memory, and the flush, the resolve and
+   the groups are where to look; if they do, the event alone wedges the render backend.
+5. **`group_all`, then the seven groups:** if `group_all` writes the counts, xsdk's set-up leaves something that breaks
+   them, the group runs find which group, a probe inside it which register, and the set-up keeps the console's value or
+   puts it back around a query. If `group_all` hangs too, a group run could only differ where one group's state undoes
+   another's, so they run last, if the user wants them.
+
+The first try that works settles the layer's path, and the runs after it are for the record. If none does, the
+milestone ends as above: xsdk:docs/HARDWARE.md records the runs, the layer keeps refusing occlusion query pools, and
+docs/PARITY.md keeps their row.
+
+**The runs** (2026-10-17, the zero-fuse console; xsdk c08f41d's probe, recorded in xsdk 5b4d6d4 and
+xsdk:results/2026-10-16-vulkan4xenon-milestone-28/). None of the tries got sample counts: Yamato's registers held the
+same values across the draws, and every try that sent `ZPASS_DONE` hung at its first one. The visibility query set its
+bit for the quad and for the quad hidden behind it too, so it's conservative: it answers whether draws rasterized
+anything, not whether a sample passed the depth test (xsdk:docs/HARDWARE.md, "Occlusion queries, vulkan4xenon milestone
+28"). The user decided the layer takes it all the same, outcome 2's deviation without `occlusionQueryPrecise`.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
