@@ -434,14 +434,19 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   - `firstVertex` and `vertexOffset` move the address of each stream at the vertex's rate, since xsdk draws from
     vertex 0.
   - `firstIndex` moves the index buffer's address. Indices are 16 or 32 bits, with values up to 2^24 - 1.
-  - Lists of more than 65535 vertices or indices are split on whole primitives, as the draw packets count in 16 bits
-    (xsdk:src/gpu_draw.c:219, 309). Strips and fans that long return `VK_ERROR_FEATURE_NOT_PRESENT`.
+  - A draw of more than 65535 vertices or indices goes in pieces, as the draw packets count in 16 bits
+    (xenia:src/xenia/gpu/registers.h:327): lists split on whole primitives; a line strip's pieces share the vertex
+    where they meet, and a triangle strip's the two, each piece an even number of vertices on from the last, so every
+    triangle keeps the parity its facing goes by (milestone 24). A triangle fan that long returns
+    `VK_ERROR_FEATURE_NOT_PRESENT`: each piece would need the fan's first vertex again before its own, which only
+    indices made at replay could give it.
 - `vkCmdDrawIndirect` and `vkCmdDrawIndexedIndirect`: one draw each, as there's no `multiDrawIndirect` and
   `maxDrawIndirectCount` is 1; more fail the command buffer. The parameters are read at replay, in order with it:
   the host wrote them before the submit, or a copy earlier in the replay did, as nothing else writes buffers. They
   take any instance count and first instance, as `drawIndirectFirstInstance` promises. **Deviation:** what a direct
   draw refuses as it's recorded, an indirect one can only refuse as it's replayed, after the command buffer ended: a
-  strip or fan past 65535. It logs that and draws nothing.
+  triangle fan past 65535. It logs that and draws nothing, as does a direct draw recorded where its pipeline wasn't
+  bound, in a secondary command buffer.
 
 ## Sync
 

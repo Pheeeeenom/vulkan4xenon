@@ -38,7 +38,7 @@ comparison after the fetch doesn't need. Every other gap is software.
 | Vertex formats: half floats, bytes and shorts, normalized or not, 10-bit types | Yes (xenia:src/xenia/gpu/xenos.h:602-618) | Yes but the 10-bit types: 18 formats (xsdk:include/xsdk/shader.h) | Partial: half floats, and bytes and shorts normalized or scaled, two or four to an attribute (milestone 20); no 10-bit types |
 | 16 vertex streams | Yes | Yes | Yes |
 | Points, lines, line strips, triangle lists, strips and fans | Yes | Yes | Yes |
-| 32-bit indices, draws past 65,535 | Yes, though a draw packet counts in 16 bits (xenia:src/xenia/gpu/registers.h:327) | Up to 65,535 a draw | Partial: lists are split; strips and fans that long are refused |
+| 32-bit indices, draws past 65,535 | Yes, though a draw packet counts in 16 bits (xenia:src/xenia/gpu/registers.h:327) | Up to 65,535 a draw | Partial: lists and strips are split; fans that long are refused (SUPPORT.md, Commands) |
 | Instancing | Yes: a vertex fetch takes its index from a register (xenia:src/xenia/gpu/ucode.h:695-715) | Partial: xost lowers `gl_InstanceIndex` to a constant the runtime writes (xost:docs/xsc.md, "Interface conventions"); xsdk draws an instance at a time | Yes, a draw an instance (SUPPORT.md, Commands) |
 | Dynamic vertex buffers | n/a | Yes | Yes |
 

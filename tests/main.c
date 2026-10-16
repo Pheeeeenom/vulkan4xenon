@@ -41,6 +41,7 @@ int main(void)
 		test_uniform_buffers(&harness);
 		test_indexed(&harness);
 		test_instancing(&harness);
+		test_strips(&harness);
 		test_depth_stencil(&harness);
 		test_raster(&harness);
 		test_dynamic_state(&harness);

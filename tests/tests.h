@@ -47,6 +47,8 @@ void test_uniform_buffers(const Harness *harness);
 void test_indexed(const Harness *harness);
 // Instanced draws, indexed and not, direct and indirect, each instance placed and coloured on its own (milestone 24).
 void test_instancing(const Harness *harness);
+// Strips past 65535 vertices, drawn in pieces sharing the vertices where they meet; long fans refused (milestone 24).
+void test_strips(const Harness *harness);
 // A depth and stencil attachment: depth tests, a stencil mask and a depth bias (milestone 3).
 void test_depth_stencil(const Harness *harness);
 // Culling, blending, a write mask, dynamic viewport and scissor, and pixel centres (milestone 3).

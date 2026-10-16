@@ -1,6 +1,6 @@
 #!/bin/bash
-# Builds each break set of breaks.py in a copy of the layer, one .xex a set: builds.sh a b c. The layer and xsdk at
-# LAYER and XSDK are only read, xsdk built first; the copies and titles go to S, where make clean doesn't reach.
+# Builds each break set of breaks.py in a copy of the layer, one .xex a set: builds.sh a b c d e f. The layer and
+# xsdk at LAYER and XSDK are only read, xsdk built first; the copies and titles go to S, where make clean doesn't reach.
 LAYER=${LAYER:-/mnt/z/vulkan4xenon}
 XSDK=${XSDK:-/mnt/z/Xbox-360-SDK}
 S=${S:-/mnt/c/Users/Mena/AppData/Local/Temp/claude/Z--Xbox-360-SDK/5f2bc020-db5c-4043-b258-abaf74d81117/scratchpad}

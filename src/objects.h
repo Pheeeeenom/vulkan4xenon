@@ -28,7 +28,7 @@ enum {
 	V4X_MAX_VERTEX_STRIDE_BYTES = 255 * 4,
 	// Room a command buffer starts with; it doubles when full.
 	V4X_FIRST_COMMANDS = 4096,
-	// DRAW_INDX_2 and DRAW_INDX carry the count in 16 bits (xsdk:src/gpu_draw.c:219, 309).
+	// DRAW_INDX_2 and DRAW_INDX carry the count in 16 bits (xenia:src/xenia/gpu/registers.h:327).
 	V4X_MAX_DRAW_VERTICES = 65535,
 	// Push constants, dynamic offsets and copy regions, which vary in size, go in a command buffer's data in recording
 	// order; it starts with this much and doubles when full.
@@ -282,8 +282,10 @@ typedef struct {
 	bool dynamic_viewport;
 	bool dynamic_scissor;
 	uint32_t primitive;
-	// Vertices a primitive takes in a list, so long lists split on whole primitives; 0 for strips and fans.
-	uint32_t list_vertices;
+	// A draw past what a draw packet carries goes in pieces of up to piece_vertices, each piece_step on from the last:
+	// lists split on whole primitives, and strips share the vertices where pieces meet. Fans don't split: step 0.
+	uint32_t piece_vertices;
+	uint32_t piece_step;
 	XsdkBlendState blend;
 	XsdkRasterState raster;
 	XsdkDepthStencilState depth_stencil;

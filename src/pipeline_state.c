@@ -21,6 +21,13 @@ static bool takes(const Pipeline *pipeline, VkDynamicState state)
 	return pipeline->dynamic & 1u << state;
 }
 
+// A list splits on whole primitives.
+static void split_list(Pipeline *pipeline, uint32_t primitive_vertices)
+{
+	pipeline->piece_vertices = V4X_MAX_DRAW_VERTICES - V4X_MAX_DRAW_VERTICES % primitive_vertices;
+	pipeline->piece_step = pipeline->piece_vertices;
+}
+
 static VkResult topology(const VkPipelineInputAssemblyStateCreateInfo *assembly, Pipeline *pipeline)
 {
 	if (assembly->primitiveRestartEnable)
@@ -28,24 +35,33 @@ static VkResult topology(const VkPipelineInputAssemblyStateCreateInfo *assembly,
 	switch (assembly->topology) {
 	case VK_PRIMITIVE_TOPOLOGY_POINT_LIST:
 		pipeline->primitive = XSDK_PRIMITIVE_POINT_LIST;
-		pipeline->list_vertices = 1;
+		split_list(pipeline, 1);
 		return VK_SUCCESS;
 	case VK_PRIMITIVE_TOPOLOGY_LINE_LIST:
 		pipeline->primitive = XSDK_PRIMITIVE_LINE_LIST;
-		pipeline->list_vertices = 2;
+		split_list(pipeline, 2);
 		return VK_SUCCESS;
 	case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP:
 		pipeline->primitive = XSDK_PRIMITIVE_LINE_STRIP;
+		// Each piece starts at the last one's last vertex.
+		pipeline->piece_vertices = V4X_MAX_DRAW_VERTICES;
+		pipeline->piece_step = V4X_MAX_DRAW_VERTICES - 1;
 		return VK_SUCCESS;
 	case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST:
 		pipeline->primitive = XSDK_PRIMITIVE_TRIANGLE_LIST;
-		pipeline->list_vertices = 3;
+		split_list(pipeline, 3);
 		return VK_SUCCESS;
 	case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP:
 		pipeline->primitive = XSDK_PRIMITIVE_TRIANGLE_STRIP;
+		// Each piece starts at the last one's last two vertices, an even number on, so every triangle keeps the parity
+		// its facing goes by (Vulkan 1.0 spec, "Triangle Strips").
+		pipeline->piece_vertices = V4X_MAX_DRAW_VERTICES - 1;
+		pipeline->piece_step = V4X_MAX_DRAW_VERTICES - 3;
 		return VK_SUCCESS;
 	case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
 		pipeline->primitive = XSDK_PRIMITIVE_TRIANGLE_FAN;
+		// Every piece would need the first vertex again, which only indices made at replay could give it.
+		pipeline->piece_vertices = V4X_MAX_DRAW_VERTICES;
 		return VK_SUCCESS;
 	default:
 		return v4x_host_unsupported("adjacency and patch topologies");

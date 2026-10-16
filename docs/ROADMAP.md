@@ -2424,8 +2424,9 @@ vertices, checked by pixel.
    layer writes before each instance's draw. Indirect draws read instanceCount and firstInstance at replay, as they
    read the rest, so `drawIndirectFirstInstance` is reported.
 2. **Strips past 65,535 vertices or indices,** split as lists are, as a draw packet counts in 16 bits
-   (xenia:src/xenia/gpu/registers.h:327), the pieces sharing two vertices at an even offset so the winding holds. Fans only if they split cleanly without an index buffer made
-   at replay, as the first vertex has to repeat in each piece; otherwise refused as before.
+   (xenia:src/xenia/gpu/registers.h:327), a triangle strip's pieces sharing two vertices at an even offset so the
+   winding holds, and a line strip's one. Fans only if they split cleanly without an index buffer made at replay, as the
+   first vertex has to repeat in each piece; otherwise refused as before.
 
 **Left for later: all the instances in one draw.** A vertex fetch takes its index from a register
 (xenia:src/xenia/gpu/ucode.h:695-715), so one draw of every instance's vertices could have its vertex shader work out
@@ -2441,14 +2442,14 @@ instances show the cost of a draw each on the console, as it takes more than the
 
 **Step 1: instancing.** xost gives a vertex shader's `gl_InstanceIndex` the float constant register past its blocks, so
 no uniform block the GPU loads shares its group of 4, before the literals, and lists it among the shader's resources;
-`float()` of it, integer arithmetic on it and a block array's index at it lower as xost's integers do
-(xost:docs/xsc.md, "Interface conventions"). A vertex shader's other built-ins, `gl_VertexIndex` among them, are no
-longer fetched as vertex input 0 but refused when read. The bundle records the register as a `V4X_RESOURCE_INSTANCE_INDEX`
-resource, tools/build_shaders.py taking xost's resource list as the compiler gives it. A pipeline takes bindings at the
-instance's rate, each fetched with a stride of 0 (xenia:src/xenia/gpu/shader_interpreter.cc:1013-1014); the replay
-draws each instance on its own, those bindings' streams moved to the instance's element and its index written into
-the constant first, `firstInstance` included. `vkCmdDrawIndirect` and `vkCmdDrawIndexedIndirect` take the instance
-count and first instance they read, and the device reports `drawIndirectFirstInstance`.
+`float()` of it, integer arithmetic on it and a block array's index at it lower as xost's integers do (xost:docs/xsc.md,
+"Interface conventions"). A vertex shader's other built-ins, `gl_VertexIndex` among them, are no longer fetched as
+vertex input 0 but refused when read. The bundle records the register as a `V4X_RESOURCE_INSTANCE_INDEX` resource,
+tools/build_shaders.py taking xost's resource list as the compiler gives it. A pipeline takes bindings at the instance's
+rate, each fetched with a stride of 0 (xenia:src/xenia/gpu/shader_interpreter.cc:1013-1014); the replay draws each
+instance on its own, those bindings' streams moved to the instance's element and its index written into the constant
+first, `firstInstance` included. `vkCmdDrawIndirect` and `vkCmdDrawIndexedIndirect` take the instance count and first
+instance they read, and the device reports `drawIndirectFirstInstance`.
 - **The checks:** vulkan4xenon_test's `test_instancing.c` draws five rows of a grid, each instance a quad in a cell
   160 by 120, from an instance buffer bound at each row's own 8 entries: `vkCmdDraw` of 4 instances, `vkCmdDrawIndexed`
   of 3 from instance 2 at a vertex offset of 2, `vkCmdDrawIndirect` of 4 from instance 3 and `vkCmdDrawIndexedIndirect`
@@ -2464,6 +2465,28 @@ count and first instance they read, and the device reports `drawIndirectFirstIns
   offset as it, streams at the instance's rate moved only where the shader reads `gl_InstanceIndex`, and the feature
   unreported, so each of those six checks fails alone; `b` fetches the instance's bindings at their stride, failing all
   five rows; `c` never writes the index, failing the four rows that read it and not the fifth.
+
+**Step 2: strips past 65,535.** A pipeline keeps the pieces its topology splits a long draw into: lists on whole
+primitives, as before; a line strip's pieces 65,535 vertices long, each starting at the last one's last vertex; and a
+triangle strip's 65,534 long, each starting at the last one's last two, 65,532 on, an even number, so every triangle
+keeps the parity its facing goes by (Vulkan 1.0 spec, "Triangle Strips"). Draws and indexed draws go through the same
+pieces, an indexed one's moving the index buffer's address. Fans stay refused past 65,535: every piece would need the
+fan's first vertex before its own, which a draw from vertex 0 or from a run of the index buffer can't give it, and
+indices made at replay would be the only way (docs/SUPPORT.md, Commands). The replay now checks every draw for that,
+not only indirect ones, so a draw recorded in a secondary command buffer without its pipeline can't draw a fan in
+pieces.
+- **The checks:** vulkan4xenon_test's `test_strips.c` draws a triangle strip of 70,000 vertices with back faces culled:
+  its first quad, a quad over the split whose lower left triangle is the first piece's last and whose upper right is the
+  second's first, and its last quad, every vertex between them a quad's corner again so no triangle there has any area.
+  Both triangles of each quad are probed, and nothing between them. The same strip draws again below from 70,000 32-bit
+  indices. A line strip of 70,000 vertices, seven of them placing its lines and the rest off the screen, draws a row
+  across the screen in three lines, the first piece's last, the second's first and the one after, and its last two lines
+  on another row, each line probed. A triangle fan of 70,000 vertices still fails its command buffer, and one of 65,535
+  doesn't.
+- **Broken on purpose,** three builds more: `d` steps a triangle strip's pieces 65,533 on, failing both triangle strip
+  checks, steps a line strip's 65,535 on, sharing nothing, failing the line strip's, and takes long fans, failing the
+  fan's; `e` has an indexed draw's pieces share nothing, failing the indexed strip's check alone; `f` draws a strip's
+  first piece alone, failing the three strips' checks and no list's.
 
 ### Milestone 25: render target formats, and four targets at once
 

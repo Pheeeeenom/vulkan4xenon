@@ -296,12 +296,12 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBindPipeline(
 	commandBuffer->pipeline = command->pipeline;
 }
 
-// Strips and fans can't be split where a draw passes the 65535 vertices xsdk's draw packets carry.
+// A draw past the 65535 vertices a draw packet carries goes in pieces, but a fan can't be split (pipeline_state.c).
 static bool splittable(VkCommandBuffer buffer, uint32_t count)
 {
-	if (count <= V4X_MAX_DRAW_VERTICES || !buffer->pipeline || buffer->pipeline->list_vertices)
+	if (count <= V4X_MAX_DRAW_VERTICES || !buffer->pipeline || buffer->pipeline->piece_step)
 		return true;
-	buffer->result = v4x_host_unsupported("strips and fans of more than 65535 vertices");
+	buffer->result = v4x_host_unsupported("triangle fans of more than 65535 vertices");
 	return false;
 }
 
