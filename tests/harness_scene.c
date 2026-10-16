@@ -177,18 +177,27 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 		.colorWriteMask =
 			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
 	};
-	const VkPipelineColorBlendStateCreateInfo blend = {
+	VkPipelineColorBlendStateCreateInfo blend = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 		.attachmentCount = 1,
 		.pAttachments = spec->blend ? spec->blend : &opaque,
 	};
-	const VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_SCISSOR };
-	const uint32_t dynamic_count = (spec->dynamic_line_width ? 1u : 0u) + (spec->dynamic_viewport ? 2u : 0u);
+	for (uint32_t i = 0; i < 4 && spec->blend_constants; i++)
+		blend.blendConstants[i] = spec->blend_constants[i];
+	VkDynamicState dynamic_states[HARNESS_MAX_DYNAMIC_STATES + 3];
+	uint32_t dynamic_count = 0;
+	if (spec->dynamic_line_width)
+		dynamic_states[dynamic_count++] = VK_DYNAMIC_STATE_LINE_WIDTH;
+	if (spec->dynamic_viewport) {
+		dynamic_states[dynamic_count++] = VK_DYNAMIC_STATE_VIEWPORT;
+		dynamic_states[dynamic_count++] = VK_DYNAMIC_STATE_SCISSOR;
+	}
+	for (uint32_t i = 0; i < spec->dynamic_state_count; i++)
+		dynamic_states[dynamic_count++] = spec->dynamic_states[i];
 	const VkPipelineDynamicStateCreateInfo dynamic = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
 		.dynamicStateCount = dynamic_count,
-		.pDynamicStates = spec->dynamic_line_width ? dynamic_states : dynamic_states + 1,
+		.pDynamicStates = dynamic_states,
 	};
 	const VkPipelineShaderStageCreateInfo stages[] = {
 		{ .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

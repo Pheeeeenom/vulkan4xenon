@@ -27,7 +27,7 @@ required minimums.
 | Images and samplers | `vkCreateImage`, `vkDestroyImage`, `vkGetImageMemoryRequirements`, `vkGetImageSparseMemoryRequirements`, `vkGetImageSubresourceLayout`, `vkBindImageMemory`, `vkCreateImageView`, `vkDestroyImageView`, `vkCreateSampler`, `vkDestroySampler` |
 | Descriptor sets | `vkCreateDescriptorSetLayout`, `vkDestroyDescriptorSetLayout`, `vkCreateDescriptorPool`, `vkDestroyDescriptorPool`, `vkResetDescriptorPool`, `vkAllocateDescriptorSets`, `vkFreeDescriptorSets`, `vkUpdateDescriptorSets` |
 | Render passes | `vkCreateRenderPass`, `vkDestroyRenderPass`, `vkCreateFramebuffer`, `vkDestroyFramebuffer`, `vkGetRenderAreaGranularity` |
-| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBounds`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
+| Commands | `vkCreateCommandPool`, `vkDestroyCommandPool`, `vkResetCommandPool`, `vkAllocateCommandBuffers`, `vkFreeCommandBuffers`, `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkResetCommandBuffer`, `vkCmdBeginRenderPass`, `vkCmdEndRenderPass`, `vkCmdBindPipeline`, `vkCmdBindVertexBuffers`, `vkCmdBindIndexBuffer`, `vkCmdBindDescriptorSets`, `vkCmdPushConstants`, `vkCmdSetViewport`, `vkCmdSetScissor`, `vkCmdSetLineWidth`, `vkCmdSetDepthBias`, `vkCmdSetBlendConstants`, `vkCmdSetDepthBounds`, `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask`, `vkCmdSetStencilReference`, `vkCmdDraw`, `vkCmdDrawIndexed`, `vkCmdDrawIndirect`, `vkCmdDrawIndexedIndirect`, `vkCmdDispatch`, `vkCmdDispatchIndirect`, `vkCmdCopyBufferToImage`, `vkCmdCopyImageToBuffer`, `vkCmdCopyImage`, `vkCmdBlitImage`, `vkCmdClearColorImage`, `vkCmdCopyBuffer`, `vkCmdUpdateBuffer`, `vkCmdFillBuffer`, `vkCmdResolveImage`, `vkCmdPipelineBarrier` |
 | Sync and submit | `vkQueueSubmit`, `vkQueueBindSparse`, `vkQueueWaitIdle`, `vkCreateFence`, `vkDestroyFence`, `vkResetFences`, `vkGetFenceStatus`, `vkWaitForFences`, `vkCreateSemaphore`, `vkDestroySemaphore`, `vkCreateEvent`, `vkDestroyEvent`, `vkGetEventStatus`, `vkSetEvent`, `vkResetEvent` |
 | Display | `vkGetPhysicalDeviceDisplayPropertiesKHR`, `vkGetPhysicalDeviceDisplayPlanePropertiesKHR`, `vkGetDisplayPlaneSupportedDisplaysKHR`, `vkGetDisplayModePropertiesKHR`, `vkCreateDisplayModeKHR`, `vkGetDisplayPlaneCapabilitiesKHR`, `vkCreateDisplayPlaneSurfaceKHR`, `vkDestroySurfaceKHR`, `vkGetPhysicalDeviceSurfaceSupportKHR`, `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, `vkGetPhysicalDeviceSurfaceFormatsKHR`, `vkGetPhysicalDeviceSurfacePresentModesKHR` |
 | Swapchain | `vkCreateSwapchainKHR`, `vkDestroySwapchainKHR`, `vkGetSwapchainImagesKHR`, `vkAcquireNextImageKHR`, `vkQueuePresentKHR` |
@@ -124,8 +124,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     4;
   - point lists, line lists and strips, and triangle lists, strips and fans, without primitive restart (an xsdk
     TODO);
-  - one viewport and scissor, set in the pipeline or dynamic; the line width dynamic too, the pipeline's then ignored
-    and `vkCmdSetLineWidth` taking 1 alone, as without `wideLines`; no other dynamic state;
+  - one viewport and scissor, set in the pipeline or dynamic;
+  - every other dynamic state of Vulkan 1.0's but depth bounds, the pipeline's own value then ignored (Dynamic
+    state);
   - filled polygons, line width 1, no depth clamp;
   - one sample;
   - one colour attachment.
@@ -142,11 +143,23 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     `VK_ERROR_FEATURE_NOT_PRESENT` (two-sided stencil is an xsdk TODO).
   - Vulkan's compare and stencil ops are xsdk's, value for value. No depth bounds test.
 - **Blending:**
-  - every factor but the constant colours and dual-source ones, which return `VK_ERROR_FEATURE_NOT_PRESENT`;
+  - every factor but the dual-source ones, which return `VK_ERROR_FEATURE_NOT_PRESENT`. The constant ones take Xenos's
+    constant colour, `RB_BLEND_RED` to `ALPHA`, which the layer sets with each pipeline whose blend reads it
+    (`xsdk_gpu_set_blend_constants`; xsdk:docs/HARDWARE.md, "Blend constants");
   - every op, with min and max ignoring their factors as Vulkan says. Xenia ignores them too
     (xenia:src/xenia/gpu/spirv_shader_translator_rb.cc:3324), and the layer sets them to one, so the result holds either
     way;
   - the colour write mask. No logic ops.
+- **Dynamic state:** the pipeline keeps the xsdk settings its raster and depth and stencil blocks came from, and a
+  draw whose pipeline takes state from commands works them out again with what the commands last set, once a
+  pipeline is bound or a command sets it:
+  - `vkCmdSetLineWidth` takes 1 alone, as without `wideLines`;
+  - `vkCmdSetDepthBias` gives the constant and slope factors, which bias only if the pipeline's `depthBiasEnable` is
+    set; a clamp fails the command buffer, as there's no `depthBiasClamp`;
+  - `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask` and `vkCmdSetStencilReference` set both faces at once,
+    as both share one setting; a face alone fails the command buffer;
+  - `vkCmdSetBlendConstants` gives the constant colour;
+  - a pipeline that doesn't take a state has its own, whatever the commands set before it.
 - **Deviation:** points are 1 pixel, xsdk's `PA_SU_POINT_SIZE`; the shader's `gl_PointSize` is ignored.
 - Pipeline caches hold nothing, since pipelines come from the shader bundle and the layer's own cache of compiled
   shaders (milestone 13). The data a cache is made with is ignored, `vkMergePipelineCaches` does nothing, and

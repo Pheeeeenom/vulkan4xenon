@@ -8,6 +8,7 @@
 #include "blit.h"
 #include "host.h"
 #include "objects.h"
+#include "pipeline_state.h"
 #include "sync.h"
 #include "transfer.h"
 #include "xsdk/gpu.h"
@@ -48,6 +49,9 @@ typedef struct {
 	bool viewport_dirty;
 	VkViewport viewport;
 	VkRect2D scissor;
+	// And the raster, depth and stencil, and blend constants, after a command set the state they may take.
+	bool dynamic_dirty;
+	DynamicState dynamic;
 	const RenderPass *render_pass;
 	const Framebuffer *framebuffer;
 	// Where the pass's depth is, in queue->depths and in eDRAM (place_depth).
@@ -113,13 +117,24 @@ static void apply_viewport(const Pipeline *pipeline, const Replay *replay)
 		bottom > top ? (uint32_t)(bottom - top) : 0);
 }
 
+// The state blocks dynamic state may change: the pipeline's own, or worked out with what the commands set.
+static void apply_dynamic(const Pipeline *pipeline, const Replay *replay)
+{
+	XsdkRasterState raster;
+	XsdkDepthStencilState depth_stencil;
+	xsdk_gpu_set_raster(v4x_pipeline_raster(pipeline, &replay->dynamic, &raster));
+	xsdk_gpu_set_depth_stencil(v4x_pipeline_depth_stencil(pipeline, &replay->dynamic, &depth_stencil));
+	const float *const constants = v4x_pipeline_blend_constants(pipeline, &replay->dynamic);
+	if (constants)
+		xsdk_gpu_set_blend_constants(constants);
+}
+
 static void apply_pipeline(const Pipeline *pipeline, const Replay *replay)
 {
 	xsdk_gpu_set_shaders(&pipeline->vertex, &pipeline->pixel);
 	apply_viewport(pipeline, replay);
 	xsdk_gpu_set_blend(&pipeline->blend);
-	xsdk_gpu_set_raster(&pipeline->raster);
-	xsdk_gpu_set_depth_stencil(&pipeline->depth_stencil);
+	apply_dynamic(pipeline, replay);
 	write_literals(pipeline->vertex_source, true);
 	write_literals(pipeline->pixel_source, false);
 }
@@ -480,12 +495,17 @@ static void prepare_draw(Replay *replay)
 {
 	const Pipeline *const pipeline = replay->pipeline;
 	replay->queue->drawn = true;
-	if (replay->pipeline_dirty)
+	if (replay->pipeline_dirty) {
 		apply_pipeline(pipeline, replay);
-	else if (replay->viewport_dirty)
-		apply_viewport(pipeline, replay);
+	} else {
+		if (replay->viewport_dirty)
+			apply_viewport(pipeline, replay);
+		if (replay->dynamic_dirty)
+			apply_dynamic(pipeline, replay);
+	}
 	replay->pipeline_dirty = false;
 	replay->viewport_dirty = false;
+	replay->dynamic_dirty = false;
 	apply_resources(pipeline, replay);
 }
 
@@ -570,6 +590,24 @@ static void draw_indexed_indirect(Replay *replay, volatile const uint32_t *param
 		draw_indexed(replay, count, parameters[2], (int32_t)parameters[3]);
 }
 
+static void set_dynamic(Replay *replay, const Command *command)
+{
+	DynamicState *const dynamic = &replay->dynamic;
+	if (command->type == COMMAND_SET_DEPTH_BIAS) {
+		dynamic->depth_bias_constant = command->depth_bias.constant;
+		dynamic->depth_bias_slope = command->depth_bias.slope;
+	} else if (command->type == COMMAND_SET_BLEND_CONSTANTS) {
+		memcpy(dynamic->blend_constants, command->blend_constants, sizeof dynamic->blend_constants);
+	} else if (command->stencil.state == VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK) {
+		dynamic->stencil_compare_mask = command->stencil.value;
+	} else if (command->stencil.state == VK_DYNAMIC_STATE_STENCIL_WRITE_MASK) {
+		dynamic->stencil_write_mask = command->stencil.value;
+	} else {
+		dynamic->stencil_reference = command->stencil.value;
+	}
+	replay->dynamic_dirty = true;
+}
+
 static void begin_command(VkQueue queue, Replay *replay, const Command *command)
 {
 	replay->render_pass = command->begin.render_pass;
@@ -641,6 +679,11 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 	case COMMAND_SET_SCISSOR:
 		memcpy(&replay->scissor, buffer->data + command->state_at, sizeof replay->scissor);
 		replay->viewport_dirty = true;
+		break;
+	case COMMAND_SET_STENCIL:
+	case COMMAND_SET_DEPTH_BIAS:
+	case COMMAND_SET_BLEND_CONSTANTS:
+		set_dynamic(replay, command);
 		break;
 	case COMMAND_BIND_INDEX_BUFFER:
 		replay->index_address = command->index_buffer.address;

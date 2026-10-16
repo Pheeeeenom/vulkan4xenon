@@ -16,6 +16,8 @@ enum {
 	HARNESS_MAX_IMAGES = 3,
 	// Two frames' worth of vblanks, for a present to reach the screen.
 	HARNESS_SETTLE_MS = 50,
+	// Vulkan 1.0's dynamic states.
+	HARNESS_MAX_DYNAMIC_STATES = 9,
 };
 
 typedef struct {
@@ -75,6 +77,11 @@ typedef struct {
 	bool dynamic_viewport;
 	// The line width comes from vkCmdSetLineWidth, the pipeline's own left 0 for the layer to ignore.
 	bool dynamic_line_width;
+	// More state that comes from commands.
+	const VkDynamicState *dynamic_states;
+	uint32_t dynamic_state_count;
+	// The colour constant blend factors take, red to alpha; NULL for 0.
+	const float *blend_constants;
 } HarnessPipeline;
 
 // Whether an image the test drew holds what it should; failures are counted and the first few logged by the test.

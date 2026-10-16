@@ -614,6 +614,61 @@ VKAPI_ATTR void VKAPI_CALL vkCmdSetLineWidth(VkCommandBuffer commandBuffer, floa
 		commandBuffer->result = v4x_host_unsupported("line widths other than 1");
 }
 
+// Both faces share one stencil setting (docs/SUPPORT.md, Pipelines), so a setting for one face alone is refused.
+static void record_stencil(
+	VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkDynamicState state, uint32_t value)
+{
+	if (faceMask != VK_STENCIL_FACE_FRONT_AND_BACK) {
+		commandBuffer->result = v4x_host_unsupported("stencil masks and references set for one face alone");
+		return;
+	}
+	Command *const command = record(commandBuffer, COMMAND_SET_STENCIL);
+	if (!command)
+		return;
+	command->stencil.state = (uint32_t)state;
+	command->stencil.value = (uint8_t)value;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetStencilCompareMask(
+	VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask)
+{
+	record_stencil(commandBuffer, faceMask, VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK, compareMask);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetStencilWriteMask(
+	VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask)
+{
+	record_stencil(commandBuffer, faceMask, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK, writeMask);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetStencilReference(
+	VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference)
+{
+	record_stencil(commandBuffer, faceMask, VK_DYNAMIC_STATE_STENCIL_REFERENCE, reference);
+}
+
+// Without depthBiasClamp, the clamp is 0 (docs/SUPPORT.md, Pipelines).
+VKAPI_ATTR void VKAPI_CALL vkCmdSetDepthBias(
+	VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
+{
+	if (depthBiasClamp != 0.0f) {
+		commandBuffer->result = v4x_host_unsupported("depth bias clamps");
+		return;
+	}
+	Command *const command = record(commandBuffer, COMMAND_SET_DEPTH_BIAS);
+	if (!command)
+		return;
+	command->depth_bias.constant = depthBiasConstantFactor;
+	command->depth_bias.slope = depthBiasSlopeFactor;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetBlendConstants(VkCommandBuffer commandBuffer, const float blendConstants[4])
+{
+	Command *const command = record(commandBuffer, COMMAND_SET_BLEND_CONSTANTS);
+	if (command)
+		memcpy(command->blend_constants, blendConstants, sizeof command->blend_constants);
+}
+
 VKAPI_ATTR void VKAPI_CALL vkCmdSetDepthBounds(
 	VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
 {

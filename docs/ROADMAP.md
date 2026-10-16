@@ -1850,6 +1850,27 @@ cached memory type, so one an image is read back into maps fast.
 
 Step 2 is done.
 
+**Step 3 on the console** (2026-10-16; `results/2026-10-16-milestone-19-step-3/`). A pipeline keeps the xsdk settings
+its raster and depth and stencil blocks came from, and a bit for each dynamic state it takes; the replay keeps what the
+commands last set, and works the blocks out again for a pipeline that takes them, once a pipeline is bound or a command
+sets one. The stencil commands set both faces at once, as both share one setting, and a face alone is refused, as a
+depth bias clamp is. xsdk gained the constant blend factors and `xsdk_gpu_set_blend_constants`, which writes
+`RB_BLEND_RED` to `ALPHA`; the layer sets the colour with each pipeline whose blend reads it, its own or
+`vkCmdSetBlendConstants`'s (xsdk:docs/HARDWARE.md, "Blend constants"; xsdk:results/2026-10-16-blend-constants/).
+- **The checks:** vulkan4xenon_test's `test_dynamic_state.c` draws four stencil cells, a mask then a quad over it
+  through a write mask, a reference, a compare mask, and a static mask after a dynamic reference, each pipeline's own
+  values set to fail; a quad pulled nearer and one pushed farther by `vkCmdSetDepthBias` on a base at their depth;
+  and three blends, two by `vkCmdSetBlendConstants`'s colours set between them and one by a static pipeline's alpha.
+  xsdk_test's raster test draws two cells by the constant factors, a colour's channels and an alpha.
+- **On the console:** vulkan4xenon_test passed 161 of 161, twice, its 7 checks new. Broken on purpose, the write mask
+  a command set ignored, the dynamic bias ignored, the pipeline's own blend constants kept, a single face's stencil
+  recorded and `vkCmdSetBlendConstants` missing from the names, the five checks they reach failed and the rest passed
+  (`vulkan4xenon_test_broken_a.log`); dynamic blend constants refused, the pipelines' making and the four checks after
+  it failed (`_b`). xsdk_test passed 318 of 318 with the user at the pad; the constants written alpha first, its
+  raster check failed on the two constant cells alone.
+
+Step 3 is done.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

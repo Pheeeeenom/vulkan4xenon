@@ -245,6 +245,15 @@ typedef struct {
 	XsdkBlendState blend;
 	XsdkRasterState raster;
 	XsdkDepthStencilState depth_stencil;
+	// The state past the viewport and scissor it takes from commands, a bit 1 << VK_DYNAMIC_STATE_* each, and the
+	// settings its raster and depth and stencil blocks came from, which that state changes at replay.
+	uint32_t dynamic;
+	XsdkRaster raster_setting;
+	bool depth_bias_enabled;
+	XsdkDepthStencil depth_stencil_setting;
+	// Its blend takes a constant factor, so the colour is set with the pipeline: its own or vkCmdSetBlendConstants's.
+	bool blends_by_constants;
+	float blend_constants[4];
 	StageResource resources[V4X_MAX_SHADER_RESOURCES];
 	uint32_t resource_count;
 } Pipeline;
@@ -292,7 +301,20 @@ typedef enum {
 	COMMAND_FILL_BUFFER,
 	COMMAND_DRAW_INDIRECT,
 	COMMAND_DRAW_INDEXED_INDIRECT,
+	COMMAND_SET_STENCIL,
+	COMMAND_SET_DEPTH_BIAS,
+	COMMAND_SET_BLEND_CONSTANTS,
 } CommandType;
+
+// The dynamic state a command buffer sets past the viewport and scissor, as it last set it in a replay.
+typedef struct {
+	uint8_t stencil_compare_mask;
+	uint8_t stencil_write_mask;
+	uint8_t stencil_reference;
+	float depth_bias_constant;
+	float depth_bias_slope;
+	float blend_constants[4];
+} DynamicState;
 
 typedef struct {
 	CommandType type;
@@ -361,6 +383,16 @@ typedef struct {
 		} clear;
 		// An indirect draw's parameters, read at replay.
 		volatile const uint32_t *parameters;
+		// A stencil mask or reference: its VK_DYNAMIC_STATE_STENCIL_* and value, for both faces.
+		struct {
+			uint32_t state;
+			uint8_t value;
+		} stencil;
+		struct {
+			float constant;
+			float slope;
+		} depth_bias;
+		float blend_constants[4];
 		// A VkViewport or VkRect2D in the command buffer's data.
 		uint32_t state_at;
 		struct {

@@ -37,6 +37,7 @@ int main(void)
 		test_indexed(&harness);
 		test_depth_stencil(&harness);
 		test_raster(&harness);
+		test_dynamic_state(&harness);
 		test_render_to_texture(&harness);
 		test_run_time_index(&harness);
 		test_uploads(&harness);

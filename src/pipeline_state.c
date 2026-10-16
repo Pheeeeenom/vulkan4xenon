@@ -15,6 +15,12 @@ enum {
 	NO_BLEND_FACTOR = 0xFF,
 };
 
+// Whether the pipeline takes a state from commands, so its create info's value is ignored.
+static bool takes(const Pipeline *pipeline, VkDynamicState state)
+{
+	return pipeline->dynamic & 1u << state;
+}
+
 static VkResult topology(const VkPipelineInputAssemblyStateCreateInfo *assembly, Pipeline *pipeline)
 {
 	if (assembly->primitiveRestartEnable)
@@ -46,27 +52,18 @@ static VkResult topology(const VkPipelineInputAssemblyStateCreateInfo *assembly,
 	}
 }
 
+// Every Vulkan 1.0 dynamic state but depth bounds, which isn't a feature (docs/SUPPORT.md, Pipelines).
 static VkResult dynamic_state(const VkPipelineDynamicStateCreateInfo *dynamic, Pipeline *pipeline)
 {
 	for (uint32_t i = 0; dynamic && i < dynamic->dynamicStateCount; i++) {
-		if (dynamic->pDynamicStates[i] == VK_DYNAMIC_STATE_VIEWPORT)
-			pipeline->dynamic_viewport = true;
-		else if (dynamic->pDynamicStates[i] == VK_DYNAMIC_STATE_SCISSOR)
-			pipeline->dynamic_scissor = true;
-		else if (dynamic->pDynamicStates[i] != VK_DYNAMIC_STATE_LINE_WIDTH)
-			return v4x_host_unsupported("dynamic state other than the viewport, scissor and line width");
+		const VkDynamicState state = dynamic->pDynamicStates[i];
+		if (state > VK_DYNAMIC_STATE_STENCIL_REFERENCE || state == VK_DYNAMIC_STATE_DEPTH_BOUNDS)
+			return v4x_host_unsupported("dynamic depth bounds, and dynamic state past Vulkan 1.0's");
+		pipeline->dynamic |= 1u << state;
 	}
+	pipeline->dynamic_viewport = takes(pipeline, VK_DYNAMIC_STATE_VIEWPORT);
+	pipeline->dynamic_scissor = takes(pipeline, VK_DYNAMIC_STATE_SCISSOR);
 	return VK_SUCCESS;
-}
-
-// Whether the pipeline takes a state from a command, so the create info's value is ignored.
-static bool is_dynamic(const VkPipelineDynamicStateCreateInfo *dynamic, VkDynamicState state)
-{
-	for (uint32_t i = 0; dynamic && i < dynamic->dynamicStateCount; i++) {
-		if (dynamic->pDynamicStates[i] == state)
-			return true;
-	}
-	return false;
 }
 
 static VkResult viewport_state(const VkPipelineViewportStateCreateInfo *state, Pipeline *pipeline)
@@ -80,31 +77,38 @@ static VkResult viewport_state(const VkPipelineViewportStateCreateInfo *state, P
 	return VK_SUCCESS;
 }
 
-static VkResult raster_state(
-	const VkPipelineRasterizationStateCreateInfo *raster, bool dynamic_line_width, Pipeline *pipeline)
+// Whether depthBiasEnable biases is the pipeline's own; with the bias dynamic, its factors are vkCmdSetDepthBias's.
+static VkResult raster_state(const VkPipelineRasterizationStateCreateInfo *raster, Pipeline *pipeline)
 {
+	const bool dynamic_bias = takes(pipeline, VK_DYNAMIC_STATE_DEPTH_BIAS);
 	if (raster->depthClampEnable || raster->rasterizerDiscardEnable || raster->polygonMode != VK_POLYGON_MODE_FILL ||
-		raster->cullMode == VK_CULL_MODE_FRONT_AND_BACK || (!dynamic_line_width && raster->lineWidth != 1.0f) ||
-		(raster->depthBiasEnable && raster->depthBiasClamp != 0.0f))
+		raster->cullMode == VK_CULL_MODE_FRONT_AND_BACK ||
+		(!takes(pipeline, VK_DYNAMIC_STATE_LINE_WIDTH) && raster->lineWidth != 1.0f) ||
+		(raster->depthBiasEnable && !dynamic_bias && raster->depthBiasClamp != 0.0f))
 		return v4x_host_unsupported("rasterization other than filled, culling one face or none, unclamped bias");
-	const XsdkRaster setting = {
+	const bool biased = raster->depthBiasEnable && !dynamic_bias;
+	pipeline->raster_setting = (XsdkRaster){
 		.cull = raster->cullMode == VK_CULL_MODE_FRONT_BIT ? XSDK_CULL_FRONT
 			: raster->cullMode == VK_CULL_MODE_BACK_BIT    ? XSDK_CULL_BACK
 														   : XSDK_CULL_NONE,
 		// Clockwise as it looks in Vulkan's framebuffer, as xsdk measures it (xsdk:tests/test_raster.c:207).
 		.front_clockwise = raster->frontFace == VK_FRONT_FACE_CLOCKWISE,
-		.depth_bias = raster->depthBiasEnable ? raster->depthBiasConstantFactor / DEPTH_BIAS_UNITS : 0.0f,
-		.depth_bias_slope = raster->depthBiasEnable ? raster->depthBiasSlopeFactor : 0.0f,
+		.depth_bias = biased ? raster->depthBiasConstantFactor / DEPTH_BIAS_UNITS : 0.0f,
+		.depth_bias_slope = biased ? raster->depthBiasSlopeFactor : 0.0f,
 	};
-	xsdk_gpu_raster_state(&pipeline->raster, &setting);
+	pipeline->depth_bias_enabled = raster->depthBiasEnable;
+	xsdk_gpu_raster_state(&pipeline->raster, &pipeline->raster_setting);
 	return VK_SUCCESS;
 }
 
-static bool same_stencil(const VkStencilOpState *front, const VkStencilOpState *back)
+// The masks and reference the pipeline takes from commands are ignored, and commands set both faces' at once.
+static bool same_stencil(const Pipeline *pipeline, const VkStencilOpState *front, const VkStencilOpState *back)
 {
 	return front->failOp == back->failOp && front->passOp == back->passOp && front->depthFailOp == back->depthFailOp &&
-		front->compareOp == back->compareOp && front->compareMask == back->compareMask &&
-		front->writeMask == back->writeMask && front->reference == back->reference;
+		front->compareOp == back->compareOp &&
+		(takes(pipeline, VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK) || front->compareMask == back->compareMask) &&
+		(takes(pipeline, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK) || front->writeMask == back->writeMask) &&
+		(takes(pipeline, VK_DYNAMIC_STATE_STENCIL_REFERENCE) || front->reference == back->reference);
 }
 
 // Vulkan's compare and stencil ops are xsdk's value for value (xsdk:include/xsdk/gpu.h).
@@ -112,7 +116,8 @@ static VkResult depth_stencil_state(const VkPipelineDepthStencilStateCreateInfo 
 {
 	XsdkDepthStencil setting = { .depth_compare = XSDK_COMPARE_ALWAYS, .stencil_compare = XSDK_COMPARE_ALWAYS };
 	if (state) {
-		if (state->depthBoundsTestEnable || (state->stencilTestEnable && !same_stencil(&state->front, &state->back)))
+		if (state->depthBoundsTestEnable ||
+			(state->stencilTestEnable && !same_stencil(pipeline, &state->front, &state->back)))
 			return v4x_host_unsupported("depth bounds, and stencil that differs between faces");
 		const VkStencilOpState *const stencil = &state->front;
 		setting = (XsdkDepthStencil){
@@ -129,6 +134,7 @@ static VkResult depth_stencil_state(const VkPipelineDepthStencilStateCreateInfo 
 			.stencil_write_mask = (uint8_t)stencil->writeMask,
 		};
 	}
+	pipeline->depth_stencil_setting = setting;
 	xsdk_gpu_depth_stencil_state(&pipeline->depth_stencil, &setting);
 	return VK_SUCCESS;
 }
@@ -158,9 +164,22 @@ static uint32_t blend_factor(VkBlendFactor factor)
 		return XSDK_BLEND_ONE_MINUS_DST_ALPHA;
 	case VK_BLEND_FACTOR_SRC_ALPHA_SATURATE:
 		return XSDK_BLEND_SRC_ALPHA_SATURATE;
+	case VK_BLEND_FACTOR_CONSTANT_COLOR:
+		return XSDK_BLEND_CONSTANT_COLOR;
+	case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:
+		return XSDK_BLEND_ONE_MINUS_CONSTANT_COLOR;
+	case VK_BLEND_FACTOR_CONSTANT_ALPHA:
+		return XSDK_BLEND_CONSTANT_ALPHA;
+	case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA:
+		return XSDK_BLEND_ONE_MINUS_CONSTANT_ALPHA;
 	default:
 		return NO_BLEND_FACTOR;
 	}
+}
+
+static bool constant_factor(uint32_t factor)
+{
+	return factor >= XSDK_BLEND_CONSTANT_COLOR && factor <= XSDK_BLEND_ONE_MINUS_CONSTANT_ALPHA;
 }
 
 static uint32_t blend_op(VkBlendOp op)
@@ -210,9 +229,50 @@ static VkResult blend_state(const VkPipelineColorBlendStateCreateInfo *state, Pi
 	}
 	if (setting.color_source == NO_BLEND_FACTOR || setting.color_dest == NO_BLEND_FACTOR ||
 		setting.alpha_source == NO_BLEND_FACTOR || setting.alpha_dest == NO_BLEND_FACTOR)
-		return v4x_host_unsupported("constant colour and dual-source blend factors");
+		return v4x_host_unsupported("dual-source blend factors");
+	pipeline->blends_by_constants = constant_factor(setting.color_source) || constant_factor(setting.color_dest) ||
+		constant_factor(setting.alpha_source) || constant_factor(setting.alpha_dest);
+	for (uint32_t i = 0; i < 4; i++)
+		pipeline->blend_constants[i] = state->blendConstants[i];
 	xsdk_gpu_blend_state(&pipeline->blend, &setting);
 	return VK_SUCCESS;
+}
+
+const XsdkRasterState *v4x_pipeline_raster(
+	const Pipeline *pipeline, const DynamicState *dynamic, XsdkRasterState *scratch)
+{
+	if (!takes(pipeline, VK_DYNAMIC_STATE_DEPTH_BIAS) || !pipeline->depth_bias_enabled)
+		return &pipeline->raster;
+	XsdkRaster setting = pipeline->raster_setting;
+	setting.depth_bias = dynamic->depth_bias_constant / DEPTH_BIAS_UNITS;
+	setting.depth_bias_slope = dynamic->depth_bias_slope;
+	xsdk_gpu_raster_state(scratch, &setting);
+	return scratch;
+}
+
+const XsdkDepthStencilState *v4x_pipeline_depth_stencil(
+	const Pipeline *pipeline, const DynamicState *dynamic, XsdkDepthStencilState *scratch)
+{
+	const uint32_t stencil = 1u << VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK | 1u << VK_DYNAMIC_STATE_STENCIL_WRITE_MASK |
+		1u << VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+	if (!(pipeline->dynamic & stencil))
+		return &pipeline->depth_stencil;
+	XsdkDepthStencil setting = pipeline->depth_stencil_setting;
+	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK))
+		setting.stencil_read_mask = dynamic->stencil_compare_mask;
+	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK))
+		setting.stencil_write_mask = dynamic->stencil_write_mask;
+	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_REFERENCE))
+		setting.stencil_reference = dynamic->stencil_reference;
+	xsdk_gpu_depth_stencil_state(scratch, &setting);
+	return scratch;
+}
+
+const float *v4x_pipeline_blend_constants(const Pipeline *pipeline, const DynamicState *dynamic)
+{
+	if (!pipeline->blends_by_constants)
+		return NULL;
+	return takes(pipeline, VK_DYNAMIC_STATE_BLEND_CONSTANTS) ? dynamic->blend_constants : pipeline->blend_constants;
 }
 
 VkResult v4x_pipeline_state(const VkGraphicsPipelineCreateInfo *info, const RenderPass *render_pass, Pipeline *pipeline)
@@ -227,8 +287,7 @@ VkResult v4x_pipeline_state(const VkGraphicsPipelineCreateInfo *info, const Rend
 	if (result == VK_SUCCESS)
 		result = viewport_state(info->pViewportState, pipeline);
 	if (result == VK_SUCCESS)
-		result = raster_state(
-			info->pRasterizationState, is_dynamic(info->pDynamicState, VK_DYNAMIC_STATE_LINE_WIDTH), pipeline);
+		result = raster_state(info->pRasterizationState, pipeline);
 	// Without a depth attachment the depth and stencil state is ignored (Vulkan 1.0 spec,
 	// VkGraphicsPipelineCreateInfo).
 	if (result == VK_SUCCESS)
