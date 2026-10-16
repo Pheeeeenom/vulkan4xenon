@@ -1,5 +1,6 @@
 #include <altivec.h>
 #include <assert.h>
+#include <math.h>
 #include <string.h>
 
 #include <vulkan/vulkan.h>
@@ -77,13 +78,36 @@ static void write_literals(const V4xShader *shader, bool vertex)
 	}
 }
 
+// The first pixel whose centre a viewport edge at coordinate covers, or the one past the last.
+static int32_t first_pixel(float coordinate)
+{
+	return (int32_t)ceilf(coordinate - 0.5f);
+}
+
+static int32_t larger(int32_t a, int32_t b)
+{
+	return a > b ? a : b;
+}
+
+static int32_t smaller(int32_t a, int32_t b)
+{
+	return a < b ? a : b;
+}
+
 // Vulkan's y points down and its pixel centres sit on halves; xsdk's viewport is y-up with centres on whole numbers.
+// Vulkan clips to the viewport, and Xenos draws past it as far as the scissor (docs/SUPPORT.md, Pipelines), so the
+// scissor stops at the viewport's pixels too.
 static void apply_viewport(const Pipeline *pipeline, const Replay *replay)
 {
 	const VkViewport *const v = pipeline->dynamic_viewport ? &replay->viewport : &pipeline->viewport;
 	xsdk_gpu_set_viewport(v->x - 0.5f, v->y + v->height - 0.5f, v->width, -v->height, v->minDepth, v->maxDepth);
 	const VkRect2D *const s = pipeline->dynamic_scissor ? &replay->scissor : &pipeline->scissor;
-	xsdk_gpu_set_scissor((uint32_t)s->offset.x, (uint32_t)s->offset.y, s->extent.width, s->extent.height);
+	const int32_t left = larger(s->offset.x, first_pixel(v->x));
+	const int32_t top = larger(s->offset.y, first_pixel(v->y));
+	const int32_t right = smaller(s->offset.x + (int32_t)s->extent.width, first_pixel(v->x + v->width));
+	const int32_t bottom = smaller(s->offset.y + (int32_t)s->extent.height, first_pixel(v->y + v->height));
+	xsdk_gpu_set_scissor((uint32_t)left, (uint32_t)top, right > left ? (uint32_t)(right - left) : 0,
+		bottom > top ? (uint32_t)(bottom - top) : 0);
 }
 
 static void apply_pipeline(const Pipeline *pipeline, const Replay *replay)

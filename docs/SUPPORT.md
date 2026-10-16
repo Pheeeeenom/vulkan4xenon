@@ -137,7 +137,10 @@ with one; `vkGetDeviceProcAddr` finds device functions only.
     (xsdk:src/gpu_draw.c:298);
   - pixel centres sit on halves. Xenos puts them on whole coordinates under xsdk's `PIX_CENTER_D3D`
     (xenia:src/xenia/gpu/xenos.h:861-866), so the viewport moves half a pixel up and left. On the console, edges a
-    quarter pixel off the grid covered exactly what Vulkan's centres say (milestone 3).
+    quarter pixel off the grid covered exactly what Vulkan's centres say (milestone 3);
+  - nothing is drawn past the viewport. Xenos draws past it as far as the scissor: on the console, a draw over a
+    viewport 1168 pixels wide in a target 1280 wide covered all 1280 (xsdk:results/2026-10-16-fifth-vertex-fetch/). So
+    the scissor the layer sets is the app's within the pixels the viewport covers.
 
 ## Render passes
 
