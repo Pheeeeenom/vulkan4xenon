@@ -81,7 +81,8 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			// 16 interpolators of four floats (xost:docs/xsc.md, "Interface conventions").
 			.maxVertexOutputComponents = 64,
 			.maxFragmentInputComponents = 64,
-			.maxFragmentOutputAttachments = 1,
+			.maxFragmentOutputAttachments = V4X_MAX_COLOR_ATTACHMENTS,
+			.maxFragmentCombinedOutputResources = V4X_MAX_COLOR_ATTACHMENTS,
 			.maxViewports = 1,
 			.maxViewportDimensions = { VIEWPORT_MAX, VIEWPORT_MAX },
 			.viewportBoundsRange = { -2.0f * VIEWPORT_MAX, 2.0f * VIEWPORT_MAX - 1.0f },
@@ -102,7 +103,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.framebufferColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.framebufferDepthSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.framebufferStencilSampleCounts = VK_SAMPLE_COUNT_1_BIT,
-			.maxColorAttachments = 1,
+			.maxColorAttachments = V4X_MAX_COLOR_ATTACHMENTS,
 			.sampledImageColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.discreteQueuePriorities = 2,
 			.pointSizeRange = { 1.0f, 1.0f },
@@ -121,8 +122,11 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures(
 	VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures *pFeatures)
 {
 	(void)physicalDevice;
-	// Indirect draws read firstInstance at replay, as direct ones take it (queue.c).
-	*pFeatures = (VkPhysicalDeviceFeatures){ .drawIndirectFirstInstance = VK_TRUE, .samplerAnisotropy = VK_TRUE };
+	// Indirect draws read firstInstance at replay, as direct ones take it (queue.c); each colour target blends by its
+	// own RB_BLENDCONTROL (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_blends).
+	*pFeatures = (VkPhysicalDeviceFeatures){
+		.drawIndirectFirstInstance = VK_TRUE, .independentBlend = VK_TRUE, .samplerAnisotropy = VK_TRUE
+	};
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice,

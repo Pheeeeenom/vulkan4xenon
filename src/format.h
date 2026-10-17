@@ -16,6 +16,8 @@ enum {
 	V4X_MAX_TEXEL_BYTES = 8,
 	// Texels across and down a block of a compressed format.
 	V4X_BLOCK_SIDE = 4,
+	// A format no colour attachment takes has no xsdk target; no XSDK_TARGET_* is this.
+	V4X_NO_TARGET = 0xFF,
 };
 
 // How a channel's bits read: fixed point from 0 to 1, or two's complement from -1 to 1; sRGB's encoding of 0 to 1,
@@ -43,6 +45,9 @@ typedef struct {
 	uint8_t number;
 	// Its optimal tiling features.
 	VkFormatFeatureFlags features;
+	// The XSDK_TARGET_* a colour attachment of it draws into and resolves from (xsdk:include/xsdk/gpu.h,
+	// xsdk_gpu_resolve_target); V4X_NO_TARGET for a format that's no attachment.
+	uint8_t target;
 } V4xFormat;
 
 // The format's description, or NULL if the layer takes no colour images of it.

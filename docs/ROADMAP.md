@@ -2518,6 +2518,65 @@ tiling: this milestone takes the sizes eDRAM holds.
 
 Done when vulkan4xenon_test draws four targets in one pass in the new formats and samples them back, checked by pixel.
 
+**Built** (2026-10-16), in three steps, a commit each; the console has run none of it yet.
+1. **xsdk's target formats and their resolves.** `xsdk_gpu_set_targets` places a target of 2_10_10_10, its 7e3 float,
+   16_16_16_16 fixed point from -32 to 32, 16_16_FLOAT, 16_16_16_16_FLOAT or 32_FLOAT, its format in `RB_COLOR_INFO`
+   (xenia:src/xenia/gpu/registers.h:736-750), and `xsdk_gpu_color_target_tiles` counts its tiles, twice a 32-bit
+   one's for the 64-bit formats (xenos.h:321-326, 427-437). `xsdk_gpu_resolve_target` copies a target into a texture
+   of the format it converts to, as Xenia models the resolve (shaders/resolve.xesli): 2_10_10_10 into A2B10G10R10,
+   16_16_FLOAT into R16G16F, 32_FLOAT into R32F, and the rest into R16G16B16A16F, the destination swapped into the
+   CPU's order and its number format float for the floats. Its clear goes into `RB_COLOR_CLEAR` packed as the target
+   holds it, a 64-bit target's blue and alpha in `RB_COLOR_CLEAR_LO`, as Xenia writes them (draw_util.h:565-567). The
+   old target calls write the same registers as before.
+2. **Four targets at once, in xsdk and xost.** `xsdk_gpu_set_targets` takes up to four, the rest in `RB_COLOR1_INFO`
+   to `RB_COLOR3_INFO` (register_table.inc:481-485); `xsdk_gpu_set_blends` writes `RB_BLENDCONTROL0` to 3 and each
+   target's four bits of `RB_COLOR_MASK`; a resolve of target n puts it where target 0 goes. xost lowers fragment
+   outputs at locations 0 to 3 to `oC0` to `oC3` (xost:docs/xsc.md), each stored once outside any `if`/`else` when
+   there are several, and its record's outputs word names them; `ps_export_mode` stays 2. One output lowers byte for
+   byte as before, so no shader bundle changed but for the new shaders.
+3. **The layer.** Colour attachments of `A2B10G10R10_UNORM_PACK32`, `R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` and
+   `R32_SFLOAT`, beside `R8G8B8A8_UNORM` and `B8G8R8A8_UNORM`, sampled nearest; one to four a subpass, placed one
+   after another from tile 0, each a target of its own, with a blend state each and `independentBlend`. The replay
+   tracks what each of the last pass's targets holds at its tile and in its format, draws a loaded image back into its
+   target alone, and resolves and clears each target as before; `vkCmdClearAttachments` clears any of them, drawn by
+   a shader writing four colours. A subpass whose attachments pass eDRAM's 2048 tiles is refused at
+   `vkCreateFramebuffer` with a line saying how many it'd take, and blending into a float attachment is refused at
+   `vkCreateGraphicsPipelines`, as those formats report no blending until the console shows they blend
+   (docs/SUPPORT.md).
+
+**The checks:**
+- **xsdk_test's targets test** (xsdk:tests/test_targets.c): each new format alone at 64x32, a resolve's clear and a
+  quad over the left half, past 1 in the floats and below 0 in the fixed point and half floats, every channel apart
+  from the others, every texel read back by value; a quad blended onto itself, a check for 2_10_10_10 and a log line
+  for the others; then four targets of four formats at once, 8_8_8_8, 2_10_10_10, 16_16_16_16_FLOAT and 32_FLOAT, one
+  draw writing each its own colour from a hand-assembled shader writing `oC0` to `oC3`
+  (xsdk:tools/gen_target_shaders.py), and a second blending the first by adding, the second by its alpha with alpha
+  masked, writing red and alpha alone of the third and nothing of the fourth. Fourteen checks, five broken builds
+  (xsdk:results/2026-10-16-vulkan4xenon-milestone-25/).
+- **vulkan4xenon_test's `test_targets.c`:** a pass of four colour attachments, `R8G8B8A8_UNORM`,
+  `A2B10G10R10_UNORM_PACK32`, `R16G16B16A16_SFLOAT` and `R32_SFLOAT`, each cleared to its own values, one draw
+  writing each a colour of its own from GLSL with four outputs, the last a float, and a second blending and masking
+  each its own way, as xsdk_test does, then `vkCmdClearAttachments` clearing the second and third in a corner, below
+  0 and past 1; a second pass drawing the half-float image back as its second attachment, beside an `R16G16_SFLOAT`
+  one, and a quad over both; a third sampling all five onto the screen, scaled down so values past 1 show, checked by
+  pixel each of 10 frames. Each image is read back and checked by value, and the limits, features, formats' features
+  and refusals are checked. Ten checks, three broken builds (`results/2026-10-16-milestone-25/`).
+
+**What the console must settle,** each with the check that would show it wrong:
+- whether a pixel shader exporting `oC1` to `oC3` needs a `ps_export_mode` other than 2: the four-target checks of
+  both titles would find targets 1 to 3 holding their clears;
+- whether `RB_COLOR_CLEAR` holds a 64-bit target's red and green, as Xenia writes them, or its blue and alpha: the
+  16_16_16_16 and 16_16_16_16_FLOAT clears would come out with those halves swapped;
+- whether resolves convert 7e3 and 16_16_16_16 into half floats and keep 16_16_16_16's sign, and whether
+  `RB_COPY_DEST_INFO`'s float number format suits the float destinations: each format's own check;
+- whether the float targets, 7e3 and 16_16_16_16 blend: xsdk_test's log line for each. If they do, their formats can
+  report `VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT`, and the pipeline refusal goes;
+- whether 2_10_10_10 blends as 8-bit channels do: xsdk_test's blend check and the layer's second attachment.
+
+**Not in milestone 25:** 32_32_FLOAT, 16_16 and gamma targets, which the decisions left out; targets past eDRAM and
+multisampled, milestone 17's; and drawing into a cube's face or a 3D image's slice (milestone 23). Milestone 20 clears
+the new formats' images and samples them nearest, as the console filtered them wrong.
+
 **Then milestone 17, widened.** Milestone 17, multisampling, needs predicated tiling at 1280x720. Proposed: it comes
 after milestone 25 and takes every target past eDRAM, multisampled, several at once, or past 1280x720, such as a big
 shadow map; and alpha to coverage (xenia:src/xenia/gpu/registers.h:687).

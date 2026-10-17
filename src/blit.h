@@ -16,8 +16,8 @@ VkResult v4x_blit_create(Blit *blit);
 void v4x_blit_destroy(Blit *blit);
 // Draws the texture over the whole target, texel for texel; leaves shaders, state and fetch constant 0 changed.
 void v4x_blit_draw(const Blit *blit, const XsdkTexture *texture, uint32_t width, uint32_t height);
-// Clears the rectangle's colour, depth or stencil, as a draw over the target that the scissor cuts to it; leaves
-// shaders, state, vertex stream 0 and the clear's float constant changed.
-void v4x_blit_clear(const Blit *blit, const ClearRect *clear, uint32_t width, uint32_t height);
+// Clears the rectangle's colours, depth or stencil, as a draw over the pass's color_count targets that the scissor cuts
+// to it; leaves shaders, state, vertex stream 0 and the clear's float constants changed.
+void v4x_blit_clear(const Blit *blit, const ClearRect *clear, uint32_t color_count, uint32_t width, uint32_t height);
 
 #endif

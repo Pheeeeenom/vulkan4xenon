@@ -179,7 +179,7 @@ static VkResult create_pipeline(const Harness *harness, const HarnessPipeline *s
 	};
 	VkPipelineColorBlendStateCreateInfo blend = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-		.attachmentCount = 1,
+		.attachmentCount = spec->blend_count ? spec->blend_count : 1,
 		.pAttachments = spec->blend ? spec->blend : &opaque,
 	};
 	for (uint32_t i = 0; i < 4 && spec->blend_constants; i++)

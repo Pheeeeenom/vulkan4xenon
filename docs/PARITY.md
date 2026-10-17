@@ -10,9 +10,10 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 31, part of 7 and none of 9. Xenos has all but three: occlusion queries hang it today,
-its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked, which xost's
-comparison after the fetch doesn't need. Every other gap is software.
+Of the 47 rows, the layer has 32, part of 8 and none of 7. Milestone 25's two rows are built and wait for the console.
+Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it compares
+depth in a fetch hasn't been checked, which xost's comparison after the fetch doesn't need. Every other gap is
+software.
 
 ## Shaders
 
@@ -64,8 +65,8 @@ comparison after the fetch doesn't need. Every other gap is software.
 | Feature | Xenos | xsdk and xost | vulkan4xenon |
 |---|---|---|---|
 | Render to texture | Yes | Yes | Yes |
-| Float, 10-bit and 64-bit targets | Yes (xenia:src/xenia/gpu/xenos.h:299-313) | No (xsdk:TODO.md, "Float render targets and multisampling") | No |
-| Four render targets at once | Yes, each blended on its own (xenia:src/xenia/gpu/register_table.inc:481, 483-485, 537-547) | No; unproven in xost (xsdk:TODO.md, "Multiple render targets") | No |
+| Float, 10-bit and 64-bit targets | Yes (xenia:src/xenia/gpu/xenos.h:299-313) | Yes but 16_16, 32_32_FLOAT and gamma, at 1 sample, not yet on the console (xsdk:TODO.md, "More target formats") | Partial: `A2B10G10R10_UNORM_PACK32`, `R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` and `R32_SFLOAT` attachments, the floats unblended till the console shows they blend; 7e3 and 16-bit fixed point have no Vulkan format (SUPPORT.md, Formats) |
+| Four render targets at once | Yes, each blended on its own (xenia:src/xenia/gpu/register_table.inc:481, 483-485, 537-547) | Yes, xost's outputs at locations 0 to 3, not yet on the console | Yes, with `independentBlend` (milestone 25) |
 | 2x and 4x multisampling, alpha to coverage | Yes (xenia:src/xenia/gpu/registers.h:687) | Multisampling only | No (milestone 17) |
 | Targets past eDRAM: 720p multisampled, a big shadow map | Yes, by predicated tiling | No (xsdk:TODO.md, "Predicated tiling") | No: 1280x720 at most |
 | D24S8, depth bias, one-sided stencil | Yes | Yes | Yes |
@@ -91,8 +92,8 @@ comparison after the fetch doesn't need. Every other gap is software.
 - **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
   formats, and the vertex formats came with milestone 20.
 - **xost:** breaks on data, and loops a block counts inside other loops. Almost every ported shader meets one.
-- **xsdk, then the layer:** four targets and their formats, predicated tiling, a volume texture's mips, two-sided
-  stencil, clip planes, point sprites and fill modes.
+- **xsdk, then the layer:** predicated tiling, a volume texture's mips, two-sided stencil, clip planes, point sprites
+  and fill modes. Float targets blending waits on the console.
 
 ## Past Direct3D 9, for older consoles' ports
 

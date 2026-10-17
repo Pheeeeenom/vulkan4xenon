@@ -31,13 +31,16 @@ static const float rectangle[RECTANGLE_VERTICES][VERTEX_FLOATS] = {
 	{ -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f },
 };
 
-static VkResult load_shaders(Blit *blit, const V4xShader *vertex, const V4xShader *pixel, const V4xShader *clear)
+static VkResult load_shaders(
+	Blit *blit, const V4xShader *vertex, const V4xShader *pixel, const V4xShader *clear, const V4xShader *clear_four)
 {
 	NTSTATUS status = xsdk_shader_load(&blit->vertex, vertex->container, vertex->container_size_bytes);
 	if (NT_SUCCESS(status))
 		status = xsdk_shader_load(&blit->pixel, pixel->container, pixel->container_size_bytes);
 	if (NT_SUCCESS(status))
 		status = xsdk_shader_load(&blit->clear, clear->container, clear->container_size_bytes);
+	if (NT_SUCCESS(status))
+		status = xsdk_shader_load(&blit->clear_four, clear_four->container, clear_four->container_size_bytes);
 	if (!NT_SUCCESS(status)) {
 		xsdk_log_write("vulkan4xenon: xsdk_shader_load failed for the blit: 0x%08X", (unsigned)status);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -55,6 +58,7 @@ static VkResult load_shaders(Blit *blit, const V4xShader *vertex, const V4xShade
 	}
 	blit->texture_slot = pixel->resources[0].first;
 	blit->clear_constant = clear->resources[0].first;
+	blit->clear_four_constant = clear_four->resources[0].first;
 	return VK_SUCCESS;
 }
 
@@ -104,9 +108,11 @@ VkResult v4x_blit_create(Blit *blit)
 	const V4xShader *const vertex = v4x_shader_find(&v4x_blit_bundle, v4x_blit_vert_spirv, V4X_BLIT_VERT_SPIRV_BYTES);
 	const V4xShader *const pixel = v4x_shader_find(&v4x_blit_bundle, v4x_blit_frag_spirv, V4X_BLIT_FRAG_SPIRV_BYTES);
 	const V4xShader *const clear = v4x_shader_find(&v4x_blit_bundle, v4x_clear_frag_spirv, V4X_CLEAR_FRAG_SPIRV_BYTES);
-	if (!vertex || !pixel || !clear)
+	const V4xShader *const clear_four =
+		v4x_shader_find(&v4x_blit_bundle, v4x_clear_four_frag_spirv, V4X_CLEAR_FOUR_FRAG_SPIRV_BYTES);
+	if (!vertex || !pixel || !clear || !clear_four)
 		return VK_ERROR_INITIALIZATION_FAILED;
-	VkResult result = load_shaders(blit, vertex, pixel, clear);
+	VkResult result = load_shaders(blit, vertex, pixel, clear, clear_four);
 	if (result == VK_SUCCESS)
 		result = write_rectangle(blit);
 	if (result != VK_SUCCESS) {
@@ -120,6 +126,7 @@ VkResult v4x_blit_create(Blit *blit)
 void v4x_blit_destroy(Blit *blit)
 {
 	xsdk_gpu_free(blit->vertices);
+	xsdk_shader_free(&blit->clear_four);
 	xsdk_shader_free(&blit->clear);
 	xsdk_shader_free(&blit->pixel);
 	xsdk_shader_free(&blit->vertex);
@@ -140,17 +147,29 @@ void v4x_blit_draw(const Blit *blit, const XsdkTexture *texture, uint32_t width,
 	xsdk_gpu_draw(XSDK_PRIMITIVE_TRIANGLE_LIST, RECTANGLE_VERTICES);
 }
 
-// The viewport's depth range is the clear's depth alone, so every pixel takes it; depth always passes, stencil always
-// passes and takes the reference, and each writes only if it's cleared.
-void v4x_blit_clear(const Blit *blit, const ClearRect *clear, uint32_t width, uint32_t height)
+// Each colour target written only if it's cleared.
+static void clear_blends(const ClearRect *clear, uint32_t color_count, XsdkBlendState *blends)
 {
-	const XsdkBlend blend = { .color_source = XSDK_BLEND_ONE,
-		.color_dest = XSDK_BLEND_ZERO,
-		.color_op = XSDK_BLEND_OP_ADD,
-		.alpha_source = XSDK_BLEND_ONE,
-		.alpha_dest = XSDK_BLEND_ZERO,
-		.alpha_op = XSDK_BLEND_OP_ADD,
-		.write_mask = clear->clears_color ? XSDK_WRITE_ALL : 0 };
+	for (uint32_t i = 0; i < color_count; i++) {
+		const XsdkBlend blend = { .color_source = XSDK_BLEND_ONE,
+			.color_dest = XSDK_BLEND_ZERO,
+			.color_op = XSDK_BLEND_OP_ADD,
+			.alpha_source = XSDK_BLEND_ONE,
+			.alpha_dest = XSDK_BLEND_ZERO,
+			.alpha_op = XSDK_BLEND_OP_ADD,
+			.write_mask = clear->colors_cleared >> i & 1 ? XSDK_WRITE_ALL : 0 };
+		xsdk_gpu_blend_state(&blends[i], &blend);
+	}
+}
+
+// The viewport's depth range is the clear's depth alone, so every pixel takes it; depth always passes, stencil always
+// passes and takes the reference, and each writes only if it's cleared. Several colour targets take the shader that
+// writes four colours.
+void v4x_blit_clear(const Blit *blit, const ClearRect *clear, uint32_t color_count, uint32_t width, uint32_t height)
+{
+	XsdkBlendState blends[V4X_MAX_COLOR_ATTACHMENTS];
+	clear_blends(clear, color_count, blends);
+	const bool four = color_count > 1;
 	const XsdkDepthStencil depth_stencil = { .depth_test = clear->clears_depth,
 		.depth_write = clear->clears_depth,
 		.depth_compare = XSDK_COMPARE_ALWAYS,
@@ -162,18 +181,19 @@ void v4x_blit_clear(const Blit *blit, const ClearRect *clear, uint32_t width, ui
 		.stencil_reference = (uint8_t)clear->stencil,
 		.stencil_read_mask = 0xFF,
 		.stencil_write_mask = 0xFF };
-	XsdkBlendState blend_state;
 	XsdkDepthStencilState depth_stencil_state;
-	xsdk_gpu_blend_state(&blend_state, &blend);
 	xsdk_gpu_depth_stencil_state(&depth_stencil_state, &depth_stencil);
-	xsdk_gpu_set_shaders(&blit->vertex, &blit->clear);
+	xsdk_gpu_set_shaders(&blit->vertex, four ? &blit->clear_four : &blit->clear);
 	xsdk_gpu_set_viewport(-0.5f, (float)height - 0.5f, (float)width, -(float)height, clear->depth, clear->depth);
 	xsdk_gpu_set_scissor((uint32_t)clear->rect.offset.x, (uint32_t)clear->rect.offset.y, clear->rect.extent.width,
 		clear->rect.extent.height);
-	xsdk_gpu_set_blend(&blend_state);
+	xsdk_gpu_set_blends(blends, color_count);
 	xsdk_gpu_set_raster(&blit->raster);
 	xsdk_gpu_set_depth_stencil(&depth_stencil_state);
-	xsdk_gpu_set_pixel_constants(blit->clear_constant, clear->color, 1);
+	if (four)
+		xsdk_gpu_set_pixel_constants(blit->clear_four_constant, &clear->colors[0][0], V4X_MAX_COLOR_ATTACHMENTS);
+	else
+		xsdk_gpu_set_pixel_constants(blit->clear_constant, clear->colors[0], 1);
 	xsdk_gpu_set_vertices(0, blit->vertices_address, RECTANGLE_BYTES);
 	xsdk_gpu_draw(XSDK_PRIMITIVE_TRIANGLE_LIST, RECTANGLE_VERTICES);
 }

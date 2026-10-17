@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include "host.h"
+#include "image.h"
 #include "objects.h"
 #include "xsdk/gpu.h"
 
@@ -221,11 +222,11 @@ static bool factors_matter(VkBlendOp op)
 	return op != VK_BLEND_OP_MIN && op != VK_BLEND_OP_MAX;
 }
 
-static VkResult blend_state(const VkPipelineColorBlendStateCreateInfo *state, Pipeline *pipeline)
+// One colour attachment's blend; float attachments are refused it, as their format reports no blending (image.c).
+static VkResult attachment_blend(const VkPipelineColorBlendAttachmentState *attachment, VkFormat format, XsdkBlend *out)
 {
-	if (state->logicOpEnable || state->attachmentCount != 1)
-		return v4x_host_unsupported("logic ops and more than one colour attachment");
-	const VkPipelineColorBlendAttachmentState *const attachment = &state->pAttachments[0];
+	if (attachment->blendEnable && !v4x_blend_format(format))
+		return v4x_host_unsupported("blending into float colour attachments, which the console hasn't shown to blend");
 	XsdkBlend setting = {
 		.color_source = XSDK_BLEND_ONE,
 		.color_dest = XSDK_BLEND_ZERO,
@@ -246,11 +247,31 @@ static VkResult blend_state(const VkPipelineColorBlendStateCreateInfo *state, Pi
 	if (setting.color_source == NO_BLEND_FACTOR || setting.color_dest == NO_BLEND_FACTOR ||
 		setting.alpha_source == NO_BLEND_FACTOR || setting.alpha_dest == NO_BLEND_FACTOR)
 		return v4x_host_unsupported("dual-source blend factors");
-	pipeline->blends_by_constants = constant_factor(setting.color_source) || constant_factor(setting.color_dest) ||
-		constant_factor(setting.alpha_source) || constant_factor(setting.alpha_dest);
+	*out = setting;
+	return VK_SUCCESS;
+}
+
+// Each of the subpass's colour attachments blends on its own, as Xenos's targets do (xsdk:include/xsdk/gpu.h,
+// xsdk_gpu_set_blends), which is independentBlend.
+static VkResult blend_state(
+	const VkPipelineColorBlendStateCreateInfo *state, const RenderPass *render_pass, Pipeline *pipeline)
+{
+	if (state->logicOpEnable || state->attachmentCount != render_pass->color_count)
+		return v4x_host_unsupported("logic ops, and blend states other than one for each colour attachment");
+	pipeline->blends_by_constants = false;
+	for (uint32_t i = 0; i < state->attachmentCount; i++) {
+		XsdkBlend setting;
+		const VkResult result = attachment_blend(&state->pAttachments[i], render_pass->formats[i], &setting);
+		if (result != VK_SUCCESS)
+			return result;
+		pipeline->blends_by_constants = pipeline->blends_by_constants || constant_factor(setting.color_source) ||
+			constant_factor(setting.color_dest) || constant_factor(setting.alpha_source) ||
+			constant_factor(setting.alpha_dest);
+		xsdk_gpu_blend_state(&pipeline->blends[i], &setting);
+	}
+	pipeline->blend_count = state->attachmentCount;
 	for (uint32_t i = 0; i < 4; i++)
 		pipeline->blend_constants[i] = state->blendConstants[i];
-	xsdk_gpu_blend_state(&pipeline->blend, &setting);
 	return VK_SUCCESS;
 }
 
@@ -309,6 +330,6 @@ VkResult v4x_pipeline_state(const VkGraphicsPipelineCreateInfo *info, const Rend
 	if (result == VK_SUCCESS)
 		result = depth_stencil_state(render_pass->has_depth ? info->pDepthStencilState : NULL, pipeline);
 	if (result == VK_SUCCESS)
-		result = blend_state(info->pColorBlendState, pipeline);
+		result = blend_state(info->pColorBlendState, render_pass, pipeline);
 	return result;
 }

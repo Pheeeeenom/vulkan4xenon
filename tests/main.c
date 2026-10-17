@@ -47,6 +47,7 @@ int main(void)
 		test_dynamic_state(&harness);
 		test_clears(&harness);
 		test_subpasses(&harness);
+		test_targets(&harness);
 		test_render_to_texture(&harness);
 		test_run_time_index(&harness);
 		test_uploads(&harness);

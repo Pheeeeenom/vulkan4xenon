@@ -54,6 +54,8 @@ enum {
 	// A render pass's subpasses and attachments: a budget, not a limit of Xenos's.
 	V4X_MAX_SUBPASSES = 8,
 	V4X_MAX_ATTACHMENTS = 8,
+	// A subpass's colour attachments, Xenos's colour targets (xsdk:include/xsdk/gpu.h, XSDK_COLOR_TARGETS).
+	V4X_MAX_COLOR_ATTACHMENTS = XSDK_COLOR_TARGETS,
 };
 
 struct VkPhysicalDevice_T {
@@ -74,26 +76,30 @@ typedef enum {
 	EDRAM_IMAGE,
 } EdramContents;
 
-// What eDRAM's colour, or a depth and stencil, holds between render passes (docs/ROADMAP.md, milestone 4); a depth's
-// first tile, colour's being tile 0.
+// What a colour target's tiles of eDRAM, or a depth and stencil's, hold between render passes (docs/ROADMAP.md,
+// milestones 4 and 25); its first tile, and a colour's xsdk target format.
 typedef struct {
 	EdramContents contents;
 	uint32_t width;
 	uint32_t height;
-	uint32_t argb;
+	float rgba[4];
 	float depth;
 	uint32_t stencil;
 	const struct Image *image;
 	uint32_t tile;
+	uint32_t format;
 } EdramPart;
 
 // The layer's own shaders and state for drawing an image back into eDRAM, and for vkCmdClearAttachments's rectangles.
 typedef struct {
 	XsdkShader vertex;
 	XsdkShader pixel;
-	// The clear's pixel shader, and the float constant its colour goes in.
+	// The clear's pixel shader, and the float constant its colour goes in; and the one for several colour attachments,
+	// which writes four colours from four constants.
 	XsdkShader clear;
 	uint32_t clear_constant;
+	XsdkShader clear_four;
+	uint32_t clear_four_constant;
 	volatile uint32_t *vertices;
 	uint32_t vertices_address;
 	uint32_t texture_slot;
@@ -103,13 +109,14 @@ typedef struct {
 	XsdkDepthStencilState depth_stencil;
 } Blit;
 
-// What vkCmdClearAttachments clears in one rectangle, kept in the command buffer's data.
+// What vkCmdClearAttachments clears in one rectangle, kept in the command buffer's data: a colour for each colour
+// attachment it clears, bit i of colors_cleared for attachment i.
 typedef struct {
 	VkRect2D rect;
-	float color[4];
+	float colors[V4X_MAX_COLOR_ATTACHMENTS][4];
 	float depth;
 	uint32_t stencil;
-	bool clears_color;
+	uint32_t colors_cleared;
 	bool clears_depth;
 	bool clears_stencil;
 } ClearRect;
@@ -123,7 +130,8 @@ enum {
 
 struct VkQueue_T {
 	VkDevice device;
-	EdramPart color;
+	// The last pass's colour targets, from tile 0 (render_pass.c).
+	EdramPart colors[V4X_MAX_COLOR_ATTACHMENTS];
 	// Depths at tiles of their own, so a pass with depth of its own needn't take an earlier pass's (milestone 14).
 	EdramPart depths[V4X_EDRAM_DEPTHS];
 	// The depth and stencil resolves clear to, as last given to xsdk_gpu_set_depth_clear.
@@ -286,7 +294,9 @@ typedef struct {
 	// lists split on whole primitives, and strips share the vertices where pieces meet. Fans don't split: step 0.
 	uint32_t piece_vertices;
 	uint32_t piece_step;
-	XsdkBlendState blend;
+	// A blend for each of the subpass's colour attachments.
+	XsdkBlendState blends[V4X_MAX_COLOR_ATTACHMENTS];
+	uint32_t blend_count;
 	XsdkRasterState raster;
 	XsdkDepthStencilState depth_stencil;
 	// The state past the viewport and scissor it takes from commands, a bit 1 << VK_DYNAMIC_STATE_* each, and the
@@ -307,13 +317,16 @@ typedef struct {
 	uint32_t instance_index_constant;
 } Pipeline;
 
-// One subpass as the replay draws it, a render pass of its own: its colour attachment and its depth if it has one, with
-// the load and store ops they take there, an attachment's own at its first and last subpass and kept between.
+// One subpass as the replay draws it, a render pass of its own: its colour attachments and its depth if it has one,
+// with the load and store ops they take there, an attachment's own at its first and last subpass and kept between.
 typedef struct {
-	VkFormat format;
-	VkAttachmentLoadOp load_op;
-	VkAttachmentStoreOp store_op;
-	uint32_t color_index;
+	uint32_t color_count;
+	VkFormat formats[V4X_MAX_COLOR_ATTACHMENTS];
+	// The xsdk target format each draws into (image.c, v4x_target_format).
+	uint32_t targets[V4X_MAX_COLOR_ATTACHMENTS];
+	VkAttachmentLoadOp load_ops[V4X_MAX_COLOR_ATTACHMENTS];
+	VkAttachmentStoreOp store_ops[V4X_MAX_COLOR_ATTACHMENTS];
+	uint32_t color_indices[V4X_MAX_COLOR_ATTACHMENTS];
 	bool has_depth;
 	uint32_t depth_index;
 	bool clears_depth;
@@ -330,12 +343,15 @@ typedef struct {
 	uint32_t attachment_count;
 } RenderPassSubpasses;
 
-// One subpass's attachments' images.
+// One subpass's attachments' images, and the colour targets they draw into, one after another in eDRAM from tile 0,
+// with the tiles they take all together.
 typedef struct {
-	Image *attachment;
+	Image *attachments[V4X_MAX_COLOR_ATTACHMENTS];
 	Image *depth;
 	uint32_t width;
 	uint32_t height;
+	XsdkColorTarget targets[V4X_MAX_COLOR_ATTACHMENTS];
+	uint32_t color_tiles;
 } Framebuffer;
 
 // A VkFramebuffer: each subpass's images, as the render pass it was made with places its attachments; a compatible pass
@@ -396,6 +412,14 @@ typedef enum {
 	COMMAND_COPY_QUERY_RESULTS,
 } CommandType;
 
+// The values a subpass's attachments clear to: each colour attachment's, by its place in the subpass, then depth and
+// stencil.
+typedef struct {
+	float colors[V4X_MAX_COLOR_ATTACHMENTS][4];
+	float depth;
+	uint32_t stencil;
+} PassClears;
+
 // The dynamic state a command buffer sets past the viewport and scissor, as it last set it in a replay.
 typedef struct {
 	uint8_t stencil_compare_mask;
@@ -409,12 +433,11 @@ typedef struct {
 typedef struct {
 	CommandType type;
 	union {
+		// The pass's clears, a PassClears in the command buffer's data.
 		struct {
 			const RenderPass *render_pass;
 			const Framebuffer *framebuffer;
-			uint32_t clear_argb;
-			float clear_depth;
-			uint32_t clear_stencil;
+			uint32_t clears_at;
 		} begin;
 		const Pipeline *pipeline;
 		struct {

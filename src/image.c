@@ -49,6 +49,19 @@ bool v4x_attachment_format(VkFormat format)
 	return info && (info->features & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT);
 }
 
+// V4X_NO_TARGET for a format that's no colour attachment.
+uint32_t v4x_target_format(VkFormat format)
+{
+	const V4xFormat *const info = v4x_format(format);
+	return info ? info->target : V4X_NO_TARGET;
+}
+
+bool v4x_blend_format(VkFormat format)
+{
+	const V4xFormat *const info = v4x_format(format);
+	return info && (info->features & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT);
+}
+
 // A signed format reads every channel signed, an sRGB one its colours through gamma; each sign is for the xsdk channel
 // the Vulkan one is (xsdk_texture_signs).
 static void sign_channels(XsdkTexture *texture, const V4xFormat *format)
@@ -119,7 +132,8 @@ static VkResult check_create_info(const VkImageCreateInfo *info)
 	if (info->usage & ~(VkImageUsageFlags)V4X_IMAGE_USAGE)
 		return v4x_host_unsupported("image usages other than sampling, copying in and colour attachments");
 	if ((info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && !v4x_attachment_format(info->format))
-		return v4x_host_unsupported("colour attachments other than R8G8B8A8_UNORM and B8G8R8A8_UNORM");
+		return v4x_host_unsupported(
+			"colour attachments of formats xsdk's targets don't draw (docs/SUPPORT.md, Formats)");
 	if ((info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) &&
 		(info->mipLevels != 1 || info->extent.width <= V4X_PACKED_SIDE || info->extent.height <= V4X_PACKED_SIDE))
 		return v4x_host_unsupported("colour attachments with mips, or 16 texels or less on a side");

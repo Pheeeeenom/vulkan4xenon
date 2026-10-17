@@ -100,8 +100,10 @@ static void buffer_written(uint32_t address, uint32_t size_bytes)
 static void image_written(VkQueue queue, const Image *image)
 {
 	xsdk_gpu_invalidate(image->texture.address, image->texture.size_bytes);
-	if (queue->color.image == image)
-		queue->color = (EdramPart){ .contents = EDRAM_UNKNOWN };
+	for (uint32_t i = 0; i < V4X_MAX_COLOR_ATTACHMENTS; i++) {
+		if (queue->colors[i].image == image)
+			queue->colors[i] = (EdramPart){ .contents = EDRAM_UNKNOWN };
+	}
 }
 
 // A layer's or 3D slice's rows in the copy's buffer.

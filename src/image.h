@@ -26,8 +26,12 @@ enum {
 
 // The xsdk format an image of this Vulkan format is, if images of it are supported.
 bool v4x_image_format(VkFormat format, uint32_t *xsdk_format);
-// Whether images of this format can be colour attachments: R8G8B8A8_UNORM and B8G8R8A8_UNORM, which resolves write.
+// Whether images of this format can be colour attachments: those an xsdk target draws and resolves into.
 bool v4x_attachment_format(VkFormat format);
+// The XSDK_TARGET_* a colour attachment of this format draws into.
+uint32_t v4x_target_format(VkFormat format);
+// Whether colour attachments of this format blend.
+bool v4x_blend_format(VkFormat format);
 // The bytes in a texel of an image of this format, or in a block of a compressed one, which copies take.
 uint32_t v4x_texel_bytes(VkFormat format);
 // The texels or blocks a row or column of this many texels takes: a compressed format's blocks are 4 texels a side.

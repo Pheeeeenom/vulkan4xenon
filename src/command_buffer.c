@@ -1,4 +1,3 @@
-#include <math.h>
 #include <string.h>
 
 #include <vulkan/vulkan.h>
@@ -207,34 +206,30 @@ static bool record_data(VkCommandBuffer buffer, const void *bytes, uint32_t size
 	return true;
 }
 
-static uint32_t unorm8(float value)
-{
-	const float clamped = value < 0.0f ? 0.0f : value > 1.0f ? 1.0f : value;
-	return (uint32_t)lrintf(clamped * 255.0f);
-}
-
 // Each subpass begins as a render pass of its own, its clears from the values the render pass began with.
 static void record_subpass(VkCommandBuffer commandBuffer)
 {
 	const RenderPass *const render_pass = &commandBuffer->render_pass->subpasses[commandBuffer->subpass];
+	PassClears clears = { .depth = 1.0f };
+	for (uint32_t i = 0; i < render_pass->color_count; i++) {
+		if (render_pass->load_ops[i] == VK_ATTACHMENT_LOAD_OP_CLEAR)
+			memcpy(clears.colors[i], commandBuffer->clears[render_pass->color_indices[i]].color.float32,
+				sizeof clears.colors[i]);
+	}
+	if (render_pass->clears_depth) {
+		const VkClearDepthStencilValue *const value = &commandBuffer->clears[render_pass->depth_index].depthStencil;
+		clears.depth = value->depth;
+		clears.stencil = value->stencil;
+	}
+	uint32_t at = 0;
+	if (!record_data(commandBuffer, &clears, sizeof clears, &at))
+		return;
 	Command *const command = record(commandBuffer, COMMAND_BEGIN_RENDER_PASS);
 	if (!command)
 		return;
-	uint32_t argb = 0;
-	if (render_pass->load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {
-		const float *const rgba = commandBuffer->clears[render_pass->color_index].color.float32;
-		argb = unorm8(rgba[3]) << 24 | unorm8(rgba[0]) << 16 | unorm8(rgba[1]) << 8 | unorm8(rgba[2]);
-	}
 	command->begin.render_pass = render_pass;
 	command->begin.framebuffer = &commandBuffer->framebuffer->subpasses[commandBuffer->subpass];
-	command->begin.clear_argb = argb;
-	command->begin.clear_depth = 1.0f;
-	command->begin.clear_stencil = 0;
-	if (render_pass->clears_depth) {
-		const VkClearDepthStencilValue *const value = &commandBuffer->clears[render_pass->depth_index].depthStencil;
-		command->begin.clear_depth = value->depth;
-		command->begin.clear_stencil = value->stencil;
-	}
+	command->begin.clears_at = at;
 }
 
 // The subpass's draws are recorded here or in secondary command buffers, which vkCmdExecuteCommands replays in place.
@@ -609,16 +604,17 @@ VKAPI_ATTR void VKAPI_CALL vkCmdClearDepthStencilImage(VkCommandBuffer commandBu
 	command->depth_clear.stencil = (uint8_t)pDepthStencil->stencil;
 }
 
-// Each rectangle a draw the scissor cuts to it, of one layer, in the pass's one colour attachment and its depth.
+// Each rectangle a draw the scissor cuts to it, of one layer, in the pass's colour attachments and its depth.
 VKAPI_ATTR void VKAPI_CALL vkCmdClearAttachments(VkCommandBuffer commandBuffer, uint32_t attachmentCount,
 	const VkClearAttachment *pAttachments, uint32_t rectCount, const VkClearRect *pRects)
 {
-	ClearRect clear = { .clears_color = false };
+	ClearRect clear = { .colors_cleared = 0 };
 	for (uint32_t i = 0; i < attachmentCount; i++) {
 		const VkClearAttachment *const attachment = &pAttachments[i];
-		if (attachment->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
-			clear.clears_color = true;
-			memcpy(clear.color, attachment->clearValue.color.float32, sizeof clear.color);
+		const uint32_t color = attachment->colorAttachment;
+		if ((attachment->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) && color < V4X_MAX_COLOR_ATTACHMENTS) {
+			clear.colors_cleared |= 1u << color;
+			memcpy(clear.colors[color], attachment->clearValue.color.float32, sizeof clear.colors[color]);
 		}
 		if (attachment->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) {
 			clear.clears_depth = true;

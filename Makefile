@@ -33,7 +33,7 @@ TEST_SOURCES := tests/main.c tests/harness.c tests/harness_scene.c tests/test_bo
 	tests/test_events.c tests/test_formats.c tests/test_vertex_formats.c tests/test_shader_cache.c \
 	tests/test_branches.c tests/test_loops.c tests/test_shader_lod.c tests/test_facing.c tests/test_vertex_textures.c \
 	tests/test_cube_3d.c tests/test_addressing.c tests/test_shadow.c tests/test_instancing.c tests/test_strips.c \
-	tests/shaders.c
+	tests/test_targets.c tests/shaders.c
 TEST_OBJECTS := $(patsubst tests/%.c,$(BUILD)/tests/%.o,$(TEST_SOURCES))
 
 # vkbench, the benchmark against xsdk's GPU layer; bench/shaders.c comes from tools/build_shaders.py too.

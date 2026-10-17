@@ -73,6 +73,8 @@ typedef struct {
 	const VkPipelineRasterizationStateCreateInfo *raster;
 	const VkPipelineDepthStencilStateCreateInfo *depth_stencil;
 	const VkPipelineColorBlendAttachmentState *blend;
+	// How many colour attachments blend points at, one for each; 0 for one.
+	uint32_t blend_count;
 	// The viewport and scissor come from vkCmdSetViewport and vkCmdSetScissor.
 	bool dynamic_viewport;
 	// The line width comes from vkCmdSetLineWidth, the pipeline's own left 0 for the layer to ignore.

@@ -53,8 +53,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 - One physical device, and one device at a time: a second `vkCreateDevice` returns `VK_ERROR_TOO_MANY_OBJECTS`, since
   the GPU has one owner. `vkCreateDevice` takes the GPU from XAM (`xsdk_gpu_open`) and shows the boot logo.
-- Two features, `drawIndirectFirstInstance` (Commands) and `samplerAnisotropy` (Samplers). Requesting any other
-  returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires `robustBufferAccess`; that's a deviation.
+- Three features, `drawIndirectFirstInstance` (Commands), `independentBlend` (Pipelines) and `samplerAnisotropy`
+  (Samplers). Requesting any other returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires `robustBufferAccess`;
+  that's a deviation.
 - One queue family with one queue, `VK_QUEUE_GRAPHICS_BIT` only. Vulkan 1.0 requires a family with graphics and
   compute together; Xenos has no compute stage, so that's a deviation. There's no sparse binding either: the GPU
   addresses physical memory, and Xenia's registers show no GPU MMU (xenia:src/xenia/gpu/register_table.inc).
@@ -114,6 +115,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   an arm; written on one path alone, it's refused, as nothing else gives the pixel a depth (xost:docs/xsc.md,
   "Control flow"). Its draws skip no hidden pixels early, as xsdk turns hierarchical depth off for them
   (xsdk:docs/HARDWARE.md, "A pixel shader's depth").
+- Fragment outputs at locations 0 to 3 go to the subpass's colour attachments 0 to 3, xost's `oC0` to `oC3`, a float
+  output in every component; with more than one, each is stored once, outside any `if`/`else` (xost:docs/xsc.md,
+  milestone 25).
 - A loop counted by an int in a push constant or uniform block, `for (int i = 0; i < b.n; i++)`, is a hardware loop
   (milestone 21; xost:docs/xsc.md, "Loops a block counts"). The bundle names where the int is, and each draw the layer
   reads it, from the push constants or the bound buffer at its dynamic offset, and sets the loop constant xost gave the
@@ -179,7 +183,7 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     state);
   - filled polygons, line width 1, no depth clamp;
   - one sample;
-  - one colour attachment.
+  - a blend state for each of the subpass's colour attachments, up to four.
 - **Rasterization:**
   - culling front or back faces, or none; culling both returns `VK_ERROR_FEATURE_NOT_PRESENT`;
   - `frontFace` maps straight to xsdk's `front_clockwise`. Both mean clockwise as the triangle looks in the y-down
@@ -192,7 +196,13 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   - stencil test, ops, compare op, masks and reference, the same for both faces. Faces that differ return
     `VK_ERROR_FEATURE_NOT_PRESENT` (two-sided stencil is an xsdk TODO).
   - Vulkan's compare and stencil ops are xsdk's, value for value. No depth bounds test.
-- **Blending:**
+- **Blending,** each colour attachment by its own state, as each of Xenos's colour targets blends by its own
+  `RB_BLENDCONTROL` and masks by its own four bits of `RB_COLOR_MASK` (`xsdk_gpu_set_blends`;
+  xenia:src/xenia/gpu/register_table.inc:537-547), so the device has `independentBlend` (milestone 25):
+  - blending into a float attachment, `R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` or `R32_SFLOAT`, returns
+    `VK_ERROR_FEATURE_NOT_PRESENT`: the console has yet to show those targets blend (xsdk:tests/test_targets.c logs
+    what it gives), so their formats report no `VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT`; their write masks
+    work;
   - every factor but the dual-source ones, which return `VK_ERROR_FEATURE_NOT_PRESENT`. The constant ones take Xenos's
     constant colour, `RB_BLEND_RED` to `ALPHA`, which the layer sets with each pipeline whose blend reads it
     (`xsdk_gpu_set_blend_constants`; xsdk:docs/HARDWARE.md, "Blend constants");
@@ -227,9 +237,14 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 ## Render passes
 
-- Up to 8 subpasses over up to 8 attachments. Each subpass has one colour attachment, `VK_FORMAT_R8G8B8A8_UNORM` or
-  `VK_FORMAT_B8G8R8A8_UNORM`, one sample, and optionally a depth attachment, `VK_FORMAT_D24_UNORM_S8_UINT`; input and
-  resolve attachments return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- Up to 8 subpasses over up to 8 attachments. Each subpass has one to four colour attachments, of the formats that
+  are colour attachments (Formats), one sample, and optionally a depth attachment, `VK_FORMAT_D24_UNORM_S8_UINT`;
+  none, unused colour attachments, and input and resolve attachments return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- **A subpass's attachments fit eDRAM together:** its colour targets and depth must fit eDRAM's 2048 tiles at the
+  framebuffer's size, a 64-bit target taking twice a 32-bit one's tiles (`xsdk_gpu_color_target_tiles`); otherwise
+  `vkCreateFramebuffer` logs the tiles they'd take and returns `VK_ERROR_FEATURE_NOT_PRESENT`. At 1280x720 that's
+  one 32-bit colour attachment and depth, or one 64-bit one without, or two 32-bit ones without. **Deviation:** more
+  needs predicated tiling, milestone 17's.
 - **Subpasses, each a pass of its own** (milestone 19): `vkCmdBeginRenderPass` and `vkCmdNextSubpass` begin each
   subpass as the replay begins a render pass, and `vkCmdNextSubpass` and `vkCmdEndRenderPass` end it. An attachment
   takes its own load op in the first subpass that uses it and its store op in the last; the subpasses between load and
@@ -258,20 +273,24 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - Framebuffers: the render pass's attachments, their full size, up to 1280x720, one layer. Colour attachments are
   swapchain images or images made with `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`. The render area must be the whole
   framebuffer, so `vkGetRenderAreaGranularity` gives 1x1.
-- How it maps (docs/ROADMAP.md, milestone 4):
-  - the pass draws into eDRAM, colour from tile 0 and depth where eDRAM holds its image's, or the clear it wants at
-    its size; a depth eDRAM doesn't hold goes ending at tile 2048, or just under a depth image eDRAM holds there when
-    that stays above the pass's colour, so a pass with a smaller depth of its own leaves the earlier one alone, as a
-    pass without depth does (milestone 14). Up to four depths are tracked, each lost when a pass's colour or depth
-    reaches its tiles;
-  - its end resolves the colour into the attachment's image;
-  - the layer tracks what eDRAM holds: values a resolve cleared it to, at a framebuffer's size, or an image's
-    contents;
+- How it maps (docs/ROADMAP.md, milestones 4 and 25):
+  - the pass draws into eDRAM, each colour attachment a colour target of its own in its format, one after another
+    from tile 0 (`xsdk_gpu_set_targets`), and depth where eDRAM holds its image's, or the clear it wants at its size;
+    a depth eDRAM doesn't hold goes ending at tile 2048, or just under a depth image eDRAM holds there when that stays
+    above the pass's colour, so a pass with a smaller depth of its own leaves the earlier one alone, as a pass without
+    depth does (milestone 14). Up to four depths are tracked, each lost when a pass's colour or depth reaches its
+    tiles, and a depth below the end of a pass's colour targets is lost to them;
+  - its end resolves each colour target into its attachment's image, converted to the image's format
+    (`xsdk_gpu_resolve_target`);
+  - the layer tracks what each of the last pass's colour targets holds, at its tile and in its format, and what each
+    depth holds: values a resolve cleared it to, at a framebuffer's size, or an image's contents;
   - a clear finds its values there, or beginning the pass resolves into the attachment to set them, copying junk the
-    pass then overwrites;
-  - a load finds its image there, or the layer draws the image back in, texel for texel, with its own shaders;
-  - a pass's resolve clears what the next pass in the command buffer clears, and keeps what it loads. The last pass in
-    a command buffer clears to its own values, so the next frame's usually finds them.
+    pass then overwrites, a resolve for each colour attachment that clears;
+  - a load finds its image there, or the layer draws the image back in, texel for texel, with its own shaders, into
+    that target alone where the subpass has several;
+  - a pass's resolve clears a colour target as the next pass in the command buffer clears the target at its tile, in
+    its format and at its size, and keeps it otherwise; depth the same. The last pass in a command buffer clears to its
+    own values, so the next frame's usually finds them.
 
 ## Images
 
@@ -304,9 +323,14 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   size; for an optimal image, which is invalid use, it gives zeros. `vkGetPhysicalDeviceImageFormatProperties` takes
   linear tiling for those usages alone, one level; the formats report no linear tiling features, which copies don't
   need.
-- Colour attachment images are `VK_FORMAT_R8G8B8A8_UNORM` or `VK_FORMAT_B8G8R8A8_UNORM`, with one level, and both
-  sides over 16 texels: a smaller base level sits in the packed mip tail, where a resolve can't write
-  (xsdk:src/gpu_resolve.c). Others return `VK_ERROR_FEATURE_NOT_PRESENT`.
+- Colour attachment images are of the formats Formats lists as colour attachments, with one level, and both sides
+  over 16 texels: a smaller base level sits in the packed mip tail, where a resolve can't write
+  (xsdk:src/gpu_resolve.c). Others return `VK_ERROR_FEATURE_NOT_PRESENT`. Each draws into the xsdk target of its
+  format and resolves into its texture (`xsdk_gpu_resolve_target`, milestone 25): `R8G8B8A8_UNORM` and
+  `B8G8R8A8_UNORM` into 8_8_8_8, `A2B10G10R10_UNORM_PACK32` into 2_10_10_10, `R16G16_SFLOAT` into 16_16_FLOAT,
+  `R16G16B16A16_SFLOAT` into 16_16_16_16_FLOAT and `R32_SFLOAT` into 32_FLOAT (xenia:src/xenia/gpu/xenos.h:299-313).
+  Xenos's 7e3 float, 2_10_10_10_FLOAT, and its 16_16 and 16_16_16_16 fixed point from -32 to 32 have no Vulkan
+  format, so they aren't offered.
 - Optimal tiling is Xenos's tiled layout, with mips as xsdk milestones 15 and 16 settled.
 - Memory requirements: the texture's size, 4 KB aligned, as a fetch constant holds its address in 4 KB units. Binding
   places the texels at the memory (`xsdk_texture_attach`).
@@ -417,7 +441,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   memory takes it at once (Images).
 - `vkCmdClearAttachments` draws each rectangle with the layer's own shaders: the scissor at the rectangle, a viewport
   whose depth range is the clear's depth alone, so every pixel takes it, depth and stencil always passing, the
-  stencil replaced by the clear's, and the colour, depth and stencil each written only if it's cleared. The pass's
+  stencil replaced by the clear's, and each colour attachment, depth and stencil written only if it's cleared; a
+  subpass of several colour attachments takes a shader writing four colours, one for each (milestone 25). The pass's
   pipeline, viewport, scissor and state are set again for the draw after. Rectangles of one layer; more fail the
   command buffer.
 - `vkCmdCopyBuffer` copies bytes at any offsets; `vkCmdUpdateBuffer` copies the bytes it recorded; `vkCmdFillBuffer`
@@ -516,12 +541,13 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 |---|---|
 | `VK_FORMAT_R8G8B8A8_UNORM`, `VK_FORMAT_B8G8R8A8_UNORM` | optimal tiling: sampled, linear filtering, colour attachment and blending, blit source and destination; buffer: vertex buffer (milestone 20) |
 | `VK_FORMAT_D24_UNORM_S8_UINT` | optimal tiling: depth and stencil attachment; sampled, its depth in red, with linear filtering, which vulkan4xenon_test's shadow check tries on the console (milestone 23) |
-| `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; buffer: vertex buffer |
+| `VK_FORMAT_R32_SFLOAT` | optimal tiling: sampled, nearest filtering only, as filtering 32-bit floats hasn't been tried on the console; colour attachment, unblended, as the console has yet to show it blends (milestone 25); buffer: vertex buffer |
 | `VK_FORMAT_R8_UNORM`, `VK_FORMAT_R8G8_UNORM` | optimal tiling: sampled, linear filtering, blit source and destination |
 | `VK_FORMAT_R5G6B5_UNORM_PACK16`, `B5G6R5_UNORM_PACK16`, `A1R5G5B5_UNORM_PACK16`, `R4G4B4A4_UNORM_PACK16`, `B4G4R4A4_UNORM_PACK16`, `R16_UNORM`, `R16_SNORM`, `R8_SNORM`, `R8G8_SNORM`, `B8G8R8A8_SNORM`, `R8_SRGB`, `R8G8_SRGB`, `R8G8B8A8_SRGB`, `B8G8R8A8_SRGB` | optimal tiling: sampled, linear filtering, blit source and destination (milestone 20) |
 | `VK_FORMAT_R16G16_UNORM`, `R16G16B16A16_UNORM`, `R16G16_SNORM`, `R16G16B16A16_SNORM`, `R8G8B8A8_SNORM` | optimal tiling: sampled, linear filtering, blit source and destination; buffer: vertex buffer (milestone 20) |
-| `VK_FORMAT_A2B10G10R10_UNORM_PACK32`, `A2R10G10B10_UNORM_PACK32`, `A2B10G10R10_SNORM_PACK32`, `A2R10G10B10_SNORM_PACK32`, `R16_SFLOAT` | optimal tiling: sampled, nearest filtering only, as Xenos filtered them wrong on the console, far from the mean of two texels halfway between them (milestone 20); blit source and destination |
-| `VK_FORMAT_R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | optimal tiling: sampled, nearest filtering only, as above; blit source and destination; buffer: vertex buffer (milestone 20) |
+| `VK_FORMAT_A2R10G10B10_UNORM_PACK32`, `A2B10G10R10_SNORM_PACK32`, `A2R10G10B10_SNORM_PACK32`, `R16_SFLOAT` | optimal tiling: sampled, nearest filtering only, as Xenos filtered them wrong on the console, far from the mean of two texels halfway between them (milestone 20); blit source and destination |
+| `VK_FORMAT_R16G16_SFLOAT`, `R16G16B16A16_SFLOAT` | optimal tiling: sampled, nearest filtering only, as above; blit source and destination; buffer: vertex buffer (milestone 20); colour attachment, unblended, as the console has yet to show they blend (milestone 25) |
+| `VK_FORMAT_A2B10G10R10_UNORM_PACK32` | optimal tiling: sampled, nearest filtering only, as the other 10-10-10-2 formats; blit source and destination (milestone 20); colour attachment and blending, as fixed point blends like 8-bit channels (xenia:src/xenia/gpu/render_target_cache.h:122-129; milestone 25) |
 | `VK_FORMAT_BC1_RGB_UNORM_BLOCK`, `BC1_RGBA_UNORM_BLOCK`, `BC2_UNORM_BLOCK`, `BC3_UNORM_BLOCK`, `BC4_UNORM_BLOCK`, `BC5_UNORM_BLOCK`, `BC1_RGB_SRGB_BLOCK`, `BC1_RGBA_SRGB_BLOCK`, `BC2_SRGB_BLOCK`, `BC3_SRGB_BLOCK` | optimal tiling: sampled, linear filtering (milestone 20) |
 | `VK_FORMAT_R32G32_SFLOAT`, `R32G32B32_SFLOAT`, `R32G32B32A32_SFLOAT`, `A8B8G8R8_UNORM_PACK32` | buffer: vertex buffer |
 | `VK_FORMAT_A8B8G8R8_SNORM_PACK32`, `A8B8G8R8_USCALED_PACK32`, `A8B8G8R8_SSCALED_PACK32`, `R8G8B8A8_USCALED`, `R8G8B8A8_SSCALED`, `R16G16_USCALED`, `R16G16_SSCALED`, `R16G16B16A16_USCALED`, `R16G16B16A16_SSCALED` | buffer: vertex buffer (milestone 20) |
@@ -630,7 +656,7 @@ minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
 | `maxVertexInputAttributeOffset` | 1016 |
 | `maxVertexInputBindingStride` | 1020 |
 | `maxVertexOutputComponents`, `maxFragmentInputComponents` | 64 |
-| `maxFragmentOutputAttachments`, `maxColorAttachments` | 1 |
+| `maxFragmentOutputAttachments`, `maxColorAttachments`, `maxFragmentCombinedOutputResources` | 4 |
 | `maxViewports` | 1 |
 | `maxViewportDimensions` | 4096, 4096 |
 | `viewportBoundsRange` | -8192, 8191 |
@@ -655,7 +681,6 @@ Set limits below Vulkan 1.0's minimum:
 | Limit | Why |
 |---|---|
 | `maxVertexInputAttributeOffset` 1016, `maxVertexInputBindingStride` 1020 (2047, 2048) | A fetch's stride is 8 bits of dwords (xsdk:src/shader.c). |
-| `maxFragmentOutputAttachments`, `maxColorAttachments` 1 (4) | One colour target until multiple render targets are built (xsdk:TODO.md). |
 | `maxFramebufferWidth`, `maxFramebufferHeight` 1280, 720 (4096) | A 1280x720 colour and depth target fills eDRAM (xsdk:SCOPE.md 3.4). |
 | `maxFramebufferLayers` 1 (256) | No layered rendering. |
 | `maxImageArrayLayers` 6 (256) | A cube's six layers; arrays of images aren't built yet. |

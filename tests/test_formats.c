@@ -1107,6 +1107,20 @@ static void check_sampling(const Scene *scene, uint32_t frames)
 		srgb_filtered);
 }
 
+// The three of them milestone 25 draws into, 10-10-10-2 blending and the half floats not (test_targets.c).
+static VkFormatFeatureFlags attachment_features(VkFormat format)
+{
+	switch (format) {
+	case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+		return VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+	case VK_FORMAT_R16G16_SFLOAT:
+	case VK_FORMAT_R16G16B16A16_SFLOAT:
+		return VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+	default:
+		return 0;
+	}
+}
+
 // The features each format reports, as docs/SUPPORT.md lists them.
 static void check_properties(const Harness *harness)
 {
@@ -1126,9 +1140,10 @@ static void check_properties(const Harness *harness)
 			vkGetPhysicalDeviceImageFormatProperties(harness->physical_device, spec->format, VK_IMAGE_TYPE_2D,
 				VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DST_BIT, 0, &image) == VK_SUCCESS;
 		const VkFormatFeatureFlags sampled = filters(spec) ? filtered : VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-		const VkFormatFeatureFlags wanted = compressed(spec) ? sampled : sampled | blits;
+		const VkFormatFeatureFlags drawn = attachment_features(spec->format);
+		const VkFormatFeatureFlags wanted = (compressed(spec) ? sampled : sampled | blits) | drawn;
 		const bool this_reported = properties.optimalTilingFeatures == wanted && !properties.linearTilingFeatures &&
-			!attachment && linear != compressed(spec);
+			attachment == (drawn != 0) && linear != compressed(spec);
 		if (!this_reported)
 			xsdk_log_write("formats: %s reports optimal features %08X, linear %08X", spec->name,
 				(unsigned)properties.optimalTilingFeatures, (unsigned)properties.linearTilingFeatures);
@@ -1138,7 +1153,8 @@ static void check_properties(const Harness *harness)
 	vkGetPhysicalDeviceFeatures(harness->physical_device, &features);
 	check(
 		"formats: each reports sampling, and filtering but the half floats and 10-10-10-2, the uncompressed blits and "
-		"linear images too, none colour attachments, and textureCompressionBC is off",
+		"linear images too, colour attachments only A2B10G10R10_UNORM, R16G16_SFLOAT and R16G16B16A16_SFLOAT "
+		"(milestone 25), and textureCompressionBC is off",
 		reported && !features.textureCompressionBC);
 }
 
