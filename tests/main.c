@@ -48,6 +48,7 @@ int main(void)
 		test_two_sided_stencil(&harness);
 		test_clip_distances(&harness);
 		test_point_sprites(&harness);
+		test_fill_modes(&harness);
 		test_clears(&harness);
 		test_subpasses(&harness);
 		test_targets(&harness);

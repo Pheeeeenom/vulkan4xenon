@@ -21,6 +21,8 @@ void test_two_sided_stencil(const Harness *harness);
 void test_clip_distances(const Harness *harness);
 // Point sprites of gl_PointSize coloured by gl_PointCoord, and a point without a size, 1 pixel (milestone 26).
 void test_point_sprites(const Harness *harness);
+// Quads drawn as their triangles' edges and corners, and a back face culled before its edges (milestone 26).
+void test_fill_modes(const Harness *harness);
 // A depth image cleared outside a pass, and rectangles of colour, depth and stencil cleared inside one (milestone 19).
 void test_clears(const Harness *harness);
 // A render pass of three subpasses, the second drawn from secondary command buffers (milestone 19).

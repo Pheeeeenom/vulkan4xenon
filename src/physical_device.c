@@ -133,10 +133,11 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures(
 {
 	(void)physicalDevice;
 	// Indirect draws read firstInstance at replay, as direct ones take it (queue.c); each colour target blends by its
-	// own RB_BLENDCONTROL (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_blends); points are as wide as gl_PointSize, and
-	// Xenos's user clip planes take the clip distances (milestone 26).
+	// own RB_BLENDCONTROL (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_blends); polygons draw as lines or points, points are
+	// as wide as gl_PointSize, and Xenos's user clip planes take the clip distances (milestone 26).
 	*pFeatures = (VkPhysicalDeviceFeatures){ .drawIndirectFirstInstance = VK_TRUE,
 		.independentBlend = VK_TRUE,
+		.fillModeNonSolid = VK_TRUE,
 		.largePoints = VK_TRUE,
 		.samplerAnisotropy = VK_TRUE,
 		.shaderClipDistance = VK_TRUE };

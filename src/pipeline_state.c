@@ -98,11 +98,12 @@ static VkResult viewport_state(const VkPipelineViewportStateCreateInfo *state, P
 static VkResult raster_state(const VkPipelineRasterizationStateCreateInfo *raster, Pipeline *pipeline)
 {
 	const bool dynamic_bias = takes(pipeline, VK_DYNAMIC_STATE_DEPTH_BIAS);
-	if (raster->depthClampEnable || raster->rasterizerDiscardEnable || raster->polygonMode != VK_POLYGON_MODE_FILL ||
+	if (raster->depthClampEnable || raster->rasterizerDiscardEnable || raster->polygonMode > VK_POLYGON_MODE_POINT ||
 		raster->cullMode == VK_CULL_MODE_FRONT_AND_BACK ||
 		(!takes(pipeline, VK_DYNAMIC_STATE_LINE_WIDTH) && raster->lineWidth != 1.0f) ||
 		(raster->depthBiasEnable && !dynamic_bias && raster->depthBiasClamp != 0.0f))
-		return v4x_host_unsupported("rasterization other than filled, culling one face or none, unclamped bias");
+		return v4x_host_unsupported(
+			"rasterization other than filled, lines or points, culling one face or none, unclamped bias");
 	const bool biased = raster->depthBiasEnable && !dynamic_bias;
 	pipeline->raster_setting = (XsdkRaster){
 		.cull = raster->cullMode == VK_CULL_MODE_FRONT_BIT ? XSDK_CULL_FRONT
@@ -112,6 +113,10 @@ static VkResult raster_state(const VkPipelineRasterizationStateCreateInfo *raste
 		.front_clockwise = raster->frontFace == VK_FRONT_FACE_CLOCKWISE,
 		.depth_bias = biased ? raster->depthBiasConstantFactor / DEPTH_BIAS_UNITS : 0.0f,
 		.depth_bias_slope = biased ? raster->depthBiasSlopeFactor : 0.0f,
+		// Xenos's polygon types, its triangles' edges or corners (milestone 26).
+		.fill = raster->polygonMode == VK_POLYGON_MODE_LINE ? XSDK_FILL_WIREFRAME
+			: raster->polygonMode == VK_POLYGON_MODE_POINT  ? XSDK_FILL_POINTS
+															: XSDK_FILL_SOLID,
 	};
 	pipeline->depth_bias_enabled = raster->depthBiasEnable;
 	xsdk_gpu_raster_state(&pipeline->raster, &pipeline->raster_setting);

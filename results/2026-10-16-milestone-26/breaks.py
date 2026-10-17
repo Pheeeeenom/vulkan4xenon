@@ -29,6 +29,12 @@ POINT_LIMITS = "point sprites: largePoints reported, pointSizeRange 0 to 8191.87
 POINT_SPRITES = ("point sprites: every frame's sprites are as wide as their gl_PointSize, 16 and 48 pixels, "
                  "gl_PointCoord across each from its top left")
 POINT_PIXEL = "point sprites: every frame's point without gl_PointSize is 1 pixel"
+FILL_FEATURE = "fill modes: fillModeNonSolid reported"
+FILL_LINE = ("fill modes: every frame's LINE quad draws its triangles' edges, the diagonal between them too, and "
+             "nothing inside")
+FILL_POINT = "fill modes: every frame's POINT quad draws its corners and nothing between them"
+FILL_CULL = ("fill modes: every frame culls a back-facing LINE quad before its edges are drawn, and draws a "
+             "front-facing one's")
 
 SETS = {
     # Step 1: a back face's dynamic compare mask and write mask taken from the front's.
@@ -90,6 +96,23 @@ SETS = {
             (XSDK_SETUP, "POINT_RADIUS_ANY = 0xFFFF0000,", "POINT_RADIUS_ANY = 0x00080000,"),
             (XSDK_SETUP, "POINT_SIZE_ONE_PIXEL = 0x00080008,", "POINT_SIZE_ONE_PIXEL = 0x00100010,"),
             (PHYSICAL_DEVICE, ".pointSizeGranularity = 2.0f / SUBPIXELS,", ".pointSizeGranularity = 1.0f,"),
+        ],
+    },
+    # Step 4: LINE and POINT each drawn filled, and fillModeNonSolid unreported.
+    "s4a": {
+        "checks": [FILL_LINE, FILL_POINT, FILL_FEATURE],
+        "breaks": [
+            (PIPELINE_STATE, "VK_POLYGON_MODE_LINE ? XSDK_FILL_WIREFRAME", "VK_POLYGON_MODE_LINE ? XSDK_FILL_SOLID"),
+            (PIPELINE_STATE, "VK_POLYGON_MODE_POINT  ? XSDK_FILL_POINTS", "VK_POLYGON_MODE_POINT  ? XSDK_FILL_SOLID"),
+            (PHYSICAL_DEVICE, ".fillModeNonSolid = VK_TRUE", ".fillModeNonSolid = VK_FALSE"),
+        ],
+    },
+    # Step 4, in xsdk: back faces culled only when filled.
+    "s4b": {
+        "checks": [FILL_CULL],
+        "breaks": [
+            ("Xbox-360-SDK/src/gpu_draw.c", "(setting->cull == XSDK_CULL_BACK ? CULL_BACK : 0)",
+             "(setting->cull == XSDK_CULL_BACK && !setting->fill ? CULL_BACK : 0)"),
         ],
     },
 }

@@ -53,8 +53,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 - One physical device, and one device at a time: a second `vkCreateDevice` returns `VK_ERROR_TOO_MANY_OBJECTS`, since
   the GPU has one owner. `vkCreateDevice` takes the GPU from XAM (`xsdk_gpu_open`) and shows the boot logo.
-- Features: `drawIndirectFirstInstance` (Commands), `independentBlend` and `largePoints` (Pipelines),
-  `samplerAnisotropy` (Samplers) and `shaderClipDistance` (Shaders). Requesting any other returns
+- Features: `drawIndirectFirstInstance` (Commands), `independentBlend`, `fillModeNonSolid` and `largePoints`
+  (Pipelines), `samplerAnisotropy` (Samplers) and `shaderClipDistance` (Shaders). Requesting any other returns
   `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires `robustBufferAccess`; that's a deviation.
 - One queue family with one queue, `VK_QUEUE_GRAPHICS_BIT` only. Vulkan 1.0 requires a family with graphics and
   compute together; Xenos has no compute stage, so that's a deviation. There's no sparse binding either: the GPU
@@ -194,11 +194,16 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   - one viewport and scissor, set in the pipeline or dynamic;
   - every other dynamic state of Vulkan 1.0's but depth bounds, the pipeline's own value then ignored (Dynamic
     state);
-  - filled polygons, line width 1, no depth clamp;
+  - polygons filled, or as lines or points with `fillModeNonSolid`; line width 1; no depth clamp;
   - one sample;
   - a blend state for each of the subpass's colour attachments, up to four.
 - **Rasterization:**
   - culling front or back faces, or none; culling both returns `VK_ERROR_FEATURE_NOT_PRESENT`;
+  - `polygonMode` `LINE` and `POINT` (milestone 26): xsdk's fill, `PA_SU_SC_MODE_CNTL`'s `poly_mode` in dual mode with
+    both faces' polygon types lines or points (xenia:src/xenia/gpu/registers.h:463-469, xenos.h:846-859), each
+    triangle's edges or corners, after culling, as Vulkan has it. Lines are 1 pixel wide and points as a point list's
+    (Points, below); a depth bias biases them as it does a filled polygon, as Xenia takes it
+    (xenia:src/xenia/gpu/draw_util.cc:93-121);
   - `frontFace` maps straight to xsdk's `front_clockwise`. Both mean clockwise as the triangle looks in the y-down
     framebuffer (xsdk:tests/test_raster.c:207), and the viewport flip keeps every vertex where Vulkan puts it;
   - depth bias: the constant factor is in units of 2^-24, D24's resolution, so the layer divides it by 2^24 into the

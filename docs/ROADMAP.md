@@ -2702,6 +2702,21 @@ size; the register goes back as XAM had it at close. The layer reports `largePoi
   coordinates from the parameters' |xy|, and `s3c` leaves `vs_export_mode` 0, which fails the compiler check, and the
   sprite check too if the console needs the mode.
 
+**Step 4, wireframe and point fill** (built 2026-10-16, not yet run on the console). `XsdkRaster` gained `fill`:
+wireframe or points set `PA_SU_SC_MODE_CNTL`'s `poly_mode` to dual mode and both faces' polygon types to lines or
+points (xenia:src/xenia/gpu/registers.h:463-469, xenos.h:846-859), as Xenia reads them
+(xenia:src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc:590-623); a target set, a resolve and the layer's own draws fill
+again. A pipeline's `polygonMode` `LINE` and `POINT` take them, and `fillModeNonSolid` is reported; lines stay 1 pixel
+wide.
+- **The checks:** vulkan4xenon_test's `test_fill_modes.c` draws quads, their corners on pixels' centres, with
+  `polygonMode` `LINE`, whose four edges and shared diagonal must show within a pixel and nothing inside, and `POINT`,
+  whose four corners must show and nothing along an edge or the diagonal; and, culling back faces, a back-facing
+  `LINE` quad, which must draw nothing, beside a front-facing one, which draws its edges; and checks the feature.
+  xsdk_test's raster test draws a row of the same, a wireframe quad and a point-filled one.
+- **Broken on purpose** (`breaks.py`): `s4a`, `LINE` and `POINT` each drawn filled and `fillModeNonSolid` unreported;
+  `s4b`, against a copy of xsdk, back faces culled only when filled. xsdk's `s4a` drops dual mode, and `s4b` swaps the
+  polygon types.
+
 ### Milestone 27: copies on the GPU
 
 **Why.** `vkCmdBlitImage` runs on the CPU once the GPU is done (docs/SUPPORT.md, Commands), which stalls a port that

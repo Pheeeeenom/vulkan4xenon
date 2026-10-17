@@ -45,10 +45,11 @@ VkResult harness_create_device(Harness *harness)
 		.pQueuePriorities = &priority,
 	};
 	// The features the device has: indirect draws' first instance for test_instancing, independent blending for
-	// test_targets, large points for test_point_sprites, sampler anisotropy for test_anisotropy and clip distances for
-	// test_clip_distances.
+	// test_targets, fill modes for test_fill_modes, large points for test_point_sprites, sampler anisotropy for
+	// test_anisotropy and clip distances for test_clip_distances.
 	const VkPhysicalDeviceFeatures features = { .drawIndirectFirstInstance = VK_TRUE,
 		.independentBlend = VK_TRUE,
+		.fillModeNonSolid = VK_TRUE,
 		.largePoints = VK_TRUE,
 		.samplerAnisotropy = VK_TRUE,
 		.shaderClipDistance = VK_TRUE };
