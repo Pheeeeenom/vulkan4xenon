@@ -454,8 +454,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - Secondary command buffers record the same commands; `vkCmdExecuteCommands` replays each in place, at the submit, with
   the state the replay has bound, which is more than Vulkan promises a secondary command buffer, as it begins with
   none (milestone 19).
-- **Copies, clears and blits run on the CPU at replay** (src/transfer.c), in order with the draws around them, each
-  waiting first for the GPU to be done with what it reads or writes:
+- **Copies, clears and the blits the GPU doesn't draw run on the CPU at replay** (src/transfer.c), in order with the
+  draws around them, each waiting first for the GPU to be done with what it reads or writes:
   - an image: the submission that last sampled it, resolved into it or drew it back into eDRAM, for the fence that
     submission ended with; earlier in its own, for the GPU to finish what came before. An image no submission used
     isn't waited for (milestone 12);
@@ -475,14 +475,27 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - `vkCmdCopyImage` copies whole levels of one size between formats of one texel size, the bits as they are, a row at a
   time, as many of a cube's layers or a 3D image's slices as the other gives. A copy between a compressed and an
   uncompressed format, which Vulkan allows, fails the command buffer, as their 16-bit words lie in different orders.
-- `vkCmdBlitImage` blits whole levels to whole levels, unflipped, between images of one format reporting
-  `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT` (Formats): every uncompressed format but `R32_SFLOAT`, the half
-  floats and 10-10-10-2 nearest alone, as they don't report linear filtering. Each destination texel samples the
-  source at its centre, nearest or between the four texels around it, edges clamped:
-  the CPU unpacks each texel's channels to floats, an sRGB format's colours through sRGB's curve, mixes them, and
-  packs them again rounded to the nearest (src/format.c). A chain of levels blitted down from the base makes an
-  image's mips, a cube's a layer at a time. Each layer or 3D slice goes into one of its own; a blit that scales a 3D
-  image's depth fails the command buffer.
+- **`vkCmdBlitImage` drawn on the GPU** (milestone 27), so the replay doesn't wait for it: between two 2D images of
+  `VK_FORMAT_R8G8B8A8_UNORM` or `B8G8R8A8_UNORM`, one format both, from level 0 of an optimal source to level 0 of
+  another optimal image, over 16 texels a side and within eDRAM's 2048 tiles, its destination region any on the
+  resolve's 8-pixel grid, as a render area is (Render passes), nearest or linear. xsdk resolves a rectangle of an 8-bit
+  target alone (xsdk:include/xsdk/gpu.h), so the other formats' blits stay on the CPU.
+
+  The layer draws the source region over the destination's rectangle with its own shaders, into eDRAM at the
+  destination's size, sampling level 0 alone, edges clamped, mirrored as either region's corners are; then it
+  resolves that rectangle into the destination, clearing nothing. eDRAM's colour then
+  holds the destination over the rectangle, and the colour targets and depths its target reached are lost, as a pass's
+  colour loses them. Linear filtering is Xenos's own, whose precision isn't measured (xsdk:TODO.md, "Linear filtering's
+  precision").
+- Any other `vkCmdBlitImage` runs on the CPU, as milestones 20 and 23 have it: whole levels to whole levels, unflipped,
+  between images of one format reporting `VK_FORMAT_FEATURE_BLIT_SRC_BIT` and `BLIT_DST_BIT` (Formats): every
+  uncompressed format but `R32_SFLOAT`, the half floats and 10-10-10-2 nearest alone, as they don't report linear
+  filtering. Each destination texel samples the source at its centre, nearest or between the four texels around it,
+  edges clamped: the CPU unpacks each texel's channels to floats, an sRGB format's colours through sRGB's curve, mixes
+  them, and packs them again rounded to the nearest (src/format.c). A chain of levels blitted down from the base makes
+  an image's mips, a cube's a layer at a time. Each layer or 3D slice goes into one of its own; a blit that scales a 3D
+  image's depth fails the command buffer, as does a blit neither path takes, such as one of part of a level the GPU
+  doesn't draw.
 - `vkCmdClearColorImage` fills whole levels with the colour, packed as the format holds it, an sRGB format's colours
   through sRGB's curve, each channel rounded to the nearest; the range's layers of a cube, or every slice of a 3D
   image. A compressed image's clear, which Vulkan doesn't allow, fails the command buffer.

@@ -31,6 +31,9 @@ void test_subpasses(const Harness *harness);
 void test_targets(const Harness *harness);
 // Render passes whose area is smaller than the framebuffer, each clearing, loading and storing it alone (milestone 27).
 void test_render_areas(const Harness *harness);
+// Blits drawn on the GPU into rectangles of an image, and the replay's time with one and with a blit on the CPU
+// (milestone 27).
+void test_gpu_blits(const Harness *harness);
 // Events the GPU sets, resets and waits on, and time stamps of its clock (milestone 19).
 void test_events(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.

@@ -31,16 +31,31 @@ static const float rectangle[RECTANGLE_VERTICES][VERTEX_FLOATS] = {
 	{ -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f },
 };
 
-static VkResult load_shaders(
-	Blit *blit, const V4xShader *vertex, const V4xShader *pixel, const V4xShader *clear, const V4xShader *clear_four)
+// The layer's shaders, as the bundle has them: the image drawn back, the clears, and the drawn blit's vertex shader.
+typedef struct {
+	const V4xShader *vertex;
+	const V4xShader *pixel;
+	const V4xShader *clear;
+	const V4xShader *clear_four;
+	const V4xShader *region;
+} Shaders;
+
+static NTSTATUS load_shader(XsdkShader *shader, const V4xShader *source)
 {
-	NTSTATUS status = xsdk_shader_load(&blit->vertex, vertex->container, vertex->container_size_bytes);
+	return xsdk_shader_load(shader, source->container, source->container_size_bytes);
+}
+
+static VkResult load_shaders(Blit *blit, const Shaders *shaders)
+{
+	NTSTATUS status = load_shader(&blit->vertex, shaders->vertex);
 	if (NT_SUCCESS(status))
-		status = xsdk_shader_load(&blit->pixel, pixel->container, pixel->container_size_bytes);
+		status = load_shader(&blit->pixel, shaders->pixel);
 	if (NT_SUCCESS(status))
-		status = xsdk_shader_load(&blit->clear, clear->container, clear->container_size_bytes);
+		status = load_shader(&blit->clear, shaders->clear);
 	if (NT_SUCCESS(status))
-		status = xsdk_shader_load(&blit->clear_four, clear_four->container, clear_four->container_size_bytes);
+		status = load_shader(&blit->clear_four, shaders->clear_four);
+	if (NT_SUCCESS(status))
+		status = load_shader(&blit->region, shaders->region);
 	if (!NT_SUCCESS(status)) {
 		xsdk_log_write("vulkan4xenon: xsdk_shader_load failed for the blit: 0x%08X", (unsigned)status);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -51,14 +66,18 @@ static VkResult load_shaders(
 		{ .usage = XSDK_USAGE_COLOR, .format = XSDK_VERTEX_FLOAT2, .stream = 0, .offset_bytes = UV_OFFSET_BYTES },
 	};
 	const uint32_t strides[XSDK_VERTEX_STREAMS] = { VERTEX_BYTES };
-	status = xsdk_shader_set_vertex_layout(&blit->vertex, elements, sizeof elements / sizeof elements[0], strides);
+	const uint32_t count = sizeof elements / sizeof elements[0];
+	status = xsdk_shader_set_vertex_layout(&blit->vertex, elements, count, strides);
+	if (NT_SUCCESS(status))
+		status = xsdk_shader_set_vertex_layout(&blit->region, elements, count, strides);
 	if (!NT_SUCCESS(status)) {
 		xsdk_log_write("vulkan4xenon: xsdk_shader_set_vertex_layout failed for the blit: 0x%08X", (unsigned)status);
 		return VK_ERROR_INITIALIZATION_FAILED;
 	}
-	blit->texture_slot = pixel->resources[0].first;
-	blit->clear_constant = clear->resources[0].first;
-	blit->clear_four_constant = clear_four->resources[0].first;
+	blit->texture_slot = shaders->pixel->resources[0].first;
+	blit->clear_constant = shaders->clear->resources[0].first;
+	blit->clear_four_constant = shaders->clear_four->resources[0].first;
+	blit->region_constant = shaders->region->resources[0].first;
 	return VK_SUCCESS;
 }
 
@@ -79,15 +98,19 @@ static VkResult write_rectangle(Blit *blit)
 	return VK_SUCCESS;
 }
 
-// Point sampling, edges clamped; no blending, culling, depth or stencil.
+// Point or linear sampling of level 0 alone, edges clamped, as a blit samples; no blending, culling, depth or stencil.
 static void make_state(Blit *blit)
 {
-	const XsdkSampler sampler = { .mag_filter = XSDK_FILTER_POINT,
+	XsdkSampler sampler = { .mag_filter = XSDK_FILTER_POINT,
 		.min_filter = XSDK_FILTER_POINT,
 		.mip_filter = XSDK_FILTER_POINT,
 		.address_u = XSDK_ADDRESS_CLAMP,
-		.address_v = XSDK_ADDRESS_CLAMP };
+		.address_v = XSDK_ADDRESS_CLAMP,
+		.level_count = 1 };
 	xsdk_texture_sampler_state(&blit->sampler, &sampler);
+	sampler.mag_filter = XSDK_FILTER_LINEAR;
+	sampler.min_filter = XSDK_FILTER_LINEAR;
+	xsdk_texture_sampler_state(&blit->linear_sampler, &sampler);
 	const XsdkBlend blend = { .color_source = XSDK_BLEND_ONE,
 		.color_dest = XSDK_BLEND_ZERO,
 		.color_op = XSDK_BLEND_OP_ADD,
@@ -105,14 +128,16 @@ static void make_state(Blit *blit)
 VkResult v4x_blit_create(Blit *blit)
 {
 	*blit = (Blit){ .vertices = NULL };
-	const V4xShader *const vertex = v4x_shader_find(&v4x_blit_bundle, v4x_blit_vert_spirv, V4X_BLIT_VERT_SPIRV_BYTES);
-	const V4xShader *const pixel = v4x_shader_find(&v4x_blit_bundle, v4x_blit_frag_spirv, V4X_BLIT_FRAG_SPIRV_BYTES);
-	const V4xShader *const clear = v4x_shader_find(&v4x_blit_bundle, v4x_clear_frag_spirv, V4X_CLEAR_FRAG_SPIRV_BYTES);
-	const V4xShader *const clear_four =
-		v4x_shader_find(&v4x_blit_bundle, v4x_clear_four_frag_spirv, V4X_CLEAR_FOUR_FRAG_SPIRV_BYTES);
-	if (!vertex || !pixel || !clear || !clear_four)
+	const Shaders shaders = {
+		.vertex = v4x_shader_find(&v4x_blit_bundle, v4x_blit_vert_spirv, V4X_BLIT_VERT_SPIRV_BYTES),
+		.pixel = v4x_shader_find(&v4x_blit_bundle, v4x_blit_frag_spirv, V4X_BLIT_FRAG_SPIRV_BYTES),
+		.clear = v4x_shader_find(&v4x_blit_bundle, v4x_clear_frag_spirv, V4X_CLEAR_FRAG_SPIRV_BYTES),
+		.clear_four = v4x_shader_find(&v4x_blit_bundle, v4x_clear_four_frag_spirv, V4X_CLEAR_FOUR_FRAG_SPIRV_BYTES),
+		.region = v4x_shader_find(&v4x_blit_bundle, v4x_blit_region_vert_spirv, V4X_BLIT_REGION_VERT_SPIRV_BYTES),
+	};
+	if (!shaders.vertex || !shaders.pixel || !shaders.clear || !shaders.clear_four || !shaders.region)
 		return VK_ERROR_INITIALIZATION_FAILED;
-	VkResult result = load_shaders(blit, vertex, pixel, clear, clear_four);
+	VkResult result = load_shaders(blit, &shaders);
 	if (result == VK_SUCCESS)
 		result = write_rectangle(blit);
 	if (result != VK_SUCCESS) {
@@ -126,6 +151,7 @@ VkResult v4x_blit_create(Blit *blit)
 void v4x_blit_destroy(Blit *blit)
 {
 	xsdk_gpu_free(blit->vertices);
+	xsdk_shader_free(&blit->region);
 	xsdk_shader_free(&blit->clear_four);
 	xsdk_shader_free(&blit->clear);
 	xsdk_shader_free(&blit->pixel);
@@ -144,6 +170,27 @@ void v4x_blit_draw(const Blit *blit, const XsdkTexture *texture, uint32_t width,
 	xsdk_gpu_set_depth_stencil(&blit->depth_stencil);
 	xsdk_gpu_set_vertices(0, blit->vertices_address, RECTANGLE_BYTES);
 	xsdk_gpu_set_texture(blit->texture_slot, texture, &blit->sampler);
+	xsdk_gpu_draw(XSDK_PRIMITIVE_TRIANGLE_LIST, RECTANGLE_VERTICES);
+}
+
+// The viewport over the destination's rectangle, as the replay sets one (src/queue.c, apply_viewport), and the scissor
+// at it, as Xenos draws past a viewport (docs/SUPPORT.md, Pipelines).
+void v4x_blit_region(const Blit *blit, const DrawnBlit *region)
+{
+	const VkRect2D *const rect = &region->rect;
+	const float x = (float)rect->offset.x;
+	const float y = (float)rect->offset.y;
+	xsdk_gpu_set_shaders(&blit->region, &blit->pixel);
+	xsdk_gpu_set_viewport(x - 0.5f, y + (float)rect->extent.height - 0.5f, (float)rect->extent.width,
+		-(float)rect->extent.height, 0.0f, 1.0f);
+	xsdk_gpu_set_scissor((uint32_t)rect->offset.x, (uint32_t)rect->offset.y, rect->extent.width, rect->extent.height);
+	xsdk_gpu_set_blend(&blit->blend);
+	xsdk_gpu_set_raster(&blit->raster);
+	xsdk_gpu_set_depth_stencil(&blit->depth_stencil);
+	xsdk_gpu_set_vertex_constants(blit->region_constant, region->uv, 1);
+	xsdk_gpu_set_vertices(0, blit->vertices_address, RECTANGLE_BYTES);
+	const XsdkSamplerState *const sampler = region->linear ? &blit->linear_sampler : &blit->sampler;
+	xsdk_gpu_set_texture(blit->texture_slot, &region->source->texture, sampler);
 	xsdk_gpu_draw(XSDK_PRIMITIVE_TRIANGLE_LIST, RECTANGLE_VERTICES);
 }
 

@@ -755,6 +755,42 @@ static const Command *next_render_pass(VkCommandBuffer buffer, uint32_t after)
 	return NULL;
 }
 
+// The blit is drawn into eDRAM at its destination's size, a target in its format from tile 0, outside any render pass,
+// so the next one finds that target holding the destination over the rectangle, and the colour targets and depths it
+// reached lost. The replay doesn't wait for it.
+static void draw_blit(VkQueue queue, Replay *replay, const DrawnBlit *blit)
+{
+	Image *const destination = blit->destination;
+	const VkRect2D *const rect = &blit->rect;
+	const XsdkColorTarget target = { .format = XSDK_TARGET_8_8_8_8, .tile = 0 };
+	const uint32_t tiles = xsdk_gpu_target_tiles(destination->width, destination->height);
+	for (uint32_t i = 0; i < V4X_EDRAM_DEPTHS; i++) {
+		if (part_overlaps(&queue->depths[i], 0, tiles))
+			queue->depths[i] = (EdramPart){ .contents = EDRAM_UNKNOWN };
+	}
+	const VkRect2D stored = stored_area(&queue->colors[0], destination, rect);
+	for (uint32_t i = 0; i < V4X_MAX_COLOR_ATTACHMENTS; i++) {
+		if (queue->colors[i].tile < tiles)
+			queue->colors[i] = (EdramPart){ .contents = EDRAM_UNKNOWN };
+	}
+	const uint32_t depth_tile = XSDK_EDRAM_TILES - xsdk_gpu_target_tiles(destination->width, destination->height);
+	xsdk_gpu_set_targets(destination->width, destination->height, &target, 1, depth_tile);
+	// The target set turned the clip planes off.
+	replay->clip_planes_on = false;
+	v4x_blit_region(&queue->blit, blit);
+	xsdk_gpu_set_resolve_clears(false, false);
+	xsdk_gpu_resolve_texture_rect(&destination->texture, (uint32_t)rect->offset.x, (uint32_t)rect->offset.y,
+		rect->extent.width, rect->extent.height, 0);
+	blit->source->used_serial = replay->serial;
+	destination->used_serial = replay->serial;
+	queue->colors[0] = holding(destination, 0, stored);
+	queue->colors[0].format = XSDK_TARGET_8_8_8_8;
+	// The draw and the resolve point streams, slots and shaders of their own, as a pass's begin does.
+	replay->pipeline_dirty = true;
+	memset(replay->pointed_streams, 0, sizeof replay->pointed_streams);
+	memset(replay->pointed_textures, 0, sizeof replay->pointed_textures);
+}
+
 // A render pass's area, in its command buffer's data.
 static const VkRect2D *area_of(VkCommandBuffer buffer, const Command *begin)
 {
@@ -1037,6 +1073,9 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 		break;
 	case COMMAND_BLIT_IMAGE:
 		v4x_transfer_blit(queue, command);
+		break;
+	case COMMAND_DRAW_BLIT:
+		draw_blit(queue, replay, (const DrawnBlit *)(buffer->data + command->state_at));
 		break;
 	case COMMAND_CLEAR_COLOR_IMAGE:
 		v4x_transfer_clear(queue, command);

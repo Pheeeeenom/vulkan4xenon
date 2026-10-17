@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 36, part of 8 and none of 3.
+Of the 47 rows, the layer has 37, part of 7 and none of 3. Milestone 27's rows are built and wait for the console.
 Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it compares
 depth in a fetch hasn't been checked, which xost's comparison after the fetch doesn't need. Every other gap is
 software.
@@ -84,7 +84,7 @@ software.
 |---|---|---|---|
 | Event queries and time stamps | Yes | Yes | Yes |
 | Occlusion queries | Hangs today (xsdk:docs/HARDWARE.md, "Queries and events") | No | No |
-| `StretchRect` and blits | Yes, through resolves | Resolves | Partial: on the CPU, after the GPU is done |
+| `StretchRect` and blits | Yes, through resolves | Resolves, of part of a target too | Yes: drawn on the GPU between images of a format a target takes, into regions on an 8-pixel grid in 8-bit RGBA and BGRA and whole levels in the others; the rest on the CPU, after the GPU is done (SUPPORT.md, Commands) |
 | Reading targets back | n/a | Yes | Yes, after the GPU is done |
 
 ## Where the gaps lie
@@ -103,9 +103,10 @@ Open, each for a decision when a port needs it:
   triangles.
 - **Copies of part of a target,** as GameCube framebuffer copies and N64 framebuffer effects make: xsdk resolves part
   of an 8-bit target into the same texels, on an 8-pixel grid, and the layer takes render areas on it, of one 8-bit
-  colour attachment a subpass (milestone 27; SUPPORT.md, Render passes). Areas off the grid inside the framebuffer,
-  areas of other targets, and resolves into another place, are left (xsdk:TODO.md, "Resolving part of a target, past
-  vulkan4xenon milestone 27").
+  colour attachment a subpass, and draws a blit's region into another place of another image (milestone 27;
+  SUPPORT.md, Render passes and Commands). Areas and blits off the grid inside the destination, areas of other
+  targets, and resolves into another place, are left (xsdk:TODO.md, "Resolving part of a target, past vulkan4xenon
+  milestone 27").
 - **PS2's `(A-B)*C+D` blending:** most of it maps to blend factors; the rest needs dual-source blending, which Xenos
   lacks (xsdk:TODO.md, "Destination alpha"), or work in the shader.
 - **Logic ops** (GameCube): Xenia's register definitions show none.

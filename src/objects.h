@@ -92,7 +92,8 @@ typedef struct {
 	VkRect2D area;
 } EdramPart;
 
-// The layer's own shaders and state for drawing an image back into eDRAM, and for vkCmdClearAttachments's rectangles.
+// The layer's own shaders and state for drawing an image back into eDRAM, for vkCmdClearAttachments's rectangles, and
+// for blits drawn on the GPU.
 typedef struct {
 	XsdkShader vertex;
 	XsdkShader pixel;
@@ -102,10 +103,15 @@ typedef struct {
 	uint32_t clear_constant;
 	XsdkShader clear_four;
 	uint32_t clear_four_constant;
+	// The drawn blit's vertex shader, and the float constant its source region goes in.
+	XsdkShader region;
+	uint32_t region_constant;
 	volatile uint32_t *vertices;
 	uint32_t vertices_address;
 	uint32_t texture_slot;
+	// Nearest, as images are drawn back, and linear, for blits that ask for it; both level 0 alone.
 	XsdkSamplerState sampler;
+	XsdkSamplerState linear_sampler;
 	XsdkBlendState blend;
 	XsdkRasterState raster;
 	XsdkDepthStencilState depth_stencil;
@@ -122,6 +128,17 @@ typedef struct {
 	bool clears_depth;
 	bool clears_stencil;
 } ClearRect;
+
+// A blit region the GPU draws, kept in the command buffer's data: the source's level 0 drawn over the destination's
+// rectangle, its texture coordinates at the rectangle's top left and then across and down it, into an 8_8_8_8 target,
+// then that rectangle resolved into the destination's level 0.
+typedef struct {
+	struct Image *source;
+	struct Image *destination;
+	VkRect2D rect;
+	float uv[4];
+	bool linear;
+} DrawnBlit;
 
 enum {
 	// The fences of this many submissions are kept, for copies into images they used.
@@ -407,6 +424,7 @@ typedef enum {
 	COMMAND_COPY_IMAGE_TO_BUFFER,
 	COMMAND_COPY_IMAGE,
 	COMMAND_BLIT_IMAGE,
+	COMMAND_DRAW_BLIT,
 	COMMAND_CLEAR_COLOR_IMAGE,
 	COMMAND_COPY_BUFFER,
 	COMMAND_UPDATE_BUFFER,
@@ -556,7 +574,7 @@ typedef struct {
 			uint32_t query;
 			bool after_work;
 		} timestamp;
-		// A VkViewport, VkRect2D, ClearRect, QueryCopy or LevelCopy in the command buffer's data.
+		// A VkViewport, VkRect2D, ClearRect, QueryCopy, LevelCopy or DrawnBlit in the command buffer's data.
 		uint32_t state_at;
 		struct {
 			uint32_t address;

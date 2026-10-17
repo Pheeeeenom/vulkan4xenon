@@ -95,7 +95,7 @@ Section 5 has the Dusklight track's order, agreed the same day; section 7 lists 
 | Fences | xsdk's fences. |
 | Semaphores, barriers | One queue, so semaphores do nothing. Barriers order copies against draws. |
 | Swapchain | `VK_KHR_surface` and `VK_KHR_display` over `xsdk_present`: 2 or 3 images at 1280x720. |
-| Copies | `vkCmdCopyBufferToImage` and the like run on the CPU at replay. |
+| Copies | `vkCmdCopyBufferToImage` and the like run on the CPU at replay; blits between images a resolve writes are drawn and resolved (milestone 27). |
 
 ## 4. The layer's milestones
 
@@ -2800,9 +2800,47 @@ the rest:
   and `builds.sh` in `results/2026-10-16-milestone-27/`, three titles for step 1: six breaks a check each; every
   resolve of the whole framebuffer; and the image drawn back from the corner.
 
+**Step 2, built** (2026-10-16; the console's run to come).
+- **What the GPU draws:** a blit between two optimal images of one format a resolve writes, R8G8B8A8 or B8G8R8A8,
+  from level 0 into level 0 of another image over 16 texels a side that fits eDRAM, its destination region on step
+  1's grid. `vkCmdBlitImage` records the destination's rectangle and the texture coordinates at its top left and
+  across and down it, from the source's corner that maps to each of the destination's, so a region mirrored either way
+  mirrors the blit. The replay sets a target at the destination's size, colour from tile 0, and draws the rectangle
+  with a new vertex shader, `blit_region.vert`, which takes those coordinates from a push constant, and `blit.frag`,
+  through a sampler of level 0 alone, nearest or linear, edges clamped; then it resolves the rectangle into the
+  destination, clearing nothing, and marks both images used by the submission. It waits for nothing: a later copy on
+  the CPU that reads or writes either image waits for the submission's fence, as before. eDRAM's colour then holds the
+  destination over the rectangle, and a depth its colour reached is lost.
+- **What stays on the CPU:** every other blit the CPU took before, whole levels to whole levels of one format it
+  unpacks, such as a chain of mips or R8 images; anything else is refused, as before. Encounter's Aurora blits nothing
+  (aurora-xenon:lib/vulkan4xenon), so Dusklight's frame is the same.
+- **Merged onto milestones 20 to 26,** the GPU takes 2D images of one layer in `R8G8B8A8_UNORM` and
+  `B8G8R8A8_UNORM`, a region any on the grid, nearest or linear, as xsdk resolves a rectangle of 8_8_8_8 alone; the
+  other formats milestone 25 draws keep milestone 20's blits on the CPU, which the console has run, as no check here
+  draws theirs. The colour targets and depths its target reaches are lost. Its target set turns milestone 26's clip planes off, and the replay sets the pipeline, streams and textures
+  again after it, as after a pass's begin. Everything else goes to milestones 20 and 23's blits on the CPU, a layer or
+  slice at a time.
+- **The checks:** vulkan4xenon_test's `test_gpu_blits.c` draws a 64x64 source of 8x8 cells, each its own colour, and
+  blits it into rectangles of a 124x124 image the CPU filled with a sentinel: up 2 times and down 3 nearest, where no
+  texel's centre falls on a source texel's edge; mirrored across by the destination and down by the source; up 2 times
+  linear, and down 2 linear from an odd offset, so the filtered pairs straddle the cells; and a rectangle reaching the
+  image's edges off the grid. Both images come back through `vkCmdCopyImageToBuffer`, and each rectangle's texels are
+  checked against Vulkan's blit worked on the CPU from the source as read back, within 2 a channel nearest and 3
+  linear, and the texels around them against the sentinel. Then the same work, 32 quads over a 1280x720 target and the
+  source drawn again, comes before a blit drawn on the GPU and, in a submission of its own, before a blit into level 1
+  of an image, which the CPU takes: the log gives each replay's time and when each submission was done, and the check
+  wants the CPU's replay 4 times the drawn one's at least, as it waits for the GPU. The level is read back against the
+  source, and a region off the grid inside the destination is refused.
+- **Broken on purpose:** three titles for step 2 from `breaks.py`: linear blits sampled nearest, each blit's resolve of
+  the whole destination, the drawn blit waiting for the GPU and regions off the grid taken, failing a check or two
+  each; the source region's corner dropped; and the destination's mirror dropped. Step 1's areas off the grid, in set
+  a, take blits' regions off it too.
+
 **Not in milestone 27:** render areas smaller than the framebuffer in a subpass of several colour attachments, or of a
-float or 10-bit one, which need xsdk to resolve a rectangle of any target in any format, past the agreed scope; and
-areas off the 8-pixel grid inside the framebuffer (docs/SUPPORT.md, Render passes).
+float or 10-bit one, and blits drawn into part of a level in those formats, which need xsdk to resolve a rectangle of
+any target in any format, past the agreed scope; areas off the 8-pixel grid inside the framebuffer; and blits drawn
+from or into a level past the first, a cube's face or a 3D image's slice, or between formats, which the CPU takes or
+refuses as before (docs/SUPPORT.md, Render passes and Commands).
 
 ### Milestone 28: occlusion queries
 

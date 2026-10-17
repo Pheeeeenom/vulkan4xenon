@@ -53,6 +53,7 @@ int main(void)
 		test_subpasses(&harness);
 		test_targets(&harness);
 		test_render_areas(&harness);
+		test_gpu_blits(&harness);
 		test_render_to_texture(&harness);
 		test_run_time_index(&harness);
 		test_uploads(&harness);

@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 
 #include <vulkan/vulkan.h>
@@ -553,7 +554,64 @@ static bool whole_blit_level(
 	return whole_level(image, layers, offsets[0], extent, slices);
 }
 
-// Whole levels to whole levels of an image of the same format, one the CPU unpacks (v4x_blit_format).
+static void record_drawn_blit(VkCommandBuffer commandBuffer, const DrawnBlit *blit)
+{
+	uint32_t at = 0;
+	if (!record_data(commandBuffer, blit, sizeof *blit, &at))
+		return;
+	Command *const command = record(commandBuffer, COMMAND_DRAW_BLIT);
+	if (command)
+		command->state_at = at;
+}
+
+// Level 0 of a tiled 2D image of a format a target draws, and one layer, its target fitting eDRAM: what a drawn blit
+// takes either side.
+static bool drawn_level(const Image *image, const VkImageSubresourceLayers *layers)
+{
+	return image->is_texture && image->texture.tiled && image->texture.dimension == XSDK_TEXTURE_2D &&
+		v4x_attachment_format(image->format) && !layers->mipLevel && !layers->baseArrayLayer &&
+		layers->layerCount == 1 && image->width > V4X_PACKED_SIDE && image->height > V4X_PACKED_SIDE &&
+		xsdk_gpu_color_target_tiles(image->width, image->height, v4x_target_format(image->format)) <= XSDK_EDRAM_TILES;
+}
+
+static int32_t lesser(int32_t a, int32_t b)
+{
+	return a < b ? a : b;
+}
+
+// The GPU draws a blit between two images of one 8-bit format, into a rectangle a resolve writes: xsdk resolves a
+// rectangle of an 8_8_8_8 target alone (xsdk:include/xsdk/gpu.h), and the other formats' blits stay on the CPU, which
+// the console has run. The source's corner that maps to each of the destination's gives the texture coordinates there,
+// so a region mirrored either way mirrors the blit.
+static bool drawn_blit(Image *source, Image *destination, const VkImageBlit *region, bool linear, DrawnBlit *blit)
+{
+	const VkOffset3D *const from = region->srcOffsets;
+	const VkOffset3D *const to = region->dstOffsets;
+	const VkRect2D rect = { { lesser(to[0].x, to[1].x), lesser(to[0].y, to[1].y) },
+		{ (uint32_t)abs(to[1].x - to[0].x), (uint32_t)abs(to[1].y - to[0].y) } };
+	if (source == destination || source->format != destination->format || !v4x_blit_format(source->format) ||
+		!drawn_level(source, &region->srcSubresource) || !drawn_level(destination, &region->dstSubresource))
+		return false;
+	if (v4x_target_format(destination->format) != XSDK_TARGET_8_8_8_8 ||
+		!on_grid(rect.offset.x, rect.extent.width, destination->width) ||
+		!on_grid(rect.offset.y, rect.extent.height, destination->height))
+		return false;
+	const bool across = to[0].x <= to[1].x;
+	const bool down = to[0].y <= to[1].y;
+	const float left = (float)(across ? from[0].x : from[1].x) / (float)source->width;
+	const float right = (float)(across ? from[1].x : from[0].x) / (float)source->width;
+	const float top = (float)(down ? from[0].y : from[1].y) / (float)source->height;
+	const float bottom = (float)(down ? from[1].y : from[0].y) / (float)source->height;
+	*blit = (DrawnBlit){ .source = source,
+		.destination = destination,
+		.rect = rect,
+		.uv = { left, top, right - left, bottom - top },
+		.linear = linear };
+	return true;
+}
+
+// On the GPU where it can draw them (drawn_blit), else on the CPU at replay: whole levels to whole levels of an image
+// of the same format, one the CPU unpacks (v4x_blit_format).
 VKAPI_ATTR void VKAPI_CALL vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
 	VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit *pRegions, VkFilter filter)
 {
@@ -563,6 +621,11 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage
 	Image *const destination = v4x_object(dstImage);
 	for (uint32_t i = 0; i < regionCount; i++) {
 		const VkImageBlit *const region = &pRegions[i];
+		DrawnBlit blit;
+		if (filter <= VK_FILTER_LINEAR && drawn_blit(source, destination, region, filter == VK_FILTER_LINEAR, &blit)) {
+			record_drawn_blit(commandBuffer, &blit);
+			continue;
+		}
 		Slices from;
 		Slices to;
 		// Each layer or 3D slice into one of its own: a blit doesn't scale a 3D image's depth.
@@ -571,7 +634,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage
 			from.count != to.count || source->format != destination->format || !v4x_blit_format(source->format) ||
 			filter > VK_FILTER_LINEAR) {
 			commandBuffer->result = v4x_host_unsupported(
-				"blits of less than a whole level, flipped, scaled in depth, "
+				"blits the GPU can't draw: part of a level, flipped, scaled in depth, "
 				"between formats or of formats that don't blit");
 			return;
 		}
