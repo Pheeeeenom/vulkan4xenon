@@ -2488,6 +2488,21 @@ pieces.
   fan's; `e` has an indexed draw's pieces share nothing, failing the indexed strip's check alone; `f` draws a strip's
   first piece alone, failing the three strips' checks and no list's.
 
+**On the console** (2026-10-16, the zero-fuse console; `results/2026-10-16-milestone-24/`):
+- **vulkan4xenon_test passed 361 of 361, twice** (`vulkan4xenon_test.log`, `_2`): every instance of `vkCmdDraw`,
+  `vkCmdDrawIndexed` and both indirect draws in its own column and colour, `firstInstance` included, a stride of 0
+  reading one element for every vertex and each instance's constants taking effect on its draw; a triangle strip of
+  70,000 vertices, back faces culled, right over its split and to its end, from 32-bit indices too, and a line
+  strip's; and a long fan still refused (xsdk:docs/HARDWARE.md, "Instances and long strips, vulkan4xenon milestone
+  24"). What a draw an instance costs is still unmeasured.
+- **Broken on purpose,** each of the six sets failed the checks `breaks.py` names for it and the screen's, and only
+  those (`vulkan4xenon_test_broken_a.log` to `_f`).
+- **xsdk_test passed 343 of 345,** the two left the controller's, no button pressed (`xsdk_test.log`).
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.5 to 29.9 fps,
+  99 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m24.log`).
+
+Milestone 24 is done.
+
 ### Milestone 25: render target formats, and four targets at once
 
 **Why.** HDR and deferred renderers draw into float and 10-bit targets, several at once. The layer draws into one RGBA8
