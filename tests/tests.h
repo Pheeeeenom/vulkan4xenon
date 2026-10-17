@@ -34,6 +34,8 @@ void test_render_areas(const Harness *harness);
 // Blits drawn on the GPU into rectangles of an image, and the replay's time with one and with a blit on the CPU
 // (milestone 27).
 void test_gpu_blits(const Harness *harness);
+// Occlusion queries around quads, nothing, hidden quads and clears, reused, many at once and copied (milestone 28).
+void test_occlusion(const Harness *harness);
 // Events the GPU sets, resets and waits on, and time stamps of its clock (milestone 19).
 void test_events(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.

@@ -11,32 +11,32 @@
 #include "xsdk/log.h"
 
 // Time stamp queries: each query's slot takes the GPU clock's three words from xsdk_gpu_write_clock, the last of them
-// written last, so a slot whose last word isn't V4X_QUERY_UNWRITTEN holds a whole time stamp. Occlusion queries wait
-// for Xenos's sample counts to be made to work (xsdk:docs/HARDWARE.md, "Queries and events"); pipeline statistics need
-// a feature the device doesn't report.
+// written last, so a slot whose last word isn't V4X_QUERY_UNWRITTEN holds a whole time stamp. Occlusion queries take
+// D3D's visibility query, as Xenos's sample counts hang it (xsdk:docs/HARDWARE.md, "Occlusion queries, vulkan4xenon
+// milestone 28"): a slot takes the status word, then the last visibility id the query took, ids 0 to it its own
+// (queue.c). Pipeline statistics need a feature the device doesn't report.
 
 enum {
 	IDLE_TIMEOUT_MS = 10000,
-	LAST_CLOCK_WORD = XSDK_GPU_CLOCK_WORDS - 1,
 };
 
 bool v4x_query_value(const QueryPool *pool, uint32_t query, uint64_t *value)
 {
 	volatile const uint32_t *const slot = &pool->slots[query * V4X_QUERY_SLOT_WORDS];
-	if (slot[LAST_CLOCK_WORD] == V4X_QUERY_UNWRITTEN)
+	const uint32_t last = slot[V4X_QUERY_LAST_WORD];
+	if (last == V4X_QUERY_UNWRITTEN)
 		return false;
 	// The words before it landed first; the loads are kept after it.
 	__asm__ volatile("sync" ::: "memory");
-	*value = xsdk_gpu_clock_value(slot);
+	// 1 if any of the query's ids has its bit set, which can't count samples (docs/SUPPORT.md, Queries).
+	*value = pool->occlusion ? (slot[0] & ((2u << last) - 1)) != 0 : xsdk_gpu_clock_value(slot);
 	return true;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateQueryPool(VkDevice device, const VkQueryPoolCreateInfo *pCreateInfo,
 	const VkAllocationCallbacks *pAllocator, VkQueryPool *pQueryPool)
 {
-	if (pCreateInfo->queryType == VK_QUERY_TYPE_OCCLUSION)
-		return v4x_host_unsupported("occlusion queries");
-	if (pCreateInfo->queryType != VK_QUERY_TYPE_TIMESTAMP)
+	if (pCreateInfo->queryType != VK_QUERY_TYPE_TIMESTAMP && pCreateInfo->queryType != VK_QUERY_TYPE_OCCLUSION)
 		return v4x_host_unsupported("pipeline statistics queries");
 	const VkAllocationCallbacks *const allocator = v4x_host_device_allocator(device, pAllocator);
 	QueryPool *const pool = v4x_host_alloc(allocator, sizeof *pool, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
@@ -53,6 +53,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateQueryPool(VkDevice device, const VkQueryP
 	__asm__ volatile("sync" ::: "memory");
 	pool->address = xsdk_gpu_address(pool->slots);
 	pool->count = pCreateInfo->queryCount;
+	pool->occlusion = pCreateInfo->queryType == VK_QUERY_TYPE_OCCLUSION;
 	pool->used_serial = 0;
 	*pQueryPool = v4x_handle(pool);
 	return VK_SUCCESS;

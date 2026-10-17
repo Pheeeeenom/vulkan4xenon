@@ -45,8 +45,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - `vkCreateBufferView`, as no format has texel buffer features (Formats), so `vkDestroyBufferView` has nothing to do;
 - `vkCmdResolveImage`, as images have one sample;
 - `vkCmdSetDepthBounds`, with no depth bounds test (Pipelines);
-- `vkCreateQueryPool` for occlusion and pipeline statistics queries, and so `vkCmdBeginQuery` and `vkCmdEndQuery`
-  (Queries);
+- `vkCreateQueryPool` for pipeline statistics queries, and `vkCmdBeginQuery` with `VK_QUERY_CONTROL_PRECISE_BIT` or
+  outside a render pass (Queries);
 - `vkQueueBindSparse`, with no sparse binding (Device).
 
 ## Device
@@ -557,22 +557,36 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 ## Queries
 
-- Time stamp queries only (milestone 19). A query's slot in GPU memory takes the GPU's clock (`xsdk_gpu_write_clock`):
-  64 bits, from 0 when the device takes the GPU, 498.75 ticks a microsecond, so `timestampPeriod` is 2.005 ns and the
-  queue family's `timestampValidBits` 64 (xsdk:docs/HARDWARE.md, "Queries and events").
+- Time stamp and occlusion queries (milestones 19 and 28). Pipeline statistics need a feature that isn't reported, so
+  `vkCreateQueryPool` refuses them.
+- A time stamp query's slot in GPU memory takes the GPU's clock (`xsdk_gpu_write_clock`): 64 bits, from 0 when the
+  device takes the GPU, 498.75 ticks a microsecond, so `timestampPeriod` is 2.005 ns and the queue family's
+  `timestampValidBits` 64 (xsdk:docs/HARDWARE.md, "Queries and events").
 - `vkCmdWriteTimestamp` at `VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT` copies the clock as the command processor reaches it:
   once the draws before it are issued, which may still be running, but only once a render pass before it has ended, as
   the command processor waits for the pass's resolve. At any other stage it copies the clock once the GPU is idle, the
   latest any stage finishes.
-- `vkCmdResetQueryPool` marks the slots unwritten on the CPU at replay, after waiting for the submission that last wrote
-  the pool, as the copies do (Commands). A query is available once its slot is written.
+- **Deviation: occlusion queries don't count samples.** A query is 1 if any draw between `vkCmdBeginQuery` and
+  `vkCmdEndQuery` rasterized anything, and 0 if none did, so a draw hidden behind others everywhere still makes it 1.
+  It's D3D's visibility query (`xsdk_gpu_begin_visibility`), the one answer Xenos gives: every try at its sample counts
+  hung the GPU (xsdk:docs/HARDWARE.md, "Occlusion queries, vulkan4xenon milestone 28"). Vulkan lets a query without
+  `VK_QUERY_CONTROL_PRECISE_BIT` return any non-zero value where samples passed, but 0 where none did, which the hidden
+  draw's 1 breaks. `occlusionQueryPrecise` isn't reported, and the precise bit is refused (milestone 28).
+- An occlusion query begins and ends inside one subpass, as Vulkan asks of one begun in a render pass; one begun outside
+  a render pass is refused, as the layer's resolves and blits there would count. Its draws go to visibility id 0, and
+  each `vkCmdClearAttachments` inside it ends that id and goes on under the next, so the clear's own draw doesn't count.
+  **Shortcut:** past a query's 31st clear, its clears count, its ids used up. `inheritedQueries` isn't reported.
+- A query's end waits for the GPU to be idle, then copies the status word holding its bits into its slot, and the last
+  id it took after it, which makes it available (`xsdk_gpu_end_visibility`). So each query costs a wait for the GPU, and
+  a submission takes any number of them, each from id 0 again.
+- The console hasn't run occlusion queries yet. It settles whether an id begun again around draws that rasterize nothing
+  comes back 0, which every query after the first relies on (docs/ROADMAP.md, milestone 28).
+- For both kinds, `vkCmdResetQueryPool` marks the slots unwritten on the CPU at replay, after waiting for the submission
+  that last wrote the pool, as the copies do (Commands). A query is available once its slot is written.
 - `vkCmdCopyQueryPoolResults` runs on the CPU at replay too: it waits for the pool's last submission and the draws
   before, so every query written before it is available and `VK_QUERY_RESULT_WAIT_BIT` adds nothing.
 - `vkGetQueryPoolResults` with `VK_QUERY_RESULT_WAIT_BIT` waits for the fence of the submission that last wrote the
   pool; a query still unwritten then returns `VK_NOT_READY`, rather than waiting for good.
-- **Not yet:** occlusion queries. Every way the console was asked to write its sample counts hung the GPU
-  (xsdk:docs/HARDWARE.md, "Queries and events"), so `vkCreateQueryPool` refuses them, and pipeline statistics, whose
-  feature isn't reported.
 
 ## Display and swapchain
 

@@ -442,6 +442,8 @@ typedef enum {
 	COMMAND_RESET_QUERIES,
 	COMMAND_WRITE_TIMESTAMP,
 	COMMAND_COPY_QUERY_RESULTS,
+	COMMAND_BEGIN_QUERY,
+	COMMAND_END_QUERY,
 } CommandType;
 
 // The values a subpass's attachments clear to: each colour attachment's, by its place in the subpass, then depth and
@@ -563,7 +565,8 @@ typedef struct {
 			uint32_t events_at;
 			uint32_t count;
 		} wait_events;
-		// Queries reset, or a time stamp written once the work before it is done or at once.
+		// Queries reset, or an occlusion query begun or ended, the first alone; or a time stamp written once the work
+		// before it is done or at once.
 		struct {
 			struct QueryPool *pool;
 			uint32_t first;
@@ -619,6 +622,8 @@ struct VkCommandBuffer_T {
 	const Pipeline *pipeline;
 	// Allocated as a secondary command buffer, which vkCmdExecuteCommands replays in place.
 	bool secondary;
+	// A secondary command buffer recorded to continue a render pass, so its queries begin inside one.
+	bool continues_pass;
 };
 
 typedef struct CommandPool {
@@ -643,18 +648,22 @@ typedef struct {
 } Event;
 
 enum {
-	// A query's slot: the GPU clock's words (xsdk:include/xsdk/gpu.h, xsdk_gpu_write_clock), padded.
+	// A query's slot: the GPU clock's words (xsdk:include/xsdk/gpu.h, xsdk_gpu_write_clock), padded; or an occlusion
+	// query's status word, then the last visibility id it took in the clock's last word (queue.c).
 	V4X_QUERY_SLOT_WORDS = 4,
-	// The first word of a slot no time stamp has been written into since its reset: a high word the clock would
-	// take 2^32 times 8.6 s to reach.
+	// The word written last, so a slot holding it holds a whole result.
+	V4X_QUERY_LAST_WORD = XSDK_GPU_CLOCK_WORDS - 1,
+	// That word in a slot nothing has been written into since its reset: a high word the clock would take 2^32 times
+	// 8.6 s to reach, and no visibility id.
 	V4X_QUERY_UNWRITTEN = 0xFFFFFFFF,
 };
 
-// Time stamp queries, a slot each in GPU memory (query.c).
+// Time stamp or occlusion queries, a slot each in GPU memory (query.c).
 typedef struct QueryPool {
 	volatile uint32_t *slots;
 	uint32_t address;
 	uint32_t count;
+	bool occlusion;
 	// The submission that last wrote it (VkQueue_T's serial), 0 if none, which a reset or a copy waits for.
 	uint32_t used_serial;
 } QueryPool;

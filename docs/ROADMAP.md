@@ -2914,6 +2914,52 @@ bit for the quad and for the quad hidden behind it too, so it's conservative: it
 anything, not whether a sample passed the depth test (xsdk:docs/HARDWARE.md, "Occlusion queries, vulkan4xenon milestone
 28"). The user decided the layer takes it all the same, outcome 2's deviation without `occlusionQueryPrecise`.
 
+**Step 1, built** (2026-10-17; checks and breaks in `results/2026-10-16-milestone-28/`, the console's run to come).
+- **xsdk** begins and ends D3D's visibility query (xsdk 9c734eb): `xsdk_gpu_begin_visibility` sets `PA_SC_VIZ_QUERY`
+  on with the id, 0 to 63, and sends `PM4_VIZ_QUERY`; `xsdk_gpu_end_visibility` sends the query's end, turns the
+  register off, waits for the GPU to be idle, and copies the status word holding the id's bit, `_STATUS_0` for ids 0 to
+  31 and `_STATUS_1` for 32 to 63, to memory, as the probe found it must: copied at the end, the word held the bits
+  from before. Its end comes before anything after it can begin the id again.
+- **The layer** makes occlusion pools, a slot a query: the status word, then the last visibility id the query took,
+  written after it in the word a time stamp writes last, so availability, resets and copies are the time stamps'.
+  `vkCmdBeginQuery` takes a query inside a render pass, or in a secondary command buffer continuing one, where the
+  replay draws nothing of its own but `vkCmdClearAttachments`'s rectangles. Each query's draws go to id 0; a clear
+  inside it ends the id and goes on under the next, in the same status word, so the clear doesn't count; past the
+  31st clear, the ids are used up and the clears count. A query is 1 if any of its ids' bits is set. Every query
+  waits for the GPU at its end, so a submission takes any number of them. `VK_QUERY_CONTROL_PRECISE_BIT` and queries
+  begun outside a render pass, where the layer's resolves and blits would count, are refused.
+- **The checks:** xsdk_test's `test_visibility.c` copies each query's status word: a quad's bit set, no draw's clear,
+  a quad hidden behind it set, the conservative answer, id 1 begun again around no draw after its quad clear, and id
+  63's quad set and 32's no draw clear in the second word. vulkan4xenon_test's `test_occlusion.c`: queries around a
+  quad, nothing, a quad off the screen's right edge and one culled as a back face, the quad's hidden twin, a clear
+  alone, a quad then a clear and a clear then a quad; query 0 reset and reused in three submissions, around nothing, a
+  quad and nothing; 80 queries in one submission, quads and no draws in turn, read with `VK_QUERY_RESULT_WAIT_BIT`
+  before the fence's wait; results copied at 64 bits with availability and at 32, and read with availability, beside
+  a query left reset; a query in a secondary command buffer; and the refusals and features. `test_events.c` now wants
+  only pipeline statistics pools refused.
+- **Broken on purpose:** xsdk's `xsdk_test_breaks.py` and `xsdk_test_builds.sh` in
+  xsdk:results/2026-10-16-vulkan4xenon-milestone-28/, beside the probe's `builds.sh`, three titles: the copy without
+  the wait, every id read from the first word, and the id unshifted in the register. The layer's `breaks.py` and
+  `builds.sh` in `results/2026-10-16-milestone-28/`, four titles: clears inside a query counted, and precise queries
+  taken; the last id's bit read alone, and queries outside a render pass taken; resets leaving occlusion queries as
+  they were, so one written before stays available; and a query's pool not marked used, so a wait for results doesn't
+  wait.
+- **What the console must settle,** each with the checks a wrong answer fails:
+  - whether an id begun again around draws that rasterize nothing comes back clear, which every query after the first
+    relies on: xsdk_test's id 1 begun again; vulkan4xenon_test's no draw, off screen, culled, clear alone, reused and
+    80 queries checks;
+  - whether a draw off the screen or culled rasterizes nothing to the query: the off screen or culled check;
+  - whether ending an id around a clear keeps it out, and the id after counts: the clears check;
+  - whether the hidden quad still sets the bit here, the conservative answer the probe found: xsdk_test's and
+    vulkan4xenon_test's hidden quad checks, which a clear bit fails, a less conservative answer, to record;
+  - whether ids 32 to 63 answer in the second word: xsdk_test's ids 32 to 63 check, which the layer doesn't use;
+  - set a's and c's breaks of xsdk, which Xenia can't show: whether a copy without the wait holds the bits from before,
+    as in the probe, and whether the register's id or the packet's picks the query.
+
+**Not in milestone 28:** sample counts and `occlusionQueryPrecise`, which nothing public makes Xenos write; queries
+begun outside a render pass; `inheritedQueries`; a query's clears past its 31st kept out; one wait for the GPU over
+several queries' copies, which needs the ids to rotate and a measured need; and pipeline statistics.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.

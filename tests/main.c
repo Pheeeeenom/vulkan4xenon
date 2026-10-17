@@ -67,6 +67,7 @@ int main(void)
 		test_shader_lod(&harness);
 		test_facing(&harness);
 		test_vertex_textures(&harness);
+		test_occlusion(&harness);
 		// Last, so the GPU's clock is past its first 2^32 ticks, 8.6 s, and a time stamp's high word counts.
 		test_events(&harness);
 	}

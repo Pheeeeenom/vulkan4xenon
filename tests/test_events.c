@@ -181,18 +181,17 @@ static void check_device(const Harness *harness)
 			picoseconds <= PERIOD_MAX_PICOSECONDS && properties.limits.timestampComputeAndGraphics);
 }
 
+// Occlusion pools are made since milestone 28 (test_occlusion.c).
 static void check_refusals(const Harness *harness)
 {
-	VkQueryPoolCreateInfo info = {
+	const VkQueryPoolCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
-		.queryType = VK_QUERY_TYPE_OCCLUSION,
+		.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS,
 		.queryCount = 1,
 	};
 	VkQueryPool pool = VK_NULL_HANDLE;
-	const bool occlusion = vkCreateQueryPool(harness->device, &info, NULL, &pool) == VK_ERROR_FEATURE_NOT_PRESENT;
-	info.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
-	const bool statistics = vkCreateQueryPool(harness->device, &info, NULL, &pool) == VK_ERROR_FEATURE_NOT_PRESENT;
-	check("time stamps: occlusion and pipeline statistics query pools are refused", occlusion && statistics);
+	check("time stamps: pipeline statistics query pools are refused",
+		vkCreateQueryPool(harness->device, &info, NULL, &pool) == VK_ERROR_FEATURE_NOT_PRESENT);
 }
 
 // Whether every query of a range reads unavailable, each availability 0 and the call VK_NOT_READY.

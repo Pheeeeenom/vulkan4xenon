@@ -135,9 +135,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAllocateCommandBuffers(
 VKAPI_ATTR VkResult VKAPI_CALL vkBeginCommandBuffer(
 	VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo *pBeginInfo)
 {
-	(void)pBeginInfo;
 	reset_buffer(commandBuffer);
 	commandBuffer->state = COMMAND_BUFFER_RECORDING;
+	commandBuffer->continues_pass =
+		commandBuffer->secondary && pBeginInfo->flags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 	return VK_SUCCESS;
 }
 
@@ -859,32 +860,43 @@ VKAPI_ATTR void VKAPI_CALL vkCmdWaitEvents(VkCommandBuffer commandBuffer, uint32
 	command->wait_events.count = eventCount;
 }
 
-VKAPI_ATTR void VKAPI_CALL vkCmdResetQueryPool(
-	VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
+static void record_queries(
+	VkCommandBuffer commandBuffer, CommandType type, VkQueryPool queryPool, uint32_t first, uint32_t count)
 {
-	Command *const command = record(commandBuffer, COMMAND_RESET_QUERIES);
+	Command *const command = record(commandBuffer, type);
 	if (!command)
 		return;
 	command->queries.pool = v4x_object(queryPool);
-	command->queries.first = firstQuery;
-	command->queries.count = queryCount;
+	command->queries.first = first;
+	command->queries.count = count;
 }
 
-// Only time stamp pools can be made (query.c), and they're never begun.
+VKAPI_ATTR void VKAPI_CALL vkCmdResetQueryPool(
+	VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
+{
+	record_queries(commandBuffer, COMMAND_RESET_QUERIES, queryPool, firstQuery, queryCount);
+}
+
+// Only occlusion queries are begun, D3D's visibility query, which tells whether draws rasterized anything, so
+// occlusionQueryPrecise isn't reported (docs/SUPPORT.md, Queries). Inside a render pass the replay draws nothing of its
+// own but clears, which it keeps out of them (queue.c); outside one, its resolves and blits would count.
 VKAPI_ATTR void VKAPI_CALL vkCmdBeginQuery(
 	VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
 {
-	(void)queryPool;
-	(void)query;
-	(void)flags;
-	commandBuffer->result = v4x_host_unsupported("occlusion queries");
+	if (flags & VK_QUERY_CONTROL_PRECISE_BIT) {
+		commandBuffer->result = v4x_host_unsupported("precise occlusion queries");
+		return;
+	}
+	if (!commandBuffer->render_pass && !commandBuffer->continues_pass) {
+		commandBuffer->result = v4x_host_unsupported("occlusion queries begun outside a render pass");
+		return;
+	}
+	record_queries(commandBuffer, COMMAND_BEGIN_QUERY, queryPool, query, 1);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdEndQuery(VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
 {
-	(void)queryPool;
-	(void)query;
-	commandBuffer->result = v4x_host_unsupported("occlusion queries");
+	record_queries(commandBuffer, COMMAND_END_QUERY, queryPool, query, 1);
 }
 
 // At the top of the pipe the clock is copied as the command processor reaches it; at any later stage once the GPU is

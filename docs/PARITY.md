@@ -8,12 +8,13 @@ either.
 
 docs/SUPPORT.md says exactly what the layer does; this page sums it up against Direct3D 9. Milestones 20 to 28 in
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
-whether the layer exposes it. As of 2026-10-16.
+whether the layer exposes it. As of 2026-10-17.
 
-Of the 47 rows, the layer has 37, part of 7 and none of 3.
-Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it compares
-depth in a fetch hasn't been checked, which xost's comparison after the fetch doesn't need. Every other gap is
-software.
+Of the 47 rows, the layer has 37, part of 8 and none of 2. Milestone 28's occlusion row is built and waits for the
+console.
+Xenos has all but three: its occlusion queries tell only whether draws rasterized anything, its gamma only approximates
+sRGB, and whether it compares depth in a fetch hasn't been checked, which xost's comparison after the fetch doesn't
+need. Every other gap is software.
 
 ## Shaders
 
@@ -83,7 +84,7 @@ software.
 | Feature | Xenos | xsdk and xost | vulkan4xenon |
 |---|---|---|---|
 | Event queries and time stamps | Yes | Yes | Yes |
-| Occlusion queries | Hangs today (xsdk:docs/HARDWARE.md, "Queries and events") | No | No |
+| Occlusion queries | Partial: sample counts hang it; its visibility query tells whether draws rasterized anything (xsdk:docs/HARDWARE.md, "Occlusion queries, vulkan4xenon milestone 28") | Partial: the visibility query (xsdk:include/xsdk/gpu.h, `xsdk_gpu_begin_visibility`) | Partial: 1 if a query's draws rasterized anything, a draw hidden behind others too, a deviation without `occlusionQueryPrecise`; not yet confirmed on the console (SUPPORT.md, Queries) |
 | `StretchRect` and blits | Yes, through resolves | Resolves, of part of a target too | Yes: drawn on the GPU between images of a format a target takes, into regions on an 8-pixel grid in 8-bit RGBA and BGRA and whole levels in the others; the rest on the CPU, after the GPU is done (SUPPORT.md, Commands) |
 | Reading targets back | n/a | Yes | Yes, after the GPU is done |
 

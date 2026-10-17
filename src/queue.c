@@ -23,6 +23,8 @@ enum {
 	// (xsdk:include/xsdk/gpu.h); xost gives each uniform block such groups to itself.
 	CONSTANT_GROUP = 4,
 	LOAD_ALIGNMENT_BYTES = 64,
+	// The visibility ids one status word holds (xsdk:include/xsdk/gpu.h).
+	VISIBILITY_WORD_IDS = XSDK_VISIBILITY_IDS / 2,
 };
 
 typedef struct {
@@ -76,6 +78,10 @@ typedef struct {
 	// What each stream and texture slot points at, so a draw points only what changed; zero where it isn't known.
 	VertexBinding pointed_streams[XSDK_VERTEX_STREAMS];
 	PointedTexture pointed_textures[V4X_TEXTURE_SLOTS];
+	// The occlusion query open, Vulkan's one at a time: its slot's GPU address, 0 for none, and the visibility id its
+	// draws go to now, from 0 (begin_query).
+	uint32_t query_address;
+	uint32_t visibility_id;
 } Replay;
 
 // A block's registers on their way into the constants; the queue is externally synchronized, so one copy will do.
@@ -998,9 +1004,14 @@ static void clear_depth_image(VkQueue queue, const Command *command)
 }
 
 // The clear draws with the layer's own shaders and state, and its rectangle in stream 0, so they're set again after;
-// no clip plane cuts it.
+// no clip plane cuts it, and an occlusion query open doesn't count it: the query's id ends before it, and its next id
+// begins after, in the same status word.
+// shortcut: a query's clears past its 31st count toward it, its ids used up; give it more words if a port does that.
 static void clear_attachments(VkQueue queue, Replay *replay, const ClearRect *clear)
 {
+	const bool pauses_query = replay->query_address && replay->visibility_id + 1 < VISIBILITY_WORD_IDS;
+	if (pauses_query)
+		xsdk_gpu_end_visibility(replay->visibility_id, replay->query_address);
 	if (replay->clip_planes_on)
 		xsdk_gpu_set_clip_planes(0, NULL);
 	replay->clip_planes_on = false;
@@ -1008,6 +1019,8 @@ static void clear_attachments(VkQueue queue, Replay *replay, const ClearRect *cl
 		&queue->blit, clear, replay->render_pass->color_count, replay->framebuffer->width, replay->framebuffer->height);
 	replay->pipeline_dirty = true;
 	replay->pointed_streams[0] = (VertexBinding){ 0 };
+	if (pauses_query)
+		xsdk_gpu_begin_visibility(++replay->visibility_id);
 }
 
 // The GPU waits for each event's word, then its caches take what the host wrote before it set one.
@@ -1029,6 +1042,30 @@ static void write_timestamp(const Replay *replay, const Command *command)
 	const uint32_t slot_bytes = V4X_QUERY_SLOT_WORDS * sizeof(uint32_t);
 	xsdk_gpu_write_clock(pool->address + command->timestamp.query * slot_bytes, command->timestamp.after_work);
 	pool->used_serial = replay->serial;
+}
+
+// Occlusion queries begin and end inside a render pass (vkCmdBeginQuery), where the layer's only draws are clears,
+// which clear_attachments keeps out of them. Each takes visibility ids from 0: an id's end copies its status word once
+// the GPU is idle, before anything after it can begin the id again (xsdk:include/xsdk/gpu.h), so a submission takes
+// any number of queries, a wait for the GPU each.
+static void begin_query(Replay *replay, const Command *command)
+{
+	QueryPool *const pool = command->queries.pool;
+	replay->query_address = pool->address + command->queries.first * V4X_QUERY_SLOT_WORDS * sizeof(uint32_t);
+	replay->visibility_id = 0;
+	xsdk_gpu_begin_visibility(0);
+	pool->used_serial = replay->serial;
+}
+
+// The status word, then the last id the query took, written after it as a fence is (query.c). An end whose begin was
+// refused as it was recorded has nothing to end.
+static void end_query(Replay *replay)
+{
+	if (!replay->query_address)
+		return;
+	xsdk_gpu_end_visibility(replay->visibility_id, replay->query_address);
+	xsdk_gpu_write_word(replay->query_address + V4X_QUERY_LAST_WORD * sizeof(uint32_t), replay->visibility_id);
+	replay->query_address = 0;
 }
 
 static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay, uint32_t index)
@@ -1142,6 +1179,12 @@ static void replay_command(VkQueue queue, VkCommandBuffer buffer, Replay *replay
 		break;
 	case COMMAND_COPY_QUERY_RESULTS:
 		v4x_transfer_copy_queries(queue, (const QueryCopy *)(buffer->data + command->state_at));
+		break;
+	case COMMAND_BEGIN_QUERY:
+		begin_query(replay, command);
+		break;
+	case COMMAND_END_QUERY:
+		end_query(replay);
 		break;
 	}
 }
