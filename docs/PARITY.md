@@ -10,10 +10,9 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 30, part of 7 and none of 10, counting milestone 23's cube and 3D images, border and
-mirror-once addressing and shadow comparison, which wait for the console. Xenos has all but three: occlusion queries
-hang it today, its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked, which
-xost's comparison after the fetch doesn't need. Every other gap is software.
+Of the 47 rows, the layer has 30, part of 7 and none of 10. Xenos has all but three: occlusion queries hang it today,
+its gamma only approximates sRGB, and whether it compares depth in a fetch hasn't been checked, which xost's
+comparison after the fetch doesn't need. Every other gap is software.
 
 ## Shaders
 
@@ -48,8 +47,8 @@ xost's comparison after the fetch doesn't need. Every other gap is software.
 | Feature | Xenos | xsdk and xost | vulkan4xenon |
 |---|---|---|---|
 | 2D textures, mips, any size | Yes, up to 8192 | Yes | Yes |
-| Cube maps | Yes (xenia:src/xenia/gpu/xenos.h:97-102) | Yes, with mips (xsdk:tests/test_cube_volume.c), not yet run on the console; xost samples them (xost:docs/xsc.md:41) | Yes, with mips, not yet run on the console (milestone 23) |
-| Volume textures | Yes | Partial: one level, not yet run on the console; xost samples them (xost:docs/xsc.md:42) | Partial: one level, not yet run on the console (milestone 23) |
+| Cube maps | Yes (xenia:src/xenia/gpu/xenos.h:97-102) | Yes, with mips (xsdk:tests/test_cube_volume.c), on the console; xost samples them (xost:docs/xsc.md:41) | Yes, with mips, on the console (milestone 23) |
+| Volume textures | Yes | Partial: one level, on the console; xost samples them (xost:docs/xsc.md:42) | Partial: one level, on the console (milestone 23) |
 | 16-bit colour, L8, A8, A8L8 | Yes | Yes | Yes: 565, 1555 and 4444 (milestone 20), and R8 and RG8, whose swizzles stand in for L8, A8 and A8L8 |
 | DXT1 to 5 | Yes (xenia:src/xenia/gpu/xenos.h:494-536) | Yes | Yes: BC1 to BC3, and BC4 and BC5 from DXT5A and DXN, each reported a format at a time, as `textureCompressionBC` promises BC6H and BC7 too (SUPPORT.md, Formats) |
 | Float textures | Yes, though the console filtered 16-bit floats wrong (SUPPORT.md, Formats) | Partial: 16-bit floats and R32F | Partial: 16-bit floats in one, two and four channels, and R32F, nearest filtering only |
@@ -57,8 +56,8 @@ xost's comparison after the fetch doesn't need. Every other gap is software.
 | sRGB | Approximate: a piecewise-linear gamma (xenia:src/xenia/gpu/xenos.cc:27) | Yes, Xenos's gamma | Partial: sampled through Xenos's curve, a deviation; not colour attachments (milestone 20) |
 | Point, linear and anisotropic filtering, LOD bias, mip clamps | Yes | Yes | Yes, clamped to whole levels |
 | Wrap, mirror and clamp | Yes | Yes | Yes |
-| Border and mirror-once addressing | Yes, a black or white border only (xenia:src/xenia/gpu/xenos.h:104-162) | Yes, not yet run on the console (xsdk:tests/test_sampling.c) | Yes: clamp to border in transparent black and opaque white, mirror clamp to edge by its extension, not yet run on the console (milestone 23) |
-| Depth textures and shadow comparison | Depth sampling yes; comparison in the fetch not checked | Depth resolves into textures; xost compares a `sampler2DShadow` after the fetch (xost:docs/xsc.md:43) | Yes: comparison samplers, nearest, and D24S8 filtered linearly, not yet run on the console (milestone 23) |
+| Border and mirror-once addressing | Yes, a black or white border only (xenia:src/xenia/gpu/xenos.h:104-162) | Yes, on the console (xsdk:tests/test_sampling.c) | Yes: clamp to border in transparent black and opaque white, mirror clamp to edge by its extension, on the console (milestone 23) |
+| Depth textures and shadow comparison | Depth sampling yes; comparison in the fetch not checked | Depth resolves into textures; xost compares a `sampler2DShadow` after the fetch (xost:docs/xsc.md:43) | Yes: comparison samplers, nearest, and D24S8 filtered linearly, on the console (milestone 23) |
 
 ## Render targets and output
 

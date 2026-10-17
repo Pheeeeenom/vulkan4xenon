@@ -263,6 +263,10 @@ static VkResult make_depth_pipeline(const Harness *harness, Scene *scene)
 		.depthWriteEnable = VK_TRUE,
 		.depthCompareOp = VK_COMPARE_OP_ALWAYS,
 	};
+	// The layout first, as the pipeline's spec takes it.
+	const VkResult result = harness_push_layout(harness, &scene->push_layout);
+	if (result != VK_SUCCESS)
+		return result;
 	const HarnessPipeline spec = {
 		.vertex_spirv = push_vert_spirv,
 		.vertex_bytes = PUSH_VERT_SPIRV_BYTES,
@@ -276,10 +280,7 @@ static VkResult make_depth_pipeline(const Harness *harness, Scene *scene)
 		.depth_stencil = &depth_stencil,
 		.dynamic_viewport = true,
 	};
-	VkResult result = harness_push_layout(harness, &scene->push_layout);
-	if (result == VK_SUCCESS)
-		result = harness_pipeline(harness, &spec, scene->depth_pass, &scene->depth_pipeline);
-	return result;
+	return harness_pipeline(harness, &spec, scene->depth_pass, &scene->depth_pipeline);
 }
 
 static VkResult make_screen_pipelines(const Harness *harness, Scene *scene)

@@ -2383,6 +2383,27 @@ comparison sampler that filters linearly is refused, as comparing after the fetc
   the fetch, for a probe to try;
 - opaque black borders, till the console tells black's alpha, and the integer borders.
 
+**On the console** (2026-10-16, the zero-fuse console; `results/2026-10-16-milestone-23/`):
+- **Merged onto milestones 20 to 22** by rebasing its four commits: copies, clears and blits run a face or slice at a
+  time with milestone 20's block swap and format packing inside each, and xost's comparison went into milestone 22's
+  `src/xsc_lower_sample.c` (xsdk 9f9fe62).
+- **The first runs failed the shadow scene's making:** `test_shadow.c` built its depth pipeline's spec from the push
+  constant layout before making it, so the pipeline had none (`vulkan4xenon_test_null_layer.log`). With the layout
+  made first, **vulkan4xenon_test passed 345 of 345, twice** (`vulkan4xenon_test.log`, `_2`): every cube face and 3D
+  slice where it belongs, copied in and back out a face or slice at a time; repeat, mirrored repeat, clamp to edge,
+  mirror clamp to edge and an opaque white border; a transparent black border's alpha 0; comparisons by less,
+  greater, never and always either side of the reference; and D24S8 filtered linearly, which stays reported.
+- **Broken on purpose,** each set failed the checks `breaks.py` names for it and only those, once set a's read-back
+  break read the first slice for each rather than one past the last, which tripped xsdk's assert and left the title
+  waiting in xbWatson (`vulkan4xenon_test_broken_a.log` to `_c`); xsdk's three did the same
+  (xsdk:results/2026-10-16-vulkan4xenon-milestone-23/).
+- **xsdk_test passed 343 of 345,** the two left the controller's, no button pressed; its cube, 3D and addressing
+  checks are xsdk:docs/HARDWARE.md's "Cube and 3D textures and the rest of addressing".
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.6 to 29.9 fps,
+  98 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m23.log`).
+
+Milestone 23 is done.
+
 ### Milestone 24: instancing and long strips
 
 **Why.** Foliage, crowds and particles are drawn instanced, and the layer draws one instance a draw (docs/SUPPORT.md,
