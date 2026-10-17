@@ -479,13 +479,13 @@ static const V4xShaderLiteral sprite_vert_literals[] = {
 };
 
 static const V4xShader shaders[] = {
-	{ 0xA2D0D69A9CE841C6ull, 784, mesh_frag_container, 252, NULL, 0, mesh_frag_resources, 2 },
-	{ 0xCDE214766F4D8DE0ull, 1252, mesh_vert_container, 376, mesh_vert_literals, 1, mesh_vert_resources, 1 },
-	{ 0x33E8B01AEE5ADDECull, 1164, mesh_gray_frag_container, 332, mesh_gray_frag_literals, 1, mesh_gray_frag_resources, 2 },
-	{ 0xB8EB7D82A1283C2Cull, 820, mesh_uniform_frag_container, 252, NULL, 0, mesh_uniform_frag_resources, 2 },
-	{ 0x30642BF0E52D0977ull, 1296, mesh_uniform_vert_container, 376, mesh_uniform_vert_literals, 1, mesh_uniform_vert_resources, 1 },
-	{ 0x8E1048C2FD9C928Cull, 660, sprite_frag_container, 212, NULL, 0, sprite_frag_resources, 1 },
-	{ 0xC861B7190B3BC534ull, 1120, sprite_vert_container, 324, sprite_vert_literals, 1, NULL, 0 },
+	{ 0xA2D0D69A9CE841C6ull, 784, mesh_frag_container, 252, NULL, 0, mesh_frag_resources, 2, NULL, 0 },
+	{ 0xCDE214766F4D8DE0ull, 1252, mesh_vert_container, 376, mesh_vert_literals, 1, mesh_vert_resources, 1, NULL, 0 },
+	{ 0x33E8B01AEE5ADDECull, 1164, mesh_gray_frag_container, 332, mesh_gray_frag_literals, 1, mesh_gray_frag_resources, 2, NULL, 0 },
+	{ 0xB8EB7D82A1283C2Cull, 820, mesh_uniform_frag_container, 252, NULL, 0, mesh_uniform_frag_resources, 2, NULL, 0 },
+	{ 0x30642BF0E52D0977ull, 1296, mesh_uniform_vert_container, 376, mesh_uniform_vert_literals, 1, mesh_uniform_vert_resources, 1, NULL, 0 },
+	{ 0x8E1048C2FD9C928Cull, 660, sprite_frag_container, 212, NULL, 0, sprite_frag_resources, 1, NULL, 0 },
+	{ 0xC861B7190B3BC534ull, 1120, sprite_vert_container, 324, sprite_vert_literals, 1, NULL, 0, NULL, 0 },
 };
 
 const V4xShaderBundle v4x_shader_bundle = { shaders, 7 };

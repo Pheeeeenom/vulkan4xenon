@@ -229,6 +229,43 @@ static VkResult share_fetch_constants(Pipeline *pipeline)
 	return VK_SUCCESS;
 }
 
+// Whether a vertex shader's push constants or uniform block holds a constant register.
+static bool holds(const StageResource *stage_resource, uint32_t reg)
+{
+	const V4xShaderResource *const resource = &stage_resource->resource;
+	const bool block = resource->kind == V4X_RESOURCE_PUSH_CONSTANTS || resource->kind == V4X_RESOURCE_UNIFORM_BUFFER;
+	return stage_resource->vertex && block && reg >= resource->first &&
+		reg < (uint32_t)resource->first + resource->count;
+}
+
+// Each clip distance's plane, in the vertex shader's push constants or a uniform block, as xost found it
+// (xost:docs/xsc.md, "Interface conventions"); a draw reads it from there (queue.c).
+static VkResult find_clip_planes(Pipeline *pipeline)
+{
+	const V4xShader *const shader = pipeline->vertex_source;
+	for (uint32_t i = 0; i < shader->clip_plane_count; i++) {
+		const V4xShaderClipPlane *const plane = &shader->clip_planes[i];
+		uint32_t r = 0;
+		while (r < pipeline->resource_count && !holds(&pipeline->resources[r], plane->reg))
+			r++;
+		const uint32_t offset_bytes =
+			r < pipeline->resource_count ? (plane->reg - pipeline->resources[r].resource.first) * 16u : 0;
+		const bool pushed =
+			r < pipeline->resource_count && pipeline->resources[r].resource.kind == V4X_RESOURCE_PUSH_CONSTANTS;
+		if (r == pipeline->resource_count || plane->plane >= XSDK_CLIP_PLANES ||
+			(pushed && offset_bytes + 16 > V4X_MAX_PUSH_CONSTANT_BYTES)) {
+			xsdk_log_write(
+				"vulkan4xenon: clip distance %u's plane, constant %u, isn't in a block the vertex shader reads",
+				(unsigned)plane->plane, (unsigned)plane->reg);
+			return VK_ERROR_INITIALIZATION_FAILED;
+		}
+		pipeline->clip_planes[i] = (ClipPlane){ .plane = plane->plane, .resource = r, .offset_bytes = offset_bytes };
+		pipeline->clip_plane_mask |= 1u << plane->plane;
+	}
+	pipeline->clip_plane_count = shader->clip_plane_count;
+	return VK_SUCCESS;
+}
+
 static void free_pipeline(const VkAllocationCallbacks *allocator, Pipeline *pipeline)
 {
 	if (pipeline->vertex.microcode)
@@ -253,6 +290,8 @@ static VkResult create_pipeline(
 		result = gather_resources(layout, pipeline->vertex_source, true, pipeline);
 	if (result == VK_SUCCESS)
 		result = gather_resources(layout, pipeline->pixel_source, false, pipeline);
+	if (result == VK_SUCCESS)
+		result = find_clip_planes(pipeline);
 	if (result == VK_SUCCESS)
 		result = load_shaders(pipeline);
 	if (result == VK_SUCCESS)

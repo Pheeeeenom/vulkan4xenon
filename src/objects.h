@@ -278,6 +278,14 @@ typedef struct {
 	bool per_instance;
 } VertexStream;
 
+// A clip distance's plane, which each draw reads from where the vertex shader's push constants or uniform block hold
+// it: one of the pipeline's resources, and the bytes into it.
+typedef struct {
+	uint32_t plane;
+	uint32_t resource;
+	uint32_t offset_bytes;
+} ClipPlane;
+
 typedef struct {
 	XsdkShader vertex;
 	XsdkShader pixel;
@@ -315,6 +323,10 @@ typedef struct {
 	// The vertex shader reads gl_InstanceIndex from this float constant, which each instance's draw writes.
 	bool reads_instance_index;
 	uint32_t instance_index_constant;
+	// The user clip planes its vertex shader's clip distances take, a bit each in clip_plane_mask (milestone 26).
+	ClipPlane clip_planes[XSDK_CLIP_PLANES];
+	uint32_t clip_plane_count;
+	uint32_t clip_plane_mask;
 } Pipeline;
 
 // One subpass as the replay draws it, a render pass of its own: its colour attachments and its depth if it has one,

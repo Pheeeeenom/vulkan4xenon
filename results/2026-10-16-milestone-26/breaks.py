@@ -10,12 +10,20 @@ import sys
 
 PIPELINE_STATE = "vulkan4xenon/src/pipeline_state.c"
 QUEUE = "vulkan4xenon/src/queue.c"
+PHYSICAL_DEVICE = "vulkan4xenon/src/physical_device.c"
 
 TWO_SIDED_STATIC = ("two-sided stencil: every frame's front and back faces pass the pipeline's own test for each, over "
                     "what each wrote with its own op and write mask")
 TWO_SIDED_REFERENCE = ("two-sided stencil: every frame's faces take the references and write masks commands set for "
                        "each alone")
 TWO_SIDED_COMPARE = "two-sided stencil: every frame's faces take the compare masks commands set for each alone"
+CLIP_LIMITS = ("clip distances: shaderClipDistance reported, maxClipDistances and maxCombinedClipAndCullDistances 6, "
+               "no cull distances")
+CLIP_PUSH = "clip distances: every frame's quads are cut at the lines of the planes pushed before each draw"
+CLIP_UNIFORM = ("clip distances: every frame's quads are cut by distances 1 and 4, planes from a dynamic uniform "
+                "buffer at each draw's offset")
+CLIP_AFTER = ("clip distances: every frame cuts nothing of a pipeline without them nor of vkCmdClearAttachments's "
+              "rectangle, and cuts the draw after the clear again")
 
 SETS = {
     # Step 1: a back face's dynamic compare mask and write mask taken from the front's.
@@ -41,6 +49,32 @@ SETS = {
         "checks": [TWO_SIDED_REFERENCE, TWO_SIDED_COMPARE],
         "breaks": [
             (QUEUE, "if (command->stencil.faces & 1u << face)", "if (command->stencil.faces)"),
+        ],
+    },
+    # Step 2: a pushed plane read from the push constants' start, the quad's scale; the draw after the clear pushes one.
+    "s2a": {
+        "checks": [CLIP_PUSH, CLIP_AFTER],
+        "breaks": [
+            (QUEUE, "memcpy(plane, (const uint8_t *)replay->push + offset_bytes,",
+             "memcpy(plane, (const uint8_t *)replay->push,"),
+        ],
+    },
+    # Step 2: a uniform buffer's plane read without its dynamic offset; vkCmdClearAttachments leaving the planes on; and
+    # shaderClipDistance unreported.
+    "s2b": {
+        "checks": [CLIP_UNIFORM, CLIP_AFTER, CLIP_LIMITS],
+        "breaks": [
+            (QUEUE, "\t\twords += replay->dynamic_offsets[resource->set][set->layout->bindings[resource->binding]"
+             ".dynamic_index] / 4;\n", ""),
+            (QUEUE, "\tif (replay->clip_planes_on)\n\t\txsdk_gpu_set_clip_planes(0, NULL);\n", ""),
+            (PHYSICAL_DEVICE, ".shaderClipDistance = VK_TRUE", ".shaderClipDistance = VK_FALSE"),
+        ],
+    },
+    # Step 2: a pipeline without clip distances leaving the last one's planes on.
+    "s2c": {
+        "checks": [CLIP_AFTER],
+        "breaks": [
+            (QUEUE, "if (!pipeline->clip_plane_count && !replay->clip_planes_on)", "if (!pipeline->clip_plane_count)"),
         ],
     },
 }

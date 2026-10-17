@@ -205,10 +205,10 @@ static const V4xShaderResource v4x_clear_four_frag_resources[] = {
 };
 
 static const V4xShader shaders[] = {
-	{ 0x9CC2214B327BA30Bull, 552, v4x_blit_frag_container, 208, NULL, 0, v4x_blit_frag_resources, 1 },
-	{ 0x44C70BCFE37A5B64ull, 888, v4x_blit_vert_container, 220, NULL, 0, NULL, 0 },
-	{ 0x8C331896FB13A338ull, 496, v4x_clear_frag_container, 180, NULL, 0, v4x_clear_frag_resources, 1 },
-	{ 0x33B1C76FBF0892AAull, 992, v4x_clear_four_frag_container, 348, NULL, 0, v4x_clear_four_frag_resources, 1 },
+	{ 0x9CC2214B327BA30Bull, 552, v4x_blit_frag_container, 208, NULL, 0, v4x_blit_frag_resources, 1, NULL, 0 },
+	{ 0x44C70BCFE37A5B64ull, 888, v4x_blit_vert_container, 220, NULL, 0, NULL, 0, NULL, 0 },
+	{ 0x8C331896FB13A338ull, 496, v4x_clear_frag_container, 180, NULL, 0, v4x_clear_frag_resources, 1, NULL, 0 },
+	{ 0x33B1C76FBF0892AAull, 992, v4x_clear_four_frag_container, 348, NULL, 0, v4x_clear_four_frag_resources, 1, NULL, 0 },
 };
 
 const V4xShaderBundle v4x_blit_bundle = { shaders, 4 };

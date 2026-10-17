@@ -53,9 +53,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 - One physical device, and one device at a time: a second `vkCreateDevice` returns `VK_ERROR_TOO_MANY_OBJECTS`, since
   the GPU has one owner. `vkCreateDevice` takes the GPU from XAM (`xsdk_gpu_open`) and shows the boot logo.
-- Three features, `drawIndirectFirstInstance` (Commands), `independentBlend` (Pipelines) and `samplerAnisotropy`
-  (Samplers). Requesting any other returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires `robustBufferAccess`;
-  that's a deviation.
+- Features: `drawIndirectFirstInstance` (Commands), `independentBlend` (Pipelines), `samplerAnisotropy` (Samplers)
+  and `shaderClipDistance` (Shaders). Requesting any other returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires
+  `robustBufferAccess`; that's a deviation.
 - One queue family with one queue, `VK_QUEUE_GRAPHICS_BIT` only. Vulkan 1.0 requires a family with graphics and
   compute together; Xenos has no compute stage, so that's a deviation. There's no sparse binding either: the GPU
   addresses physical memory, and Xenia's registers show no GPU MMU (xenia:src/xenia/gpu/register_table.inc).
@@ -141,6 +141,15 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   shader's blocks, which the bundle records as a `V4X_RESOURCE_INSTANCE_INDEX` resource, and the layer writes each
   instance's index into it before the instance's draw (Commands). A float holds it exactly up to 2^24. xost refuses
   `gl_VertexIndex` (xost:docs/xsc.md, "Interface conventions").
+- **Clip distances,** with `shaderClipDistance` (milestone 26), in the form Direct3D 9's clip planes take: Xenos clips
+  against six planes in clip space, keeping where dot(the exported position, plane) >= 0
+  (xenia:src/xenia/gpu/registers.h:539-544, dxbc_shader_translator.cc:1033-1053). So `gl_ClipDistance[n]` written as
+  `dot(gl_Position, plane)`, either way round, the plane a whole `vec4` of a uniform block or push constants at a fixed
+  index, is user clip plane n: xost records the plane's register (`V4xShaderClipPlane`), and each draw sets the plane
+  from the values bound then (Pipelines). **Deviation:** a distance in any other form, from another point, a plane
+  the shader works out, an index past 5, or a cull distance, is refused when the module is made: xost logs why, and
+  `vkCreateShaderModule` returns `VK_ERROR_FEATURE_NOT_PRESENT`, or `tools/build_shaders.py` stops. No cull distances:
+  Xenos has none.
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's
   uniforms.
 - Where a shader's resources land is xost's choice, recorded in the bundle as its `V4xShaderResource`s
@@ -190,7 +199,12 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     framebuffer (xsdk:tests/test_raster.c:207), and the viewport flip keeps every vertex where Vulkan puts it;
   - depth bias: the constant factor is in units of 2^-24, D24's resolution, so the layer divides it by 2^24 into the
     hardware's depth units (xenia:src/xenia/gpu/draw_util.h:165-172). The slope factor passes through as xsdk's
-    per-pixel slope, unverified as in xsdk. A bias clamp returns `VK_ERROR_FEATURE_NOT_PRESENT`.
+    per-pixel slope, unverified as in xsdk. A bias clamp returns `VK_ERROR_FEATURE_NOT_PRESENT`;
+  - clip distances (Shaders): a pipeline finds each plane in the vertex shader's push constants or uniform block,
+    and each draw reads it from them as bound, a dynamic offset and all, and sets the planes
+    (`xsdk_gpu_set_clip_planes`). The CPU reads a uniform buffer's plane from mapped memory, 16 bytes a plane a
+    draw. A draw of a pipeline without clip distances turns off what the last left on, and so does
+    `vkCmdClearAttachments`, whose rectangle no plane cuts.
 - **Depth and stencil,** with a depth attachment:
   - depth test, write and compare op;
   - stencil test, ops, compare op, masks and reference, each face its own (milestone 26). Where the faces differ,
@@ -633,9 +647,9 @@ Vulkan 1.0 requires many more formats and features; each missing one is a deviat
 ## Physical device
 
 Only these limits are set. Every other limit is 0: what it measures isn't implemented yet, such as 1D images, storage
-and texel buffers, input attachments, clip and cull distances, and compute. Where Vulkan 1.0 has a minimum for one of
-those, the 0 is below it. `mipmapPrecisionBits` and `subTexelPrecisionBits` are 0 too, under the
-minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
+and texel buffers, input attachments, cull distances, and compute. Where Vulkan 1.0 has a minimum for one of those, the
+0 is below it. `mipmapPrecisionBits` and `subTexelPrecisionBits` are 0 too, under the minimum of 4: filtering precision
+hasn't been measured (xsdk:TODO.md).
 
 | Limit | Value |
 |---|---|
@@ -673,6 +687,7 @@ minimum of 4: filtering precision hasn't been measured (xsdk:TODO.md).
 | `maxFramebufferLayers` | 1 |
 | `framebufferColorSampleCounts`, `framebufferDepthSampleCounts`, `framebufferStencilSampleCounts`, `sampledImageColorSampleCounts` | 1 |
 | `discreteQueuePriorities` | 2 |
+| `maxClipDistances`, `maxCombinedClipAndCullDistances` | 6 |
 | `pointSizeRange`, `lineWidthRange` | 1, 1 |
 | `standardSampleLocations` | true |
 | `optimalBufferCopyOffsetAlignment`, `optimalBufferCopyRowPitchAlignment` | 1 |
@@ -690,6 +705,7 @@ Set limits below Vulkan 1.0's minimum:
 | `maxImageArrayLayers` 6 (256) | A cube's six layers; arrays of images aren't built yet. |
 | `maxUniformBufferRange` 4096 (16384) | A block is copied into a stage's 256 float constants of 16 bytes. |
 | `maxPerStageResources` 28 (128) | 12 uniform buffers and 16 samplers: a stage's constants, and the fetch constants the two stages share with the vertex streams (Pipelines). |
+| `maxClipDistances`, `maxCombinedClipAndCullDistances` 6 (8) | Xenos clips against six planes (xenia:src/xenia/gpu/registers.h:539-544). |
 
 `subPixelPrecisionBits` is 4 because vertices land on 1/16 pixel under xsdk's `PA_SU_VTX_CNTL`
 (xenia:src/xenia/gpu/xenos.h:877-884). The device is `Xenos (vulkan4xenon)`, an integrated GPU, vendor and device ID

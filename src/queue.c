@@ -50,6 +50,8 @@ typedef struct {
 	// And the raster, depth and stencil, and blend constants, after a command set the state they may take.
 	bool dynamic_dirty;
 	DynamicState dynamic;
+	// User clip planes are on, as the last draw's pipeline set them; a target set turns them off.
+	bool clip_planes_on;
 	const RenderPass *render_pass;
 	const Framebuffer *framebuffer;
 	// Where the pass's depth is, in queue->depths and in eDRAM (place_depth).
@@ -191,6 +193,42 @@ static bool load_uniform_buffer(const Replay *replay, const V4xShaderResource *r
 	else
 		xsdk_gpu_load_pixel_constants(resource->first, address, count);
 	return true;
+}
+
+// A clip plane's four floats from the push constants or uniform buffer the vertex shader reads it from, as bound now;
+// past the descriptor's range they read 0, as the block's registers do.
+static void read_plane(const Replay *replay, const V4xShaderResource *resource, uint32_t offset_bytes, float plane[4])
+{
+	if (resource->kind == V4X_RESOURCE_PUSH_CONSTANTS) {
+		memcpy(plane, (const uint8_t *)replay->push + offset_bytes, 4 * sizeof(float));
+		return;
+	}
+	const DescriptorSet *const set = replay->sets[resource->set];
+	const Descriptor *const descriptor = set ? &set->descriptors[resource->binding] : NULL;
+	volatile const uint32_t *words = descriptor ? descriptor->buffer : NULL;
+	const uint32_t present = descriptor ? descriptor->range_bytes / 4 : 0;
+	if (descriptor && set->layout->bindings[resource->binding].type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+		words += replay->dynamic_offsets[resource->set][set->layout->bindings[resource->binding].dynamic_index] / 4;
+	for (uint32_t c = 0; c < 4; c++) {
+		const uint32_t at = offset_bytes / 4 + c;
+		const uint32_t word = at < present ? words[at] : 0;
+		memcpy(&plane[c], &word, sizeof word);
+	}
+}
+
+// Xenos clips against the planes itself, so each draw of a pipeline with clip distances sets them from the values
+// bound, which may have changed since; one without turns off what the last left on.
+static void apply_clip_planes(const Pipeline *pipeline, Replay *replay)
+{
+	if (!pipeline->clip_plane_count && !replay->clip_planes_on)
+		return;
+	float planes[XSDK_CLIP_PLANES][4];
+	for (uint32_t i = 0; i < pipeline->clip_plane_count; i++) {
+		const ClipPlane *const clip = &pipeline->clip_planes[i];
+		read_plane(replay, &pipeline->resources[clip->resource].resource, clip->offset_bytes, planes[clip->plane]);
+	}
+	xsdk_gpu_set_clip_planes(pipeline->clip_plane_mask, planes);
+	replay->clip_planes_on = pipeline->clip_plane_count != 0;
 }
 
 // Points a slot at the texture and sampler unless it already is. A replay points every slot afresh, so each submission
@@ -539,6 +577,7 @@ static void begin_render_pass(VkQueue queue, Replay *replay)
 	clear_targets(queue, replay, colors);
 	memcpy(queue->colors, colors, sizeof queue->colors);
 	replay->pipeline_dirty = true;
+	replay->clip_planes_on = false;
 	// Drawing an image back and resolves point streams and slots of their own.
 	memset(replay->pointed_streams, 0, sizeof replay->pointed_streams);
 	memset(replay->pointed_textures, 0, sizeof replay->pointed_textures);
@@ -657,6 +696,7 @@ static void prepare_draw(Replay *replay)
 	replay->viewport_dirty = false;
 	replay->dynamic_dirty = false;
 	apply_resources(pipeline, replay);
+	apply_clip_planes(pipeline, replay);
 }
 
 // xsdk draws from vertex 0, so each stream at the vertex's rate starts at the draw's first vertex, which may come
@@ -828,9 +868,13 @@ static void clear_depth_image(VkQueue queue, const Command *command)
 		v4x_transfer_fill_depth(queue, image, command->depth_clear.depth, command->depth_clear.stencil);
 }
 
-// The clear draws with the layer's own shaders and state, and its rectangle in stream 0, so they're set again after.
+// The clear draws with the layer's own shaders and state, and its rectangle in stream 0, so they're set again after;
+// no clip plane cuts it.
 static void clear_attachments(VkQueue queue, Replay *replay, const ClearRect *clear)
 {
+	if (replay->clip_planes_on)
+		xsdk_gpu_set_clip_planes(0, NULL);
+	replay->clip_planes_on = false;
 	v4x_blit_clear(
 		&queue->blit, clear, replay->render_pass->color_count, replay->framebuffer->width, replay->framebuffer->height);
 	replay->pipeline_dirty = true;

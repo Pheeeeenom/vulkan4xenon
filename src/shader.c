@@ -29,15 +29,16 @@ enum {
 	NANOSECONDS_PER_MICROSECOND = 1000,
 	MICROSECONDS_PER_SECOND = 1000000,
 	CACHE_PATH_BYTES = 256,
-	// "V4XS", and the layout of what follows it, which changes as V4xShader's parts do.
+	// "V4XS", and the layout of what follows it, which changes as V4xShader's parts do: 2 since clip planes.
 	CACHE_MAGIC = 0x56345853,
-	CACHE_LAYOUT = 1,
+	CACHE_LAYOUT = 2,
 	// No container xost writes is near this; a file that says so is damaged.
 	MAX_CACHED_BYTES = 1024 * 1024,
 	FOLDER_MODE = 0777,
 };
 
-// A kept shader's file: this, then the shader's container, literals and resources as its allocation holds them.
+// A kept shader's file: this, then the shader's container, literals, resources and clip planes as its allocation holds
+// them.
 typedef struct {
 	uint32_t magic;
 	uint32_t layout;
@@ -46,6 +47,7 @@ typedef struct {
 	uint32_t container_size_bytes;
 	uint32_t literal_count;
 	uint32_t resource_count;
+	uint32_t clip_plane_count;
 } CacheHeader;
 
 // Named before shader modules are made, and only read after.
@@ -115,7 +117,7 @@ static uint8_t resource_kind(XsdkXscResourceKind kind)
 }
 
 // What the layer can't take: the constants of a hardware loop a bare uniform counts, as tools/build_shaders.py refuses,
-// or too wide a resource or loop count.
+// or too wide a resource, loop count or clip plane's register.
 static bool layer_takes(const XsdkXscShader *compiled)
 {
 	for (size_t i = 0; i < compiled->need_count; i++) {
@@ -123,7 +125,8 @@ static bool layer_takes(const XsdkXscShader *compiled)
 		const bool loop = need->kind == XSDK_XSC_BLOCK_LOOP && need->block != XSDK_XSC_SAMPLER &&
 			need->set <= MAX_RESOURCE_INDEX && need->binding <= MAX_RESOURCE_INDEX &&
 			need->offset_bytes <= MAX_RESOURCE_REGISTER && need->reg < XSDK_LOOP_CONSTANTS;
-		if (need->kind != XSDK_XSC_LITERAL && !loop)
+		const bool plane = need->kind == XSDK_XSC_CLIP_PLANE && need->reg <= MAX_RESOURCE_REGISTER;
+		if (need->kind != XSDK_XSC_LITERAL && !loop && !plane)
 			return false;
 	}
 	for (size_t i = 0; i < compiled->resource_count; i++) {
@@ -135,11 +138,12 @@ static bool layer_takes(const XsdkXscShader *compiled)
 	return true;
 }
 
-// The bytes after a shader's V4xShader in its allocation: its container, its literals, then its resources.
-static size_t tail_bytes(uint32_t container_bytes, uint32_t literal_count, uint32_t resource_count)
+// The bytes after a shader's V4xShader in its allocation: its container, its literals, its resources, then its clip
+// planes.
+static size_t tail_bytes(const CacheHeader *sizes)
 {
-	return (container_bytes + 3) / 4 * sizeof(uint32_t) + literal_count * sizeof(V4xShaderLiteral) +
-		resource_count * sizeof(V4xShaderResource);
+	return (sizes->container_size_bytes + 3) / 4 * sizeof(uint32_t) + sizes->literal_count * sizeof(V4xShaderLiteral) +
+		sizes->resource_count * sizeof(V4xShaderResource) + sizes->clip_plane_count * sizeof(V4xShaderClipPlane);
 }
 
 // Where a shader's parts sit in its allocation, for whoever fills them.
@@ -147,19 +151,20 @@ typedef struct {
 	uint32_t *container;
 	V4xShaderLiteral *literals;
 	V4xShaderResource *resources;
+	V4xShaderClipPlane *clip_planes;
 } ShaderParts;
 
 // A shader in one allocation, its parts pointing into the tail, which the caller fills.
 static V4xShader *new_shader(const VkAllocationCallbacks *allocator, const CacheHeader *sizes, ShaderParts *parts)
 {
-	const size_t bytes =
-		sizeof(V4xShader) + tail_bytes(sizes->container_size_bytes, sizes->literal_count, sizes->resource_count);
+	const size_t bytes = sizeof(V4xShader) + tail_bytes(sizes);
 	V4xShader *const shader = v4x_host_alloc(allocator, bytes, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 	if (!shader)
 		return NULL;
 	parts->container = (uint32_t *)(shader + 1);
 	parts->literals = (V4xShaderLiteral *)(parts->container + (sizes->container_size_bytes + 3) / 4);
 	parts->resources = (V4xShaderResource *)(parts->literals + sizes->literal_count);
+	parts->clip_planes = (V4xShaderClipPlane *)(parts->resources + sizes->resource_count);
 	*shader = (V4xShader){ .spirv_hash = sizes->spirv_hash,
 		.spirv_size_bytes = sizes->spirv_size_bytes,
 		.container = parts->container,
@@ -167,25 +172,35 @@ static V4xShader *new_shader(const VkAllocationCallbacks *allocator, const Cache
 		.literals = parts->literals,
 		.literal_count = sizes->literal_count,
 		.resources = parts->resources,
-		.resource_count = sizes->resource_count };
+		.resource_count = sizes->resource_count,
+		.clip_planes = parts->clip_planes,
+		.clip_plane_count = sizes->clip_plane_count };
 	return shader;
 }
 
 static CacheHeader header_of(const V4xShader *shader)
 {
 	return (CacheHeader){ CACHE_MAGIC, CACHE_LAYOUT, shader->spirv_hash, shader->spirv_size_bytes,
-		shader->container_size_bytes, shader->literal_count, shader->resource_count };
+		shader->container_size_bytes, shader->literal_count, shader->resource_count, shader->clip_plane_count };
 }
 
-// The literals, then the resources, each loop's count among them after the blocks and samplers, as the bundle has them.
+static uint32_t needs_of(const XsdkXscShader *compiled, XsdkXscNeedKind kind)
+{
+	uint32_t count = 0;
+	for (size_t i = 0; i < compiled->need_count; i++)
+		count += compiled->needs[i].kind == kind;
+	return count;
+}
+
+// The literals, then the resources, each loop's count among them after the blocks and samplers, then the clip planes,
+// as the bundle has them.
 static V4xShader *shader_from(
 	const VkAllocationCallbacks *allocator, const XsdkXscShader *compiled, uint64_t hash, uint32_t size_bytes)
 {
-	uint32_t loops = 0;
-	for (size_t i = 0; i < compiled->need_count; i++)
-		loops += compiled->needs[i].kind == XSDK_XSC_BLOCK_LOOP;
 	const CacheHeader sizes = { CACHE_MAGIC, CACHE_LAYOUT, hash, size_bytes, (uint32_t)compiled->container_bytes,
-		(uint32_t)compiled->need_count - loops, (uint32_t)compiled->resource_count + loops };
+		needs_of(compiled, XSDK_XSC_LITERAL),
+		(uint32_t)compiled->resource_count + needs_of(compiled, XSDK_XSC_BLOCK_LOOP),
+		needs_of(compiled, XSDK_XSC_CLIP_PLANE) };
 	ShaderParts parts;
 	V4xShader *const shader = new_shader(allocator, &sizes, &parts);
 	if (!shader)
@@ -198,6 +213,7 @@ static V4xShader *shader_from(
 	}
 	uint32_t literal = 0;
 	uint32_t resource = (uint32_t)compiled->resource_count;
+	uint32_t plane = 0;
 	for (size_t i = 0; i < compiled->need_count; i++) {
 		const XsdkXscNeed *const need = &compiled->needs[i];
 		if (need->kind == XSDK_XSC_BLOCK_LOOP) {
@@ -205,6 +221,10 @@ static V4xShader *shader_from(
 				need->block == XSDK_XSC_PUSH_CONSTANTS ? V4X_RESOURCE_PUSH_LOOP : V4X_RESOURCE_UNIFORM_LOOP;
 			parts.resources[resource++] = (V4xShaderResource){ kind, (uint8_t)need->set, (uint8_t)need->binding,
 				(uint16_t)need->offset_bytes, (uint16_t)need->reg };
+			continue;
+		}
+		if (need->kind == XSDK_XSC_CLIP_PLANE) {
+			parts.clip_planes[plane++] = (V4xShaderClipPlane){ (uint16_t)need->reg, (uint8_t)need->regs };
 			continue;
 		}
 		parts.literals[literal++] = (V4xShaderLiteral){ need->reg,
@@ -262,9 +282,8 @@ static V4xShader *read_cached(VkDevice device, uint64_t hash, uint32_t size_byte
 	const bool sound = fread(&header, sizeof header, 1, file) == 1 && header.magic == CACHE_MAGIC &&
 		header.layout == CACHE_LAYOUT && header.spirv_hash == hash && header.spirv_size_bytes == size_bytes &&
 		header.container_size_bytes < MAX_CACHED_BYTES && header.literal_count < MAX_CACHED_BYTES &&
-		header.resource_count < MAX_CACHED_BYTES;
-	const size_t tail =
-		sound ? tail_bytes(header.container_size_bytes, header.literal_count, header.resource_count) : 0;
+		header.resource_count < MAX_CACHED_BYTES && header.clip_plane_count < MAX_CACHED_BYTES;
+	const size_t tail = sound ? tail_bytes(&header) : 0;
 	ShaderParts parts;
 	V4xShader *shader = sound && (size_t)info.st_size == sizeof header + tail
 		? new_shader(v4x_host_device_allocator(device, NULL), &header, &parts)
@@ -295,7 +314,7 @@ static void keep_on_disk(const V4xShader *shader)
 		return;
 	(void)snprintf(written, sizeof written, "%s.new", path);
 	const CacheHeader header = header_of(shader);
-	const size_t tail = tail_bytes(header.container_size_bytes, header.literal_count, header.resource_count);
+	const size_t tail = tail_bytes(&header);
 	FILE *const file = make_folder(cache_directory) && make_folder(folder) ? fopen(written, "wb") : NULL;
 	bool kept = file && fwrite(&header, sizeof header, 1, file) == 1 && fwrite(shader + 1, 1, tail, file) == tail;
 	if (file && fclose(file) != 0)

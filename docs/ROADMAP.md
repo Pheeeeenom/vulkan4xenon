@@ -2652,6 +2652,33 @@ again, two-sided where they now differ.
   `s1b`, a pipeline's own two-sided stencil dropped; `s1c`, a command for one face setting both. xsdk's `s1a` leaves
   `backface_enable` clear, and `s1b` writes the front's reference and masks into `RB_STENCILREFMASK_BF`.
 
+**Step 2, clip distances** (built 2026-10-16, not yet run on the console). Xenos clips against six planes in clip
+space, keeping where dot(the exported position, plane) >= 0, as Xenia applies them
+(xenia:src/xenia/gpu/dxbc_shader_translator.cc:1033-1053): Direct3D 9's clip planes. xsdk gained
+`xsdk_gpu_set_clip_planes`, `PA_CL_CLIP_CNTL`'s `ucp_ena` bits beside the clip space and `PA_CL_UCP_0_X` to
+`PA_CL_UCP_5_W` (xenia:src/xenia/gpu/register_table.inc:623-646), which targets and resolves turn off. xost takes
+`gl_ClipDistance[n]` written as `dot(gl_Position, plane)`, either way round, the position read back or the value
+stored, the plane a whole `vec4` of a uniform block or push constants at a fixed index: it emits nothing for it and
+names the plane's register in a need, `XSDK_XSC_CLIP_PLANE` (`("clip", n, register)` in Python's manifest); any other
+form, and `gl_CullDistance`, is refused. On the way, gl_PerVertex's other members no longer pass for `gl_Position`,
+which the last of their stores did. The bundle and the layer's shader cache carry the planes (`V4xShaderClipPlane`,
+cache layout 2); a pipeline finds each in the vertex shader's push constants or uniform block, and each draw reads it
+as bound and sets the planes, which a pipeline without them and `vkCmdClearAttachments` turn off. `shaderClipDistance`
+is reported, `maxClipDistances` and `maxCombinedClipAndCullDistances` 6, under Vulkan's 8, and no cull distances;
+docs/SUPPORT.md has the form as a deviation.
+- **The checks:** vulkan4xenon_test's `test_clip_distances.c` draws quads cut by `clip.vert`'s pushed plane, at a
+  column and then, pushed again, at a row, probed 4 pixels either side of each line; by `clip_planes.vert`'s
+  distances 1 and 4 from a dynamic uniform buffer, to a quarter at offset 0 and the opposite quarter at 256; then a
+  whole quad from a pipeline without clip distances, a `vkCmdClearAttachments` rectangle under a pipeline whose plane
+  cuts everything, and the draw after it cut again; and checks the feature and limits. xsdk_test's raster test draws a
+  row of quads cut by plane 0 at a column and planes 3 and 5 to a quarter, then one drawn with every plane off again;
+  its compiler check compiles xost's `vk_clip_distance.vert` on the console into the PC's container and clip planes.
+  xost's `tests/test_clip_distance.py` checks the planes' registers, the position exported alone, and the refusals.
+- **Broken on purpose** (`breaks.py`): `s2a`, a pushed plane read from the push constants' start; `s2b`, the dynamic
+  offset ignored, `vkCmdClearAttachments` leaving the planes on and `shaderClipDistance` unreported; `s2c`, a pipeline
+  without clip distances leaving the last one's planes on. xsdk's `s2a` drops the `ucp_ena` bits and has xost name the
+  next plane, and `s2b` writes the planes a plane's registers on.
+
 ### Milestone 27: copies on the GPU
 
 **Why.** `vkCmdBlitImage` runs on the CPU once the GPU is done (docs/SUPPORT.md, Commands), which stalls a port that

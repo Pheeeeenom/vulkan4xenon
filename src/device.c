@@ -14,8 +14,7 @@
 // The GPU has one owner, so there's one device at a time.
 static bool device_exists;
 
-// Every feature off but the three the device has: indirect draws' first instance, independent blending and sampler
-// anisotropy.
+// Every feature off but those the device has (vkGetPhysicalDeviceFeatures).
 static bool features_off(const VkPhysicalDeviceFeatures *features)
 {
 	if (!features)
@@ -24,6 +23,7 @@ static bool features_off(const VkPhysicalDeviceFeatures *features)
 	others.drawIndirectFirstInstance = VK_FALSE;
 	others.independentBlend = VK_FALSE;
 	others.samplerAnisotropy = VK_FALSE;
+	others.shaderClipDistance = VK_FALSE;
 	VkBool32 flags[sizeof others / sizeof(VkBool32)];
 	memcpy(flags, &others, sizeof flags);
 	for (uint32_t i = 0; i < sizeof flags / sizeof flags[0]; i++) {

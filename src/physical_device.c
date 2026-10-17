@@ -6,6 +6,7 @@
 #include "host.h"
 #include "image.h"
 #include "objects.h"
+#include "xsdk/gpu.h"
 #include "xsdk/texture.h"
 
 enum {
@@ -106,6 +107,9 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			.maxColorAttachments = V4X_MAX_COLOR_ATTACHMENTS,
 			.sampledImageColorSampleCounts = VK_SAMPLE_COUNT_1_BIT,
 			.discreteQueuePriorities = 2,
+			// Xenos's six user clip planes take the clip distances; it has no cull distances (milestone 26).
+			.maxClipDistances = XSDK_CLIP_PLANES,
+			.maxCombinedClipAndCullDistances = XSDK_CLIP_PLANES,
 			.pointSizeRange = { 1.0f, 1.0f },
 			.lineWidthRange = { 1.0f, 1.0f },
 			.standardSampleLocations = VK_TRUE,
@@ -123,10 +127,12 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures(
 {
 	(void)physicalDevice;
 	// Indirect draws read firstInstance at replay, as direct ones take it (queue.c); each colour target blends by its
-	// own RB_BLENDCONTROL (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_blends).
-	*pFeatures = (VkPhysicalDeviceFeatures){
-		.drawIndirectFirstInstance = VK_TRUE, .independentBlend = VK_TRUE, .samplerAnisotropy = VK_TRUE
-	};
+	// own RB_BLENDCONTROL (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_blends); Xenos's user clip planes take the clip
+	// distances (milestone 26).
+	*pFeatures = (VkPhysicalDeviceFeatures){ .drawIndirectFirstInstance = VK_TRUE,
+		.independentBlend = VK_TRUE,
+		.samplerAnisotropy = VK_TRUE,
+		.shaderClipDistance = VK_TRUE };
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice,

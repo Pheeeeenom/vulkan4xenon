@@ -45,6 +45,13 @@ typedef struct {
 	uint16_t count;
 } V4xShaderResource;
 
+// A user clip plane a vertex shader's gl_ClipDistance[plane] reads from its float constant register reg, in a block
+// it reads, which the layer sets at each draw from the values bound (xost:docs/xsc.md, "Interface conventions").
+typedef struct {
+	uint16_t reg;
+	uint8_t plane;
+} V4xShaderClipPlane;
+
 typedef struct {
 	// FNV-1a over the SPIR-V's words, each taken as its four bytes low first, and the SPIR-V's size.
 	uint64_t spirv_hash;
@@ -55,6 +62,8 @@ typedef struct {
 	uint32_t literal_count;
 	const V4xShaderResource *resources;
 	uint32_t resource_count;
+	const V4xShaderClipPlane *clip_planes;
+	uint32_t clip_plane_count;
 } V4xShader;
 
 typedef struct {

@@ -17,6 +17,8 @@ void test_copies(const Harness *harness);
 void test_dynamic_state(const Harness *harness);
 // Front and back faces' own stencil, from the pipeline and from commands for one face (milestone 26).
 void test_two_sided_stencil(const Harness *harness);
+// Quads cut by clip distances from pushed planes and a uniform buffer's, and nothing cut after them (milestone 26).
+void test_clip_distances(const Harness *harness);
 // A depth image cleared outside a pass, and rectangles of colour, depth and stencil cleared inside one (milestone 19).
 void test_clears(const Harness *harness);
 // A render pass of three subpasses, the second drawn from secondary command buffers (milestone 19).

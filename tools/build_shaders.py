@@ -52,7 +52,8 @@ def compile_spirv(glslang, source, directory):
 
 
 def lower(xost, spirv_bytes, source, optimize=False):
-    """The container, xost's pooled literals, and where its blocks, samplers and gl_InstanceIndex landed."""
+    """The container, xost's pooled literals, where its blocks, samplers and gl_InstanceIndex landed, and the clip
+    planes it reads."""
     sys.path.insert(0, str(xost))
     from xasm.program import XSDK_REGISTERS
     from xsc import native
@@ -65,16 +66,19 @@ def lower(xost, spirv_bytes, source, optimize=False):
     except native.CompileError as error:
         sys.exit(f"{source}: xost didn't compile it: {error}")
     literals = []
+    clip_planes = []
     for entry in manifest:
         # A hardware loop's count, which the layer reads from the block for each draw: a resource of its own.
         if entry[0] == "block_loop":
             _, loop, kind, dset, binding, offset = entry
             resources.append((f"{kind}_loop", dset, binding, offset, loop))
+        elif entry[0] == "clip":
+            clip_planes.append((entry[2], entry[1]))
         elif len(entry) != 2:
             sys.exit(f"{source}: xost wants a constant the layer doesn't set yet: {entry}")
         else:
             literals.append(entry)
-    return container, literals, resources
+    return container, literals, resources, clip_planes
 
 
 def c_name(source, prefix):
@@ -125,9 +129,16 @@ def write_outputs(output, shaders, sources, bundle):
             for kind, dset, binding, first, count in shader["resources"]:
                 source.append(f"\t{{ {RESOURCE_KINDS[kind]}, {dset}, {binding}, {first}, {count} }},")
             source += ["};", ""]
+        clip_planes = "NULL"
+        if shader["clip_planes"]:
+            clip_planes = f"{name}_clip_planes"
+            source.append(f"static const V4xShaderClipPlane {clip_planes}[] = {{")
+            for reg, plane in shader["clip_planes"]:
+                source.append(f"\t{{ {reg}, {plane} }},")
+            source += ["};", ""]
         entries.append(f"\t{{ 0x{shader['hash']:016X}ull, {len(shader['spirv'])}, {name}_container, "
                        f"{len(shader['container'])}, {literals}, {len(shader['literals'])}, {resources}, "
-                       f"{len(shader['resources'])} }},")
+                       f"{len(shader['resources'])}, {clip_planes}, {len(shader['clip_planes'])} }},")
     source += ["static const V4xShader shaders[] = {"] + entries + ["};", ""]
     source.append(f"const V4xShaderBundle {bundle} = {{ shaders, {len(shaders)} }};")
     header += ["", "#endif"]
@@ -154,9 +165,11 @@ def main():
     with tempfile.TemporaryDirectory(dir="build") as directory:
         for source in args.sources:
             spirv_bytes = compile_spirv(glslang, source, directory)
-            container, literals, resources = lower(args.xost.resolve(), spirv_bytes, source, args.optimize)
+            container, literals, resources, clip_planes = lower(args.xost.resolve(), spirv_bytes, source,
+                                                                args.optimize)
             shaders.append({"name": c_name(source, args.prefix), "spirv": spirv_bytes, "hash": fnv1a_64(spirv_bytes),
-                            "container": container, "literals": literals, "resources": resources})
+                            "container": container, "literals": literals, "resources": resources,
+                            "clip_planes": clip_planes})
     write_outputs(args.output, shaders, args.sources, args.bundle)
 
 
