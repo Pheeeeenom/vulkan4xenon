@@ -420,11 +420,17 @@ typedef struct {
 	uint32_t stencil;
 } PassClears;
 
-// The dynamic state a command buffer sets past the viewport and scissor, as it last set it in a replay.
+enum {
+	// Stencil state's faces, as VkStencilFaceFlags number them: front, then back.
+	V4X_STENCIL_FACES = 2,
+};
+
+// The dynamic state a command buffer sets past the viewport and scissor, as it last set it in a replay; the stencil
+// masks and references a face each.
 typedef struct {
-	uint8_t stencil_compare_mask;
-	uint8_t stencil_write_mask;
-	uint8_t stencil_reference;
+	uint8_t stencil_compare_mask[V4X_STENCIL_FACES];
+	uint8_t stencil_write_mask[V4X_STENCIL_FACES];
+	uint8_t stencil_reference[V4X_STENCIL_FACES];
 	float depth_bias_constant;
 	float depth_bias_slope;
 	float blend_constants[4];
@@ -495,9 +501,10 @@ typedef struct {
 		} clear;
 		// An indirect draw's parameters, read at replay.
 		volatile const uint32_t *parameters;
-		// A stencil mask or reference: its VK_DYNAMIC_STATE_STENCIL_* and value, for both faces.
+		// A stencil mask or reference: its VK_DYNAMIC_STATE_STENCIL_*, the faces it's for and its value.
 		struct {
 			uint32_t state;
+			VkStencilFaceFlags faces;
 			uint8_t value;
 		} stencil;
 		struct {

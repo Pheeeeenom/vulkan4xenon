@@ -862,18 +862,15 @@ VKAPI_ATTR void VKAPI_CALL vkCmdSetLineWidth(VkCommandBuffer commandBuffer, floa
 		commandBuffer->result = v4x_host_unsupported("line widths other than 1");
 }
 
-// Both faces share one stencil setting (docs/SUPPORT.md, Pipelines), so a setting for one face alone is refused.
+// Each face has a setting of its own (docs/SUPPORT.md, Pipelines).
 static void record_stencil(
 	VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkDynamicState state, uint32_t value)
 {
-	if (faceMask != VK_STENCIL_FACE_FRONT_AND_BACK) {
-		commandBuffer->result = v4x_host_unsupported("stencil masks and references set for one face alone");
-		return;
-	}
 	Command *const command = record(commandBuffer, COMMAND_SET_STENCIL);
 	if (!command)
 		return;
 	command->stencil.state = (uint32_t)state;
+	command->stencil.faces = faceMask;
 	command->stencil.value = (uint8_t)value;
 }
 

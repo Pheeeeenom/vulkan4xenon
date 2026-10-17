@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 32, part of 8 and none of 7.
+Of the 47 rows, the layer has 33, part of 8 and none of 6. Milestone 26's row is built and waits for the console.
 Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it compares
 depth in a fetch hasn't been checked, which xost's comparison after the fetch doesn't need. Every other gap is
 software.
@@ -70,7 +70,7 @@ software.
 | 2x and 4x multisampling, alpha to coverage | Yes (xenia:src/xenia/gpu/registers.h:687) | Multisampling only | No (milestone 17) |
 | Targets past eDRAM: 720p multisampled, a big shadow map | Yes, by predicated tiling | No (xsdk:TODO.md, "Predicated tiling") | No: 1280x720 at most |
 | D24S8, depth bias, one-sided stencil | Yes | Yes | Yes |
-| Two-sided stencil | Yes (xenia:src/xenia/gpu/registers.h:808) | No (xsdk:TODO.md, "Two-sided stencil") | No |
+| Two-sided stencil | Yes (xenia:src/xenia/gpu/registers.h:808) | Yes, not yet confirmed on the console (xsdk:include/xsdk/gpu.h, `two_sided`) | Yes, not yet confirmed on the console (milestone 26) |
 | Alpha test | Yes (xenia:src/xenia/gpu/registers.h:685-686) | No | Yes, through `discard`, as Vulkan has it |
 | Blending: separate alpha, a constant colour, min and max, write masks | Yes | Yes | Yes |
 | User clip planes | Yes (xenia:src/xenia/gpu/registers.h:539-544) | No | No |
@@ -92,8 +92,8 @@ software.
 - **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
   formats, and the vertex formats came with milestone 20.
 - **xost:** breaks on data, and loops a block counts inside other loops. Almost every ported shader meets one.
-- **xsdk, then the layer:** predicated tiling, a volume texture's mips, two-sided stencil, clip planes, point sprites
-  and fill modes. Float targets blending waits on the console.
+- **xsdk, then the layer:** predicated tiling, a volume texture's mips, clip planes, point sprites and fill modes. Float
+  targets blending waits on the console.
 
 ## Past Direct3D 9, for older consoles' ports
 

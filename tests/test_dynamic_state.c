@@ -346,15 +346,13 @@ static bool groups_hold(uint32_t address, const char *what, void *context)
 	return all;
 }
 
-// Each fails the command buffer it's recorded in, or the pipeline.
+// Each fails the command buffer it's recorded in, or the pipeline. A face's stencil alone is taken since milestone 26
+// (test_two_sided_stencil.c).
 static void check_refusals(const Harness *harness, const Scene *scene)
 {
 	const VkCommandBufferBeginInfo begin = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	VkCommandBuffer commands = scene->commands[0];
 	bool refused = vkBeginCommandBuffer(commands, &begin) == VK_SUCCESS;
-	vkCmdSetStencilReference(commands, VK_STENCIL_FACE_FRONT_BIT, 1);
-	refused = refused && vkEndCommandBuffer(commands) == VK_ERROR_FEATURE_NOT_PRESENT;
-	refused = refused && vkBeginCommandBuffer(commands, &begin) == VK_SUCCESS;
 	vkCmdSetDepthBias(commands, 1.0f, 0.5f, 0.0f);
 	refused = refused && vkEndCommandBuffer(commands) == VK_ERROR_FEATURE_NOT_PRESENT;
 	const VkDynamicState bounds = VK_DYNAMIC_STATE_DEPTH_BOUNDS;
@@ -374,8 +372,7 @@ static void check_refusals(const Harness *harness, const Scene *scene)
 	VkPipeline pipeline = VK_NULL_HANDLE;
 	refused =
 		refused && harness_pipeline(harness, &spec, scene->render_pass, &pipeline) == VK_ERROR_FEATURE_NOT_PRESENT;
-	check("dynamic state: stencil set for one face alone, depth bias clamps and dynamic depth bounds are refused",
-		refused);
+	check("dynamic state: depth bias clamps and dynamic depth bounds are refused", refused);
 	static const char *const names[] = { "vkCmdSetStencilCompareMask", "vkCmdSetStencilWriteMask",
 		"vkCmdSetStencilReference", "vkCmdSetDepthBias", "vkCmdSetBlendConstants" };
 	bool found = true;

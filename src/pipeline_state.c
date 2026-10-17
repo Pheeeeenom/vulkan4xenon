@@ -118,14 +118,15 @@ static VkResult raster_state(const VkPipelineRasterizationStateCreateInfo *raste
 	return VK_SUCCESS;
 }
 
-// The masks and reference the pipeline takes from commands are ignored, and commands set both faces' at once.
-static bool same_stencil(const Pipeline *pipeline, const VkStencilOpState *front, const VkStencilOpState *back)
+// Back faces need a setting of their own only where it differs from the front's, so one-sided stencil stays as it was.
+static bool faces_differ(const XsdkDepthStencil *setting)
 {
-	return front->failOp == back->failOp && front->passOp == back->passOp && front->depthFailOp == back->depthFailOp &&
-		front->compareOp == back->compareOp &&
-		(takes(pipeline, VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK) || front->compareMask == back->compareMask) &&
-		(takes(pipeline, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK) || front->writeMask == back->writeMask) &&
-		(takes(pipeline, VK_DYNAMIC_STATE_STENCIL_REFERENCE) || front->reference == back->reference);
+	const XsdkStencilFace *const back = &setting->back;
+	return setting->stencil_test &&
+		(setting->stencil_compare != back->compare || setting->stencil_fail != back->fail ||
+			setting->stencil_depth_fail != back->depth_fail || setting->stencil_pass != back->pass ||
+			setting->stencil_reference != back->reference || setting->stencil_read_mask != back->read_mask ||
+			setting->stencil_write_mask != back->write_mask);
 }
 
 // Vulkan's compare and stencil ops are xsdk's value for value (xsdk:include/xsdk/gpu.h).
@@ -133,23 +134,27 @@ static VkResult depth_stencil_state(const VkPipelineDepthStencilStateCreateInfo 
 {
 	XsdkDepthStencil setting = { .depth_compare = XSDK_COMPARE_ALWAYS, .stencil_compare = XSDK_COMPARE_ALWAYS };
 	if (state) {
-		if (state->depthBoundsTestEnable ||
-			(state->stencilTestEnable && !same_stencil(pipeline, &state->front, &state->back)))
-			return v4x_host_unsupported("depth bounds, and stencil that differs between faces");
-		const VkStencilOpState *const stencil = &state->front;
+		if (state->depthBoundsTestEnable)
+			return v4x_host_unsupported("depth bounds");
+		const VkStencilOpState *const front = &state->front;
+		const VkStencilOpState *const back = &state->back;
 		setting = (XsdkDepthStencil){
 			.depth_test = state->depthTestEnable,
 			.depth_write = state->depthTestEnable && state->depthWriteEnable,
 			.depth_compare = (uint32_t)state->depthCompareOp,
 			.stencil_test = state->stencilTestEnable,
-			.stencil_compare = (uint32_t)stencil->compareOp,
-			.stencil_fail = (uint32_t)stencil->failOp,
-			.stencil_depth_fail = (uint32_t)stencil->depthFailOp,
-			.stencil_pass = (uint32_t)stencil->passOp,
-			.stencil_reference = (uint8_t)stencil->reference,
-			.stencil_read_mask = (uint8_t)stencil->compareMask,
-			.stencil_write_mask = (uint8_t)stencil->writeMask,
+			.stencil_compare = (uint32_t)front->compareOp,
+			.stencil_fail = (uint32_t)front->failOp,
+			.stencil_depth_fail = (uint32_t)front->depthFailOp,
+			.stencil_pass = (uint32_t)front->passOp,
+			.stencil_reference = (uint8_t)front->reference,
+			.stencil_read_mask = (uint8_t)front->compareMask,
+			.stencil_write_mask = (uint8_t)front->writeMask,
+			.back = { (uint32_t)back->compareOp, (uint32_t)back->failOp, (uint32_t)back->depthFailOp,
+				(uint32_t)back->passOp, (uint8_t)back->reference, (uint8_t)back->compareMask,
+				(uint8_t)back->writeMask },
 		};
+		setting.two_sided = faces_differ(&setting);
 	}
 	pipeline->depth_stencil_setting = setting;
 	xsdk_gpu_depth_stencil_state(&pipeline->depth_stencil, &setting);
@@ -295,12 +300,19 @@ const XsdkDepthStencilState *v4x_pipeline_depth_stencil(
 	if (!(pipeline->dynamic & stencil))
 		return &pipeline->depth_stencil;
 	XsdkDepthStencil setting = pipeline->depth_stencil_setting;
-	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK))
-		setting.stencil_read_mask = dynamic->stencil_compare_mask;
-	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK))
-		setting.stencil_write_mask = dynamic->stencil_write_mask;
-	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_REFERENCE))
-		setting.stencil_reference = dynamic->stencil_reference;
+	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK)) {
+		setting.stencil_read_mask = dynamic->stencil_compare_mask[0];
+		setting.back.read_mask = dynamic->stencil_compare_mask[1];
+	}
+	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK)) {
+		setting.stencil_write_mask = dynamic->stencil_write_mask[0];
+		setting.back.write_mask = dynamic->stencil_write_mask[1];
+	}
+	if (takes(pipeline, VK_DYNAMIC_STATE_STENCIL_REFERENCE)) {
+		setting.stencil_reference = dynamic->stencil_reference[0];
+		setting.back.reference = dynamic->stencil_reference[1];
+	}
+	setting.two_sided = faces_differ(&setting);
 	xsdk_gpu_depth_stencil_state(scratch, &setting);
 	return scratch;
 }

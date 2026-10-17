@@ -193,8 +193,11 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     per-pixel slope, unverified as in xsdk. A bias clamp returns `VK_ERROR_FEATURE_NOT_PRESENT`.
 - **Depth and stencil,** with a depth attachment:
   - depth test, write and compare op;
-  - stencil test, ops, compare op, masks and reference, the same for both faces. Faces that differ return
-    `VK_ERROR_FEATURE_NOT_PRESENT` (two-sided stencil is an xsdk TODO).
+  - stencil test, ops, compare op, masks and reference, each face its own (milestone 26). Where the faces differ,
+    the pipeline sets xsdk's two-sided stencil, `RB_DEPTHCONTROL`'s `backface_enable` with the back face's fields and
+    `RB_STENCILREFMASK_BF` (xenia:src/xenia/gpu/registers.h:799-834); where they're the same, one-sided stencil serves
+    both, as before. Back faces are the ones culling takes for back, by `frontFace`; lines and points are front faces,
+    as Vulkan says, and as Xenia reads them (xenia:src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc:650-668).
   - Vulkan's compare and stencil ops are xsdk's, value for value. No depth bounds test.
 - **Blending,** each colour attachment by its own state, as each of Xenos's colour targets blends by its own
   `RB_BLENDCONTROL` and masks by its own four bits of `RB_COLOR_MASK` (`xsdk_gpu_set_blends`;
@@ -216,8 +219,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   - `vkCmdSetLineWidth` takes 1 alone, as without `wideLines`;
   - `vkCmdSetDepthBias` gives the constant and slope factors, which bias only if the pipeline's `depthBiasEnable` is
     set; a clamp fails the command buffer, as there's no `depthBiasClamp`;
-  - `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask` and `vkCmdSetStencilReference` set both faces at once,
-    as both share one setting; a face alone fails the command buffer;
+  - `vkCmdSetStencilCompareMask`, `vkCmdSetStencilWriteMask` and `vkCmdSetStencilReference` set the faces their face
+    mask names, each its own (milestone 26), and the faces' settings are worked out again, two-sided where they
+    differ;
   - `vkCmdSetBlendConstants` gives the constant colour;
   - a pipeline that doesn't take a state has its own, whatever the commands set before it.
 - **Deviation:** points are 1 pixel, xsdk's `PA_SU_POINT_SIZE`; the shader's `gl_PointSize` is ignored.

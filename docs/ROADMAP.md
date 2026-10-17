@@ -2618,6 +2618,40 @@ has each.
 
 Done when vulkan4xenon_test checks each by pixel.
 
+**Settled when it started (2026-10-16), in four steps,** each built with its checks and its breaks
+(`results/2026-10-16-milestone-26/breaks.py` and `builds.sh`, and xsdk's in
+xsdk:results/2026-10-16-vulkan4xenon-milestone-26/), and run on the console one step at a time:
+1. **Two-sided stencil:** xsdk sets `backface_enable` and the `_bf` fields of `RB_DEPTHCONTROL` and
+   `RB_STENCILREFMASK_BF` (xenia:src/xenia/gpu/registers.h:799-834); the layer takes each face's stencil from the
+   pipeline, and `vkCmdSetStencilCompareMask`, `WriteMask` and `Reference` for each face alone.
+2. **Clip distances, in the form Direct3D 9's clip planes take:** a distance written as `dot` of the vertex's
+   clip-space position and a plane from a uniform block or push constants goes to Xenos's user clip planes, which
+   xost recognises and the layer writes from the bound values at each draw. Any other form is refused.
+3. **Point sprites:** `gl_PointSize` from the vertex shader and `gl_PointCoord` from the pixel parameters, with
+   `largePoints` and the hardware's point size range; without a size written, points stay 1 pixel.
+4. **Wireframe and point fill:** `polygonMode` `LINE` and `POINT` through `PA_SU_SC_MODE_CNTL`'s `poly_mode`, with
+   `fillModeNonSolid`. Line width stays 1.
+
+**Step 1, two-sided stencil** (built 2026-10-16, not yet run on the console). `XsdkDepthStencil` gained `two_sided`
+and a `back` face, its compare, ops, reference and masks: `two_sided` sets `backface_enable` and the `_bf` fields, and
+`xsdk_gpu_set_depth_stencil` writes `RB_STENCILREFMASK_BF` beside `RB_STENCILREFMASK` in one packet, the front's in
+both when one-sided. The hierarchical buffer counts the back face's fail ops among those it can't skip. A pipeline
+takes each face's stencil and sets two-sided where the faces differ, so one-sided stencil writes what it did; the
+stencil commands set the faces their mask names, a face alone no longer refused, and the replay works the faces out
+again, two-sided where they now differ.
+- **The checks:** vulkan4xenon_test's `test_two_sided_stencil.c` draws three cells over stencil cleared to 0x80, each
+  marked by a front face on its left and a back face on its right, then a front face over all of it in one colour and
+  a back face in another, which must each show over their own face's mark alone: the pipeline's own faces, the front
+  replacing with 0x11 and the back inverting through the write mask 0x2F, then each testing through its own compare
+  mask against its own reference; references and write masks set by commands for each face alone, the back's 0xFA
+  through 0x0F; and compare masks set for each face alone, 0xF0 and 0x0F. `test_dynamic_state.c` no longer counts a
+  face alone among the refusals. xsdk_test's depth test draws a two-sided cell, a front face writing 0x11 and a back
+  face 0xF2 through 0x2F, then each face over both testing its own reference through its own mask, and reads both
+  values back from the resolved depth.
+- **Broken on purpose** (`breaks.py`): `s1a`, a back face's dynamic compare and write masks taken from the front's;
+  `s1b`, a pipeline's own two-sided stencil dropped; `s1c`, a command for one face setting both. xsdk's `s1a` leaves
+  `backface_enable` clear, and `s1b` writes the front's reference and masks into `RB_STENCILREFMASK_BF`.
+
 ### Milestone 27: copies on the GPU
 
 **Why.** `vkCmdBlitImage` runs on the CPU once the GPU is done (docs/SUPPORT.md, Commands), which stalls a port that

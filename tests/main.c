@@ -45,6 +45,7 @@ int main(void)
 		test_depth_stencil(&harness);
 		test_raster(&harness);
 		test_dynamic_state(&harness);
+		test_two_sided_stencil(&harness);
 		test_clears(&harness);
 		test_subpasses(&harness);
 		test_targets(&harness);

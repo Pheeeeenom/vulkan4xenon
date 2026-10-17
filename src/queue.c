@@ -769,6 +769,20 @@ static void draw_indexed_indirect(Replay *replay, volatile const uint32_t *param
 	draw_indexed(replay, parameters[0], parameters[2], (int32_t)parameters[3], parameters[1], parameters[4]);
 }
 
+// A stencil mask or reference, for each face the command names.
+static void set_stencil(DynamicState *dynamic, const Command *command)
+{
+	uint8_t *values = dynamic->stencil_reference;
+	if (command->stencil.state == VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK)
+		values = dynamic->stencil_compare_mask;
+	else if (command->stencil.state == VK_DYNAMIC_STATE_STENCIL_WRITE_MASK)
+		values = dynamic->stencil_write_mask;
+	for (uint32_t face = 0; face < V4X_STENCIL_FACES; face++) {
+		if (command->stencil.faces & 1u << face)
+			values[face] = command->stencil.value;
+	}
+}
+
 static void set_dynamic(Replay *replay, const Command *command)
 {
 	DynamicState *const dynamic = &replay->dynamic;
@@ -777,12 +791,8 @@ static void set_dynamic(Replay *replay, const Command *command)
 		dynamic->depth_bias_slope = command->depth_bias.slope;
 	} else if (command->type == COMMAND_SET_BLEND_CONSTANTS) {
 		memcpy(dynamic->blend_constants, command->blend_constants, sizeof dynamic->blend_constants);
-	} else if (command->stencil.state == VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK) {
-		dynamic->stencil_compare_mask = command->stencil.value;
-	} else if (command->stencil.state == VK_DYNAMIC_STATE_STENCIL_WRITE_MASK) {
-		dynamic->stencil_write_mask = command->stencil.value;
 	} else {
-		dynamic->stencil_reference = command->stencil.value;
+		set_stencil(dynamic, command);
 	}
 	replay->dynamic_dirty = true;
 }

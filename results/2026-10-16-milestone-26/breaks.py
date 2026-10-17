@@ -1,0 +1,77 @@
+"""Milestone 26's breaks of vulkan4xenon_test, each a small source change that should fail the checks named with it.
+
+breaks.py list prints the sets; breaks.py checks <set> the checks it should fail; breaks.py apply <set> <copy> applies
+it to a copy holding vulkan4xenon, and Xbox-360-SDK beside it for a set that breaks xsdk; breaks.py touches <set>
+<repository> says whether it breaks that one. builds.sh builds each set's copy into a .xex of its own. Every other
+check should pass with each set.
+"""
+import pathlib
+import sys
+
+PIPELINE_STATE = "vulkan4xenon/src/pipeline_state.c"
+QUEUE = "vulkan4xenon/src/queue.c"
+
+TWO_SIDED_STATIC = ("two-sided stencil: every frame's front and back faces pass the pipeline's own test for each, over "
+                    "what each wrote with its own op and write mask")
+TWO_SIDED_REFERENCE = ("two-sided stencil: every frame's faces take the references and write masks commands set for "
+                       "each alone")
+TWO_SIDED_COMPARE = "two-sided stencil: every frame's faces take the compare masks commands set for each alone"
+
+SETS = {
+    # Step 1: a back face's dynamic compare mask and write mask taken from the front's.
+    "s1a": {
+        "checks": [TWO_SIDED_REFERENCE, TWO_SIDED_COMPARE],
+        "breaks": [
+            (PIPELINE_STATE, "setting.back.read_mask = dynamic->stencil_compare_mask[1];",
+             "setting.back.read_mask = dynamic->stencil_compare_mask[0];"),
+            (PIPELINE_STATE, "setting.back.write_mask = dynamic->stencil_write_mask[1];",
+             "setting.back.write_mask = dynamic->stencil_write_mask[0];"),
+        ],
+    },
+    # Step 1: a pipeline's own two-sided stencil dropped, so its front face's serves both; the compare mask cell marks
+    # with such a pipeline.
+    "s1b": {
+        "checks": [TWO_SIDED_STATIC, TWO_SIDED_COMPARE],
+        "breaks": [
+            (PIPELINE_STATE, "\t\tsetting.two_sided = faces_differ(&setting);\n", "\t\tsetting.two_sided = false;\n"),
+        ],
+    },
+    # Step 1: a command for one face sets both.
+    "s1c": {
+        "checks": [TWO_SIDED_REFERENCE, TWO_SIDED_COMPARE],
+        "breaks": [
+            (QUEUE, "if (command->stencil.faces & 1u << face)", "if (command->stencil.faces)"),
+        ],
+    },
+}
+
+
+def apply(name, copy):
+    texts = {}
+    for path, old, new in SETS[name]["breaks"]:
+        file = copy / path
+        text = texts.get(file, None)
+        if text is None:
+            text = file.read_text()
+        if text.count(old) != 1:
+            sys.exit(f"{name}: {path} holds {text.count(old)} of {old!r}")
+        texts[file] = text.replace(old, new)
+    for file, text in texts.items():
+        file.write_text(text, newline="\n")
+    print(f"{name}: {len(SETS[name]['breaks'])} breaks in {len(texts)} files")
+
+
+def main():
+    command = sys.argv[1]
+    if command == "list":
+        print(" ".join(SETS))
+    elif command == "checks":
+        print("\n".join(SETS[sys.argv[2]]["checks"]))
+    elif command == "touches":
+        sys.exit(0 if any(path.startswith(sys.argv[3] + "/") for path, _, _ in SETS[sys.argv[2]]["breaks"]) else 1)
+    else:
+        apply(sys.argv[2], pathlib.Path(sys.argv[3]))
+
+
+if __name__ == "__main__":
+    main()
