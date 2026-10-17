@@ -101,9 +101,11 @@ Open, each for a decision when a port needs it:
   the CPU or look them up in a shader, which xost's dependent reads allow (xost:docs/xsc.md:87).
 - **Quads and rectangles:** Xenos draws both (xenia:src/xenia/gpu/xenos.h:53-56); Vulkan has neither, so a port makes
   triangles.
-- **Copies of part of a target,** as GameCube framebuffer copies and N64 framebuffer effects make: xsdk resolves whole
-  targets and the layer takes whole framebuffers as render areas (xsdk:TODO.md, "Resolving part of a target" and
-  "Render areas smaller than the framebuffer").
+- **Copies of part of a target,** as GameCube framebuffer copies and N64 framebuffer effects make: xsdk resolves part
+  of an 8-bit target into the same texels, on an 8-pixel grid, and the layer takes render areas on it, of one 8-bit
+  colour attachment a subpass (milestone 27; SUPPORT.md, Render passes). Areas off the grid inside the framebuffer,
+  areas of other targets, and resolves into another place, are left (xsdk:TODO.md, "Resolving part of a target, past
+  vulkan4xenon milestone 27").
 - **PS2's `(A-B)*C+D` blending:** most of it maps to blend factors; the rest needs dual-source blending, which Xenos
   lacks (xsdk:TODO.md, "Destination alpha"), or work in the shader.
 - **Logic ops** (GameCube): Xenia's register definitions show none.

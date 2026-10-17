@@ -162,13 +162,14 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyRenderPass(
 	v4x_host_free(v4x_host_device_allocator(device, pAllocator), v4x_object(renderPass));
 }
 
-// A render area is the whole framebuffer (vkCmdBeginRenderPass refuses less), so no granularity is better than any.
+// A pass clears and stores its render area by resolves, which copy and clear 8 by 8 pixels at a time, so the area is
+// on that grid or reaches the framebuffer's edge; vkCmdBeginRenderPass refuses others.
 VKAPI_ATTR void VKAPI_CALL vkGetRenderAreaGranularity(
 	VkDevice device, VkRenderPass renderPass, VkExtent2D *pGranularity)
 {
 	(void)device;
 	(void)renderPass;
-	*pGranularity = (VkExtent2D){ 1, 1 };
+	*pGranularity = (VkExtent2D){ XSDK_RESOLVE_ALIGNMENT, XSDK_RESOLVE_ALIGNMENT };
 }
 
 // A subpass's colour and depth images, each the framebuffer's size.

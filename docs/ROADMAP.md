@@ -2752,6 +2752,58 @@ of part of a target that GameCube and N64 framebuffer effects make can't be draw
 Done when vulkan4xenon_test's blits and smaller render areas run without the wait, checked by pixel, the time saved
 measured on the console.
 
+**Decided (2026-10-16), in two steps,** one colour target and the formats the layer has, as milestones 20 and 25 take
+the rest:
+1. **Partial resolves and render areas smaller than the framebuffer.** xsdk resolves a rectangle of a target into the
+   same texels, with the alignment the resolve hardware takes, and the layer clears, loads and stores a render area
+   alone, `vkGetRenderAreaGranularity` giving that alignment.
+2. **Blits on the GPU.** `vkCmdBlitImage` of a colour image a draw can sample draws its region into eDRAM at the
+   destination region's size with the layer's own shaders, nearest or linear, then resolves that region into the
+   destination; the replay no longer waits for the GPU for it. Blits the GPU can't take keep the CPU path; depth blits
+   stay refused.
+
+**Step 1, built** (2026-10-16; checks and breaks in `results/2026-10-16-milestone-27/`, the console's run to come).
+- **xsdk** resolves a rectangle with `xsdk_gpu_resolve_texture_rect`, into the same texels of a texture of the target's
+  size, clearing only it. Xenos copies the pixels its drawn rectangle covers, into the destination at the same
+  coordinates, and clears what it copies (xenia:src/xenia/gpu/xenos.h:911-932, 941-942); it does so 8 by 8 pixels at a
+  time (978-984). So the resolve's three corners, libxenon's (libxenon:drivers/xenos/xe.c:1074-1081), move to the
+  rectangle's, and the window scissor, which a resolve keeps to (xenos.h:969-976), is set to it. A rectangle's offset
+  is a multiple of 8, and its width and height too unless it reaches the texture's edge, past which it can write only
+  the texture's padding: one reaching the right edge is resolved to the pitch, as a whole resolve is; any other is a
+  caller's bug, caught by an assert. Clearing part of the depth writes nothing of hierarchical depth and leaves it off
+  till the whole is cleared, as the rest of the buffer may no longer bound the depth under it.
+- **The layer** takes render areas on that grid, refusing others, and `vkGetRenderAreaGranularity` gives 8x8, which is
+  Vulkan's own rule for an optimal area. It tracks over which rectangle eDRAM holds its cleared values or an image:
+  a clear resolves the area, a load draws the image back over the area alone, and the store resolves the area alone.
+  Depth clears in the area alone, while a depth image's own clear covers all of it, drawn first as
+  `vkCmdClearAttachments` draws when the area is smaller; a pass's resolve clears depth for the next pass only when
+  their areas are the same, as eDRAM holds a depth image's depth around an area. A sampled depth image left to be read
+  still takes all of eDRAM's depth.
+- **Merged onto milestones 20 to 26,** a pass resolves each of its colour targets, in its own format, as milestone 25
+  has it, and a whole area still does. xsdk resolves a rectangle of the first target alone, and in 8_8_8_8 alone, so a
+  render pass of a smaller area takes one colour attachment a subpass, `R8G8B8A8_UNORM` or `B8G8R8A8_UNORM`, beside
+  its depth; `vkCmdBeginRenderPass` refuses any other with a smaller area.
+- **The checks:** xsdk_test's `test_resolve_rect.c` draws four coloured quarters meeting off the grid into a 204x116
+  target, off the grid both ways, and resolves two rectangles into a texture of sentinels: one inside, one reaching the
+  right and bottom edges. Every texel must hold the quarters inside the rectangles and the sentinel outside, and a
+  resolve of the whole after them each rectangle's clear alone. Then depth cleared to 0.75 over the whole and to 1 in
+  a rectangle must let a quad at 0.875 show in the rectangle alone, which a hierarchical buffer left on would reject.
+  vulkan4xenon_test's `test_render_areas.c` reads a 124x92 target back texel by texel: a pass clearing an area inside
+  it to green, with a red quad, after another target's pass left eDRAM magenta; a pass loading an area reaching its
+  edges, over a corner of the first, with a yellow quad, the rest blue as the CPU cleared it; depth cleared to 1 in an
+  area after 0.5 over the whole, a quad at 0.75 showing there alone; a depth image cleared to 0.25 outside a pass,
+  then a pass of a smaller area loading it, a quad at 0.4 after hiding everywhere. The granularity is checked, and
+  three areas off the grid are refused, as is a smaller area of a half float attachment.
+- **Broken on purpose:** xsdk's `xsdk_test_breaks.py` and `builds.sh` in
+  xsdk:results/2026-10-16-vulkan4xenon-milestone-27/, three titles: the rectangle at the corner, the whole target
+  resolved, and hierarchical depth left on, which only the console fails, Xenia having none. The layer's `breaks.py`
+  and `builds.sh` in `results/2026-10-16-milestone-27/`, three titles for step 1: six breaks a check each; every
+  resolve of the whole framebuffer; and the image drawn back from the corner.
+
+**Not in milestone 27:** render areas smaller than the framebuffer in a subpass of several colour attachments, or of a
+float or 10-bit one, which need xsdk to resolve a rectangle of any target in any format, past the agreed scope; and
+areas off the 8-pixel grid inside the framebuffer (docs/SUPPORT.md, Render passes).
+
 ### Milestone 28: occlusion queries
 
 **Why.** Some engines cull with them, though most can draw without. `ZPASS_DONE` hung the GPU in all six runs of

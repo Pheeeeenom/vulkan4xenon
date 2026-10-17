@@ -77,7 +77,8 @@ typedef enum {
 } EdramContents;
 
 // What a colour target's tiles of eDRAM, or a depth and stencil's, hold between render passes (docs/ROADMAP.md,
-// milestones 4 and 25); its first tile, and a colour's xsdk target format.
+// milestones 4, 25 and 27), and over which rectangle of the framebuffer, as a pass clears, loads and stores its render
+// area alone; its first tile, and a colour's xsdk target format.
 typedef struct {
 	EdramContents contents;
 	uint32_t width;
@@ -88,6 +89,7 @@ typedef struct {
 	const struct Image *image;
 	uint32_t tile;
 	uint32_t format;
+	VkRect2D area;
 } EdramPart;
 
 // The layer's own shaders and state for drawing an image back into eDRAM, and for vkCmdClearAttachments's rectangles.
@@ -456,6 +458,8 @@ typedef struct {
 			const RenderPass *render_pass;
 			const Framebuffer *framebuffer;
 			uint32_t clears_at;
+			// The render area, a VkRect2D in the command buffer's data.
+			uint32_t area_at;
 		} begin;
 		const Pipeline *pipeline;
 		struct {
@@ -586,12 +590,13 @@ struct VkCommandBuffer_T {
 	uint8_t *data;
 	uint32_t data_bytes;
 	uint32_t data_capacity_bytes;
-	// The render pass being recorded, its framebuffer, the subpass it's in and the clear values it began with, for
-	// vkCmdNextSubpass to begin the next subpass as a pass of its own.
+	// The render pass being recorded, its framebuffer, the subpass it's in and the clear values and render area it
+	// began with, for vkCmdNextSubpass to begin the next subpass as a pass of its own.
 	const RenderPassSubpasses *render_pass;
 	const FramebufferSubpasses *framebuffer;
 	uint32_t subpass;
 	VkClearValue clears[V4X_MAX_ATTACHMENTS];
+	uint32_t area_at;
 	// The pipeline bound last while recording, to check draws against its topology.
 	const Pipeline *pipeline;
 	// Allocated as a secondary command buffer, which vkCmdExecuteCommands replays in place.

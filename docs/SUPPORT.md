@@ -301,23 +301,43 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   layouts fails the command buffer: `vkEndCommandBuffer` returns `VK_ERROR_FEATURE_NOT_PRESENT`, as only a pass's end
   resolves depth. Depth images can't be copied.
 - Framebuffers: the render pass's attachments, their full size, up to 1280x720, one layer. Colour attachments are
-  swapchain images or images made with `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`. The render area must be the whole
-  framebuffer, so `vkGetRenderAreaGranularity` gives 1x1.
-- How it maps (docs/ROADMAP.md, milestones 4 and 25):
+  swapchain images or images made with `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`.
+- **Render areas** (milestone 27): a pass clears, loads and stores its render area alone, as Vulkan says, by resolving
+  that part of the target (`xsdk_gpu_resolve_texture_rect`). A resolve copies and clears 8 by 8 pixels at a time
+  (xsdk:include/xsdk/gpu.h), so `vkGetRenderAreaGranularity` gives 8x8, and an area's offset is a multiple of 8, and so
+  are its width and height unless it reaches the framebuffer's right or bottom edge: what Vulkan calls an optimal area.
+  **Deviation:** an area off that grid inside the framebuffer fails the command buffer, though Vulkan takes any area,
+  the granularity being only for speed.
+  **Deviation:** xsdk resolves a rectangle of the first colour target alone, in 8_8_8_8, and none of the float or
+  10-bit targets (xsdk:include/xsdk/gpu.h), so an area smaller than the framebuffer takes a render pass whose subpasses
+  each have one colour attachment, `R8G8B8A8_UNORM` or `B8G8R8A8_UNORM` (a swapchain image's), and a depth attachment
+  if they have one. Any other render pass with a smaller area fails the command buffer; with the whole framebuffer as
+  its area it takes every attachment the layer does.
+  - A clear resolves the area into the attachment, clearing eDRAM there, as a whole pass's clear does; a load draws
+    the image back over the area alone; the store resolves the area alone, so the image around it keeps what it held.
+  - Depth clears in the area alone. A depth image's own clear, `vkCmdClearDepthStencilImage`'s, covers all of it, so a
+    pass of a smaller area draws it over the whole framebuffer first, as `vkCmdClearAttachments` draws.
+  - A sampled depth image left to be read takes all of eDRAM's depth, which holds the image's depth around the area.
+  - A pass's resolve clears colour for the next pass only when the next pass's area is inside its own, and depth only
+    when the two areas are the same, as eDRAM holds a depth image's depth around an area.
+  - Clearing part of the depth leaves hierarchical depth off till a pass clears all of it (xsdk:include/xsdk/gpu.h),
+    so the draws after it skip no hidden pixels early.
+- How it maps (docs/ROADMAP.md, milestones 4, 25 and 27):
   - the pass draws into eDRAM, each colour attachment a colour target of its own in its format, one after another
     from tile 0 (`xsdk_gpu_set_targets`), and depth where eDRAM holds its image's, or the clear it wants at its size;
     a depth eDRAM doesn't hold goes ending at tile 2048, or just under a depth image eDRAM holds there when that stays
     above the pass's colour, so a pass with a smaller depth of its own leaves the earlier one alone, as a pass without
     depth does (milestone 14). Up to four depths are tracked, each lost when a pass's colour or depth reaches its
     tiles, and a depth below the end of a pass's colour targets is lost to them;
-  - its end resolves each colour target into its attachment's image, converted to the image's format
-    (`xsdk_gpu_resolve_target`);
+  - its end resolves each colour target's area into its attachment's image, converted to the image's format
+    (`xsdk_gpu_resolve_target`, or `xsdk_gpu_resolve_texture_rect` for a smaller area);
   - the layer tracks what each of the last pass's colour targets holds, at its tile and in its format, and what each
-    depth holds: values a resolve cleared it to, at a framebuffer's size, or an image's contents;
-  - a clear finds its values there, or beginning the pass resolves into the attachment to set them, copying junk the
-    pass then overwrites, a resolve for each colour attachment that clears;
-  - a load finds its image there, or the layer draws the image back in, texel for texel, with its own shaders, into
-    that target alone where the subpass has several;
+    depth holds, and over which rectangle: values a resolve cleared it to, at a framebuffer's size, or an image's
+    contents;
+  - a clear finds its values there over its area, or beginning the pass resolves into the attachment to set them,
+    copying junk the pass then overwrites, a resolve for each colour attachment that clears;
+  - a load finds its image there over its area, or the layer draws the image back in, texel for texel, with its own
+    shaders, into that target alone where the subpass has several;
   - a pass's resolve clears a colour target as the next pass in the command buffer clears the target at its tile, in
     its format and at its size, and keeps it otherwise; depth the same. The last pass in a command buffer clears to its
     own values, so the next frame's usually finds them.

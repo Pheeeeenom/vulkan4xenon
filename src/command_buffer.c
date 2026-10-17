@@ -6,6 +6,7 @@
 #include "host.h"
 #include "image.h"
 #include "objects.h"
+#include "xsdk/gpu.h"
 
 // Commands go into a list that grows as a command buffer records; vkQueueSubmit replays them (queue.c).
 
@@ -230,6 +231,31 @@ static void record_subpass(VkCommandBuffer commandBuffer)
 	command->begin.render_pass = render_pass;
 	command->begin.framebuffer = &commandBuffer->framebuffer->subpasses[commandBuffer->subpass];
 	command->begin.clears_at = at;
+	command->begin.area_at = commandBuffer->area_at;
+}
+
+// On the grid a resolve copies by, or reaching the framebuffer's edge, as vkGetRenderAreaGranularity says.
+static bool on_grid(int32_t first, uint32_t size, uint32_t edge)
+{
+	const uint32_t end = (uint32_t)first + size;
+	return first >= 0 && size && end <= edge && first % XSDK_RESOLVE_ALIGNMENT == 0 &&
+		(end % XSDK_RESOLVE_ALIGNMENT == 0 || end == edge);
+}
+
+// xsdk resolves a rectangle of target 0 alone, in 8_8_8_8 (xsdk:include/xsdk/gpu.h, xsdk_gpu_resolve_texture_rect), so
+// an area smaller than the framebuffer needs each subpass to draw one colour attachment of 8 bits a channel.
+static bool area_resolvable(
+	const RenderPassSubpasses *render_pass, const FramebufferSubpasses *framebuffer, const VkRect2D *area)
+{
+	if (!area->offset.x && !area->offset.y && area->extent.width == framebuffer->width &&
+		area->extent.height == framebuffer->height)
+		return true;
+	for (uint32_t i = 0; i < render_pass->subpass_count; i++) {
+		const RenderPass *const subpass = &render_pass->subpasses[i];
+		if (subpass->color_count != 1 || subpass->targets[0] != XSDK_TARGET_8_8_8_8)
+			return false;
+	}
+	return true;
 }
 
 // The subpass's draws are recorded here or in secondary command buffers, which vkCmdExecuteCommands replays in place.
@@ -237,18 +263,26 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBeginRenderPass(
 	VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo *pRenderPassBegin, VkSubpassContents contents)
 {
 	(void)contents;
+	const RenderPassSubpasses *const render_pass = v4x_object(pRenderPassBegin->renderPass);
 	const FramebufferSubpasses *const framebuffer = v4x_object(pRenderPassBegin->framebuffer);
 	const VkRect2D *const area = &pRenderPassBegin->renderArea;
-	if (area->offset.x || area->offset.y || area->extent.width != framebuffer->width ||
-		area->extent.height != framebuffer->height) {
-		commandBuffer->result = v4x_host_unsupported("render areas smaller than the framebuffer");
+	if (!on_grid(area->offset.x, area->extent.width, framebuffer->width) ||
+		!on_grid(area->offset.y, area->extent.height, framebuffer->height)) {
+		commandBuffer->result = v4x_host_unsupported("render areas off the 8-pixel grid inside the framebuffer");
 		return;
 	}
+	if (!area_resolvable(render_pass, framebuffer, area)) {
+		commandBuffer->result = v4x_host_unsupported(
+			"render areas smaller than the framebuffer but for one 8-bit RGBA or BGRA colour attachment");
+		return;
+	}
+	if (!record_data(commandBuffer, area, sizeof *area, &commandBuffer->area_at))
+		return;
 	const uint32_t clears = pRenderPassBegin->clearValueCount < V4X_MAX_ATTACHMENTS ? pRenderPassBegin->clearValueCount
 																					: V4X_MAX_ATTACHMENTS;
 	if (clears)
 		memcpy(commandBuffer->clears, pRenderPassBegin->pClearValues, clears * sizeof(VkClearValue));
-	commandBuffer->render_pass = v4x_object(pRenderPassBegin->renderPass);
+	commandBuffer->render_pass = render_pass;
 	commandBuffer->framebuffer = framebuffer;
 	commandBuffer->subpass = 0;
 	record_subpass(commandBuffer);

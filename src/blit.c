@@ -133,12 +133,12 @@ void v4x_blit_destroy(Blit *blit)
 	*blit = (Blit){ .vertices = NULL };
 }
 
-// The viewport as the replay sets one over the whole target (src/queue.c, apply_viewport).
-void v4x_blit_draw(const Blit *blit, const XsdkTexture *texture, uint32_t width, uint32_t height)
+// The viewport as the replay sets one over the whole target (src/queue.c, apply_viewport), the scissor at the area.
+void v4x_blit_draw(const Blit *blit, const XsdkTexture *texture, uint32_t width, uint32_t height, const VkRect2D *area)
 {
 	xsdk_gpu_set_shaders(&blit->vertex, &blit->pixel);
 	xsdk_gpu_set_viewport(-0.5f, (float)height - 0.5f, (float)width, -(float)height, 0.0f, 1.0f);
-	xsdk_gpu_set_scissor(0, 0, width, height);
+	xsdk_gpu_set_scissor((uint32_t)area->offset.x, (uint32_t)area->offset.y, area->extent.width, area->extent.height);
 	xsdk_gpu_set_blend(&blit->blend);
 	xsdk_gpu_set_raster(&blit->raster);
 	xsdk_gpu_set_depth_stencil(&blit->depth_stencil);

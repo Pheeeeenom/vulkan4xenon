@@ -29,6 +29,8 @@ void test_clears(const Harness *harness);
 void test_subpasses(const Harness *harness);
 // Colour attachments in the float and 10-bit formats, four at once, each blended on its own (milestone 25).
 void test_targets(const Harness *harness);
+// Render passes whose area is smaller than the framebuffer, each clearing, loading and storing it alone (milestone 27).
+void test_render_areas(const Harness *harness);
 // Events the GPU sets, resets and waits on, and time stamps of its clock (milestone 19).
 void test_events(const Harness *harness);
 // A triangle through Vulkan, checked on the image the display shows.
@@ -89,7 +91,8 @@ void test_loops(const Harness *harness);
 void test_shader_lod(const Harness *harness);
 // Quads of both windings coloured by gl_FrontFacing under each frontFace, and back faces discarded (milestone 22).
 void test_facing(const Harness *harness);
-// Columns moved by heights and coloured by levels a vertex shader samples, and the fetch constants' limit (milestone 22).
+// Columns moved by heights and coloured by levels a vertex shader samples, and the fetch constants' limit (milestone
+// 22).
 void test_vertex_textures(const Harness *harness);
 // Names the layer's cache, a folder emptied first; called before the device is made (milestone 13).
 void test_shader_cache_start(void);
