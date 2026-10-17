@@ -2102,19 +2102,21 @@ Shader Model 3 has all of it, and Xenos runs it with conditional execs, predicat
 Done when GLSL with each runs through the layer on the console, checked by pixel, and xost's tests cover it.
 
 **Built in three steps** (2026-10-16), each an xsdk commit for xost and a layer commit for its checks:
-1. **An if/else on data, by selects** (xsdk `37f3946`, `7f0e26e`). xost's unroller runs both arms of an if/else on
+1. **An if/else on data, by selects** (xsdk `9ef5b51`, `59ae63a`). xost's unroller runs both arms of an if/else on
    data in a vertex shader, in a loop's body or around `gl_FragDepth`, each from the locals and outputs as they were,
    and merges each value they leave apart with a select where they meet, glslang's Phis for `&&` and `||` too.
    Outputs are kept as locals are and exported once at the end, so every path writes them; `gl_FragDepth` written on
    one path alone is refused, as nothing else gives the pixel a depth (xenia:src/xenia/gpu/draw_util.cc:498-502).
    Selects, not execs on the predicate, as such an exec runs for every vertex or pixel of 64 when any of them needs it
    (ucode.h:114-124), so arms that differ within a group run both either way (xost:docs/xsc.md, "Control flow").
-2. **An if/else every vertex or pixel agrees on, in execs on the predicate** (xsdk `36c09cc`). Where the condition
+2. **An if/else every vertex or pixel agrees on, in execs on the predicate** (xsdk `a850896`). Where the condition
    reads only push constants, uniform blocks and literals, and an arm works something out of its own, a `setp_*` sets
    p0 (ucode.h:1162-1204) and the arms go in `(p0)` and `(!p0)` execs, every instruction in them predicated as its
    exec is (ucode.h:114-124), so the arm not taken runs no instructions. An if/else inside such an arm is selects, as
    there's one predicate.
-3. **Hardware loops a block counts** (xsdk `0d68da2`). Vulkan's GLSL has no bare uniforms, and the hardware loops xost
+   Changed after the console run: in a vertex shader, such execs hung the GPU, so a vertex shader's if/else on a
+   uniform is selects too, and pixel shaders alone take execs on the predicate (xsdk `37d35de`).
+3. **Hardware loops a block counts** (xsdk `3148015`). Vulkan's GLSL has no bare uniforms, and the hardware loops xost
    lowered took their counts from one, so it now keeps `for (int i = 0; i < b.n; i++)`, `n` an int in a push constant or
    uniform block, as a hardware loop: what the loop carries in registers, `i` a float counter, an if/else on data in the
    pass as selects, and `if (c) break;` ending a pass as a predicated LOOP_END, on a value every vertex or pixel shares,
@@ -2155,12 +2157,34 @@ A draw whose pipeline has no loop costs one test.
     console from SPIR-V the bundle doesn't hold.
   - xsdk_test's compiler check takes `vk_vertex_if.vert`, `vk_vertex_uniform_if.vert` and `vk_loop_count_if.frag`, the
     console's containers and needs against the PC's.
-- **Broken on purpose:** `results/2026-10-16-milestone-21/breaks.py` and `builds.sh`, here and in xsdk, build a
-  `.xex` for each break from copies of the trees: six of xost's (an if/else on data's select taking the other arm,
-  the arms on the predicate swapped, a loop's counter stuck at 0, what a loop carries kept as it came in, pixel
-  shaders' loops at loop constant 0, and a Phi's arms swapped) and four of the layer's (a dynamic offset ignored, a
-  count unclamped, the loop constants written once, and a push constant's count read a word off). `breaks.py fails`
-  names the checks each should fail; on the PC, xost's change the containers of only the shaders those checks draw.
+- **Broken on purpose:** `results/2026-10-16-milestone-21/breaks.py` and `builds.sh`, and xsdk's in
+  `results/2026-10-16-vulkan4xenon-milestone-21/`, build a `.xex` for each break from copies of the trees: six of xost's
+  (an if/else on data's select taking the other arm, the arms on the predicate swapped, a loop's counter stuck at 0,
+  what a loop carries kept as it came in, pixel shaders' loops at loop constant 0, and a Phi's arms swapped) and four of
+  the layer's (a dynamic offset ignored, a count unclamped, the loop constants written once, and a push constant's count
+  read a word off). `breaks.py fails` names the checks each should fail; on the PC, xost's change the containers of only
+  the shaders those checks draw.
+
+**On the console** (2026-10-16, the zero-fuse console; `results/2026-10-16-milestone-21/`):
+- **Execs on the predicate hung the GPU in a vertex shader.** The first run's push-constant branch in a vertex shader,
+  compiled on the console, placed its first frame's quads wrong and the GPU didn't go idle; every check after failed
+  and the title hung as it ended, 262 passed and 46 failed (`vulkan4xenon_test_vertex_predicate_hang.log`). The same
+  build with a vertex shader's if/else on a uniform as selects passed everything else, the pixel shader's execs on the
+  predicate in a loop's body and every hardware loop among them (`vulkan4xenon_test_vertex_selects.log`), so xost
+  keeps it so (xsdk:docs/HARDWARE.md, "Branches, vulkan4xenon milestone 21"; xsdk:TODO.md). That run's one miss was
+  the shader cache's count, which the four shaders the branch and loop scenes compile on the console raise to eight.
+- **vulkan4xenon_test passed 309 of 309, twice** (`vulkan4xenon_test.log`, `_2`): if/else on data in vertex shaders,
+  loops' bodies and around `gl_FragDepth`; hardware loops counted by push constants, 300 run as 255 and -5 as none, by
+  a uniform buffer with a break, by a dynamic uniform buffer in a vertex shader, and in both stages at once.
+- **Broken on purpose,** each of the ten builds failed the checks `breaks.py fails` names for it and no other
+  (`vulkan4xenon_test_broken_<break>.log`); the select swap now fails the vertex shader's push-constant scenes too, as
+  they're selects. xsdk's five did the same for xsdk_test's compiler checks
+  (xsdk:results/2026-10-16-vulkan4xenon-milestone-21/).
+- **xsdk_test passed 326 of 328,** the two left the controller's, as no pad was in.
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.7 to 29.9 fps,
+  98 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m21.log`).
+
+Milestone 21 is done.
 
 ### Milestone 22: Shader Model 3's fetches and inputs
 

@@ -5,13 +5,12 @@ breaks.py kind NAME                            xost, for a break in xsdk's compi
 breaks.py apply NAME XSDK LAYER_COPY XSDK_COPY applies one to the copies
 breaks.py fails NAME                           vulkan4xenon_test's checks it should fail
 
-XSDK is the xsdk tree whose results/2026-10-16-milestone-21/breaks.py holds xost's breaks. builds.sh builds
+XSDK is the xsdk tree whose results/2026-10-16-vulkan4xenon-milestone-21/breaks.py holds xost's breaks. builds.sh builds
 vulkan4xenon_test once for each: for one of xost's, xsdk's library and PC compiler with the break in, and the bundle
 made again by that compiler, so the shaders compiled on the PC and those compiled on the console both have it. Each
-break fails the "every frame" and "image on screen" checks of the scenes listed, and no other check; the scenes'
-"made" and "drawn and presented" checks pass. xost's breaks change no shader older than milestone 21: on the PC,
-each changes the containers of only the shaders its scenes draw (xsdk's breaks.py, FAILS, says the same of
-xsdk_test's).
+break fails the "every frame" and "image on screen" checks of the scenes listed, and no other check; the scenes' "made"
+and "drawn and presented" checks pass. xost's breaks change no shader older than milestone 21: on the PC, each changes
+the containers of only the shaders its scenes draw (xsdk's breaks.py, FAILS, says the same of xsdk_test's).
 """
 import importlib.util
 import pathlib
@@ -70,8 +69,10 @@ SCENES = {
 # The scenes each break fails.
 FAILS = {
     # Every if/else on data: the vertex shader's, the unrolled loop's, gl_FragDepth's, and the hardware loop's pass.
-    "select_swap": ["data_compiled", "data", "loop_data", "depth", "bands_compiled", "bands"],
-    "predicate_inverted": ["uniform_compiled", "uniform", "loop_uniform"],
+    "select_swap": ["data_compiled", "data", "uniform_compiled", "uniform", "loop_data", "depth", "bands_compiled",
+                    "bands"],
+    # Vertex shaders keep selects (xsdk:docs/HARDWARE.md, "Branches, vulkan4xenon milestone 21").
+    "predicate_inverted": ["loop_uniform"],
     # float(i) and the block's colour at i read 0 every pass.
     "counter_stuck": ["bands_compiled", "bands"],
     "carried_kept": ["push_compiled", "push", "vertex", "both", "bands_compiled", "bands"],
@@ -88,7 +89,7 @@ FAILS = {
 
 
 def xost(xsdk):
-    path = pathlib.Path(xsdk) / "results/2026-10-16-milestone-21/breaks.py"
+    path = pathlib.Path(xsdk) / "results/2026-10-16-vulkan4xenon-milestone-21/breaks.py"
     spec = importlib.util.spec_from_file_location("xsdk_breaks", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

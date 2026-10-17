@@ -59,8 +59,7 @@ typedef struct {
 	HarnessProbes check;
 } Scene;
 
-// The layer compiles these on the console, with their literals, blocks and predicated execs (docs/ROADMAP.md,
-// milestone 13).
+// The layer compiles these on the console, with their literals and blocks (docs/ROADMAP.md, milestone 13).
 static uint32_t compiled_branch_data_vert[BRANCH_DATA_VERT_SPIRV_BYTES / 4];
 static uint32_t compiled_branch_uniform_vert[BRANCH_UNIFORM_VERT_SPIRV_BYTES / 4];
 static bool compiled;

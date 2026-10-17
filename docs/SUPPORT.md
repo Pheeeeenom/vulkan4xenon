@@ -100,12 +100,14 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 - The shader subset is xost's (xost:docs/xsc.md): no bitwise operations, a break on data in a loop raises an error,
   and 16 registers a pixel shader.
 - `if`/`else` in either stage, nested, in an unrolled loop's body and around `gl_FragDepth` (milestone 21;
-  xost:docs/xsc.md, "Control flow"). Where the condition reads only push constants, uniform blocks and literals, so
-  every vertex or pixel takes the same arm, and an arm has work of its own, the arms go in execs on the predicate and
-  the arm not taken runs no instructions (xenia:src/xenia/gpu/ucode.h:114-124). Otherwise both arms run and a select
-  picks each value, as a group of 64 that splits runs both arms on Xenos anyway. Refused, with xost's reason: a `break`
-  or `return` in an arm, a `discard` in an arm xost's unroller merges, a `switch`, and a matrix, array or struct an
-  `if`/`else` chooses. An output stored on one path alone takes that value on the other, where GLSL leaves it undefined.
+  xost:docs/xsc.md, "Control flow"). In a pixel shader, where the condition reads only push constants, uniform blocks
+  and literals, so every pixel takes the same arm, and an arm has work of its own, the arms go in execs on the predicate
+  and the arm not taken runs no instructions (xenia:src/xenia/gpu/ucode.h:114-124); a vertex shader's arms in such execs
+  hung the GPU on the console (xsdk:docs/HARDWARE.md, "Branches, vulkan4xenon milestone 21"), so a vertex shader's stay
+  selects. Otherwise both arms run and a select picks each value, as a group of 64 that splits runs both arms on Xenos
+  anyway. Refused, with xost's reason: a `break` or `return` in an arm, a `discard` in an arm xost's unroller merges, a
+  `switch`, and a matrix, array or struct an `if`/`else` chooses. An output stored on one path alone takes that value on
+  the other, where GLSL leaves it undefined.
 - A fragment shader may write `gl_FragDepth` outside any `if`/`else`, in both arms of one, or before one and again in
   an arm; written on one path alone, it's refused, as nothing else gives the pixel a depth (xost:docs/xsc.md,
   "Control flow"). Its draws skip no hidden pixels early, as xsdk turns hierarchical depth off for them
