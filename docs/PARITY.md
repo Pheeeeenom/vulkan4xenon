@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 36, part of 8 and none of 3. Milestone 26's four rows are built and wait for the console.
+Of the 47 rows, the layer has 36, part of 8 and none of 3.
 Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it compares
 depth in a fetch hasn't been checked, which xost's comparison after the fetch doesn't need. Every other gap is
 software.

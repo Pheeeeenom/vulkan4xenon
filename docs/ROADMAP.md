@@ -2717,6 +2717,29 @@ wide.
   `s4b`, against a copy of xsdk, back faces culled only when filled. xsdk's `s4a` drops dual mode, and `s4b` swaps the
   polygon types.
 
+**On the console** (2026-10-16, the zero-fuse console; `results/2026-10-16-milestone-26/`):
+- **vulkan4xenon_test passed 393 of 393, twice** (`vulkan4xenon_test.log`, `_2`): each face's stencil from the
+  pipeline and from commands naming a face; quads cut by planes pushed before each draw and from a dynamic uniform
+  buffer, nothing cut of a pipeline without them nor of `vkCmdClearAttachments`'s rectangle; sprites of 16 and 48
+  pixels with `gl_PointCoord` across them, and a point without a size 1 pixel; `LINE` and `POINT` quads, and a
+  back-facing `LINE` quad culled before its edges are drawn (xsdk:docs/HARDWARE.md, "Raster state, vulkan4xenon
+  milestone 26").
+- **What it settled:** back faces take `RB_DEPTHCONTROL`'s `_bf` fields and `RB_STENCILREFMASK_BF`; Xenos's user
+  planes are in clip space, as Xenia has them; a point's size is its full width in pixels, unclamped by set-up; and the
+  console needs `vs_export_mode` 2 for a shader's size, as xsdk's `s3c` failed the sprite check without it.
+- **xsdk_test's first run failed its fill row,** a bug in the test: it negated an unsigned enum constant, placing the
+  quad's bottom corners off screen. Fixed, xsdk_test passed 364 of 366, the two left the controller's, no button
+  pressed (`xsdk_test.log`).
+- **Broken on purpose,** each of the nine sets failed the checks `breaks.py` names for it and only those
+  (`vulkan4xenon_test_broken_s1a.log` to `_s4b`), as did xsdk's nine
+  (xsdk:results/2026-10-16-vulkan4xenon-milestone-26/).
+- **Dusklight,** built clean against both with its committed shader pack, ran its title scene's attract loop for five
+  minutes at 29.4 to 30.0 fps, 98 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m26.log`).
+  A run the user played went on into later areas at 29.6 to 30.0 fps between loads, down to 10.8 while several loaded
+  together, and 49 MB free (`dusklight_m26_played.log`).
+
+Milestone 26 is done.
+
 ### Milestone 27: copies on the GPU
 
 **Why.** `vkCmdBlitImage` runs on the CPU once the GPU is done (docs/SUPPORT.md, Commands), which stalls a port that
