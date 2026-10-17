@@ -129,13 +129,15 @@ static const Attachment attachments[COLORS] = {
 		false, { 0.0f },
 		{ { 1.0f, 0.8f, 0.4f, 1.0f }, { 0.4f, 0.6f, 1.0f, 0.8f }, { 0.8f, 0.6f, 0.0f, 1.0f },
 			{ 0.2f, 0.4f, 0.6f, 0.8f }, { 0.2f, 0.4f, 0.6f, 0.8f } } },
+	// The second draw's alpha is one 2 bits hold, as the console rounds the source to the attachment's bits before it
+	// blends (docs/ROADMAP.md, milestone 25's "On the console").
 	{ "the second draw blended by its alpha, red, green and blue alone, and cleared in the corner",
-		{ 0.2f, 0.4f, 0.6f, 1.0f / 3 }, { 0.8f, 0.6f, 0.4f, 1.0f }, { 0.0f, 1.0f, 0.2f, 0.25f },
+		{ 0.2f, 0.4f, 0.6f, 1.0f / 3 }, { 0.8f, 0.6f, 0.4f, 1.0f }, { 0.0f, 1.0f, 0.2f, 1.0f / 3 },
 		{ VK_TRUE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE,
 			VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
 			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT },
 		true, { 0.9f, 0.1f, 0.5f, 2.0f / 3 },
-		{ { 0.6f, 0.7f, 0.35f, 1.0f }, { 0.15f, 0.55f, 0.5f, 1.0f / 3 }, { 0.8f, 0.6f, 0.4f, 1.0f },
+		{ { 1.6f / 3, 2.2f / 3, 1.0f / 3, 1.0f }, { 0.4f / 3, 0.6f, 1.4f / 3, 1.0f / 3 }, { 0.8f, 0.6f, 0.4f, 1.0f },
 			{ 0.2f, 0.4f, 0.6f, 1.0f / 3 }, { 0.9f, 0.1f, 0.5f, 2.0f / 3 } } },
 	{ "past 1, the second draw's red and alpha alone, and cleared in the corner below 0 and past 1",
 		{ 1.25f, 0.5f, 0.75f, 2.0f }, { 1.5f, 2.25f, 3.0f, 4.0f }, { 6.0f, 7.0f, 8.0f, 9.0f },
@@ -179,7 +181,7 @@ typedef struct {
 static const ShownTexel shown_texels[] = {
 	{ "R8G8B8A8, the first draw", IMAGE_RGBA8, 8, 56, { 204, 153, 0 } },
 	{ "R8G8B8A8, both draws added", IMAGE_RGBA8, 8, 8, { 255, 204, 102 } },
-	{ "A2B10G10R10, blended by alpha", IMAGE_10_BIT, 8, 8, { 153, 179, 89 } },
+	{ "A2B10G10R10, blended by alpha", IMAGE_10_BIT, 8, 8, { 136, 187, 85 } },
 	{ "A2B10G10R10, the corner's clear", IMAGE_10_BIT, 110, 56, { 230, 26, 128 } },
 	{ "R16G16B16A16, the second draw's red over the clear", IMAGE_HALF4, 120, 8, { 153, 13, 19 } },
 	{ "R16G16B16A16, the first draw past 1", IMAGE_HALF4, 8, 56, { 38, 57, 77 } },

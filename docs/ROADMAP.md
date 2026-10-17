@@ -2577,6 +2577,29 @@ Done when vulkan4xenon_test draws four targets in one pass in the new formats an
 multisampled, milestone 17's; and drawing into a cube's face or a 3D image's slice (milestone 23). Milestone 20 clears
 the new formats' images and samples them nearest, as the console filtered them wrong.
 
+**On the console** (2026-10-16, the zero-fuse console; `results/2026-10-16-milestone-25/`):
+- **The first runs failed every target check** (`vulkan4xenon_test_mode_2.log`; xsdk's `xsdk_test_mode_2.log`), and
+  settled the first two questions (xsdk:docs/HARDWARE.md, "Float, 10-bit and 64-bit targets and four at once"):
+  `ps_export_mode` counts the colours exported from its bit 1, as R600's does, so at 2 targets 1 to 3 kept their
+  clears; and a 64-bit target's clear takes red and green from `RB_COLOR_CLEAR_LO`, so those halves came out swapped.
+  xost now gives a shader writing `oC0` to `oC3` mode 8, one colour keeping 2, and xsdk swaps the clear's words.
+- **A 10-bit attachment rounds the source to its own bits before it blends:** the second attachment, blended by an
+  alpha of 0.25, came out as at 1/3, which is 0.25 in 2 bits. Both titles' checks now blend at 1/3.
+- **Whether the targets blend:** 2_10_10_10, 7e3 and 16_16_16_16 do; the 16- and 32-bit floats don't, so their
+  formats keep reporting no blending and the pipeline refusal stays (docs/SUPPORT.md). Resolves convert 7e3 and
+  16_16_16_16 into half floats, the latter signed, and the float destinations take `RB_COPY_DEST_INFO`'s float format.
+- **vulkan4xenon_test passed 371 of 371, twice** (`vulkan4xenon_test.log`, `_2`): four attachments of four formats
+  each cleared, written, blended and masked its own way and cleared in a corner; the half-float image drawn back as a
+  second pass's second attachment; all five sampled onto the screen each frame; and the limits, features and
+  refusals.
+- **Broken on purpose,** each of the three sets failed the checks `breaks.py` names for it and only those
+  (`vulkan4xenon_test_broken_a.log` to `_c`), as did xsdk's five (xsdk:results/2026-10-16-vulkan4xenon-milestone-25/).
+- **xsdk_test passed 359 of 359,** a button pressed (`xsdk_test.log`).
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.6 to 30.0 fps,
+  98 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m25.log`).
+
+Milestone 25 is done.
+
 **Then milestone 17, widened.** Milestone 17, multisampling, needs predicated tiling at 1280x720. Proposed: it comes
 after milestone 25 and takes every target past eDRAM, multisampled, several at once, or past 1280x720, such as a big
 shadow map; and alpha to coverage (xenia:src/xenia/gpu/registers.h:687).

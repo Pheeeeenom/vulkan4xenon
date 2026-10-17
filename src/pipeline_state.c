@@ -226,7 +226,7 @@ static bool factors_matter(VkBlendOp op)
 static VkResult attachment_blend(const VkPipelineColorBlendAttachmentState *attachment, VkFormat format, XsdkBlend *out)
 {
 	if (attachment->blendEnable && !v4x_blend_format(format))
-		return v4x_host_unsupported("blending into float colour attachments, which the console hasn't shown to blend");
+		return v4x_host_unsupported("blending into float colour attachments, which Xenos doesn't blend");
 	XsdkBlend setting = {
 		.color_source = XSDK_BLEND_ONE,
 		.color_dest = XSDK_BLEND_ZERO,

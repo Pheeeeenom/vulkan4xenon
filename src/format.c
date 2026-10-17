@@ -17,7 +17,7 @@ enum {
 	// (docs/SUPPORT.md, Formats).
 	NEAREST_BLITTED = SAMPLED | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT,
 	// Colour attachments draw into their row's xsdk target and resolve into their texture (src/render_pass.c); the
-	// console has yet to show the float targets blend (xsdk:tests/test_targets.c).
+	// float targets don't blend on the console (xsdk:docs/HARDWARE.md).
 	DRAWN = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT,
 	BLENDED = DRAWN | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT,
 	ATTACHMENT = BLITTED | BLENDED,
