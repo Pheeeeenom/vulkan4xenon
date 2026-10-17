@@ -113,8 +113,8 @@ static void check_answers(const Harness *harness)
 		vkGetRenderAreaGranularity(harness->device, render_pass, &granularity);
 		harness_destroy_render_pass(harness, render_pass, framebuffers);
 	}
-	check(
-		"commands: a render pass's render area granularity is 1x1", granularity.width == 1 && granularity.height == 1);
+	check("commands: a render pass's render area granularity is 8x8, the resolve's grid (milestone 27)",
+		granularity.width == 8 && granularity.height == 8);
 	const VkMemoryAllocateInfo allocate = {
 		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 		.allocationSize = MEMORY_BYTES,

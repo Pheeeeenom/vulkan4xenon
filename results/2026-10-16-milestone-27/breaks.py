@@ -7,7 +7,7 @@ Step 1, render areas smaller than the framebuffer:
 - a: the granularity 1x1; areas off the grid taken, and so blits' regions too; a smaller area of a half float
   attachment taken; a load finding its image anywhere in eDRAM, not over its area; the depth cleared for the next pass
   over an area that holds the next's, not the same; the depth image's own clear drawn over the pass's area alone.
-- b: every pass's resolve of the whole framebuffer.
+- b: every pass's resolve of the whole framebuffer, which spoils a depth image's clear before a smaller pass too.
 - c: the image drawn back with the scissor at the area's size from the corner.
 
 Step 2, blits drawn on the GPU:
@@ -20,6 +20,8 @@ import pathlib
 import sys
 
 GRANULARITY = "render areas: the granularity is 8 by 8"
+# test_commands.c's check of the granularity, which milestone 27 made 8x8.
+COMMANDS_GRANULARITY = "commands: a render pass's render area granularity is 8x8, the resolve's grid (milestone 27)"
 REFUSED = "render areas: areas off the 8-pixel grid inside the framebuffer are refused"
 REFUSED_FLOAT = "render areas: an area smaller than the framebuffer of a half float colour attachment is refused"
 CLEARED = ("render areas: a pass clearing an area inside the framebuffer clears and draws there alone, and stores "
@@ -40,7 +42,7 @@ OFF_GRID = "blits: a region off the 8-pixel grid inside the destination is refus
 SETS = {
     "a": [
         ("src/render_pass.c", "(VkExtent2D){ XSDK_RESOLVE_ALIGNMENT, XSDK_RESOLVE_ALIGNMENT }", "(VkExtent2D){ 1, 1 }",
-         [GRANULARITY]),
+         [GRANULARITY, COMMANDS_GRANULARITY]),
         ("src/command_buffer.c",
          "first % XSDK_RESOLVE_ALIGNMENT == 0 &&\n\t\t(end % XSDK_RESOLVE_ALIGNMENT == 0 || end == edge);", "true;",
          [REFUSED, OFF_GRID]),
@@ -57,7 +59,7 @@ SETS = {
     "b": [
         ("src/queue.c", "\tconst VkRect2D *const area = &replay->area;\n\txsdk_gpu_set_resolve_clears",
          "\tconst VkRect2D all = { { 0, 0 }, { attachment->width, attachment->height } };\n"
-         "\tconst VkRect2D *const area = &all;\n\txsdk_gpu_set_resolve_clears", [CLEARED, LOADED, DEPTH]),
+         "\tconst VkRect2D *const area = &all;\n\txsdk_gpu_set_resolve_clears", [CLEARED, LOADED, DEPTH, IMAGE_CLEAR]),
     ],
     "c": [
         ("src/blit.c", "xsdk_gpu_set_scissor((uint32_t)area->offset.x, (uint32_t)area->offset.y,",

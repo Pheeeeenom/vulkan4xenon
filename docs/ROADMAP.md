@@ -2837,10 +2837,29 @@ the rest:
   a, take blits' regions off it too.
 
 **Not in milestone 27:** render areas smaller than the framebuffer in a subpass of several colour attachments, or of a
-float or 10-bit one, and blits drawn into part of a level in those formats, which need xsdk to resolve a rectangle of
-any target in any format, past the agreed scope; areas off the 8-pixel grid inside the framebuffer; and blits drawn
+float or 10-bit one, which need xsdk to resolve a rectangle of any target in any format, past the agreed scope; blits
+drawn in those formats, which stay on the CPU; areas off the 8-pixel grid inside the framebuffer; and blits drawn
 from or into a level past the first, a cube's face or a 3D image's slice, or between formats, which the CPU takes or
 refuses as before (docs/SUPPORT.md, Render passes and Commands).
+
+**On the console** (2026-10-17, the zero-fuse console; `results/2026-10-16-milestone-27/`):
+- **vulkan4xenon_test passed 413 of 413, twice** (`vulkan4xenon_test.log`, `_2`): passes over areas inside the
+  framebuffer and reaching its edges off the grid cleared, drew, loaded and stored their areas alone, a depth image's
+  clear covered all of it, and a smaller area of a half-float attachment was refused; blits drawn on the GPU matched
+  Vulkan's blit worked on the CPU within 2 a channel nearest and 3 linear, mirrored, scaled up and down, and at the
+  destination's edges, the texels around them kept. **The replay took 87 us of the CPU with a blit drawn, against
+  24816 us with it on the CPU,** its submission done after 9.8 ms against 25.9 ms.
+- **The first run failed one check** (`vulkan4xenon_test_granularity_1x1.log`): `test_commands.c` still wanted the
+  granularity 1x1 from before this milestone, which reports the resolve's 8x8. It wants 8x8 now.
+- **Broken on purpose,** each of the six sets failed the checks `breaks.py` names for it and only those
+  (`vulkan4xenon_test_broken_a.log` to `_f`); set a's lists the commands check of the granularity too, and set b's the
+  depth image's clear, which its whole resolves spoil.
+- **xsdk_test passed 373 of 373** (`xsdk_test.log`), its rectangles of a target right (xsdk:docs/HARDWARE.md,
+  "Resolving part of a target, vulkan4xenon milestone 27").
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.6 to 30.0 fps,
+  97 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m27.log`).
+
+Milestone 27 is done.
 
 ### Milestone 28: occlusion queries
 
