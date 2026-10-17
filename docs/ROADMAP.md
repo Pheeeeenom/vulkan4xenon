@@ -2960,6 +2960,26 @@ anything, not whether a sample passed the depth test (xsdk:docs/HARDWARE.md, "Oc
 begun outside a render pass; `inheritedQueries`; a query's clears past its 31st kept out; one wait for the GPU over
 several queries' copies, which needs the ids to rotate and a measured need; and pipeline statistics.
 
+**On the console** (2026-10-17, the zero-fuse console; `results/2026-10-16-milestone-28/`):
+- **vulkan4xenon_test passed 426 of 426, twice** (`vulkan4xenon_test.log`, `_2`): a quad's query 1, no draw 0, a quad
+  off screen 0 and one culled 0, a quad hidden behind another 1, the documented deviation; a clear alone 0 and a draw
+  either side of it 1; query 0 reused over three submissions 0, 1 and 0; 80 queries in one submission right, which a
+  wait for results waits for; copies and reads at 32 and 64 bits with availability; a query in a secondary command
+  buffer; and the refusals.
+- **What it settled** (xsdk:docs/HARDWARE.md, "Occlusion queries, vulkan4xenon milestone 28"): a query's end writes its
+  bit, set or clear, so an id is reused once its word is copied; a draw off the screen or culled sets nothing; ending
+  the id around a clear keeps the clear out; ids 32 to 63 answer in the second word; and `PA_SC_VIZ_QUERY`'s id, not
+  the packet's, picks the bit the draws set. The status words outlast a title, so xsdk's break sets list only checks a
+  bit left from before can't pass.
+- **Broken on purpose,** each of the four sets failed the checks `breaks.py` names for it and only those
+  (`vulkan4xenon_test_broken_a.log` to `_d`), as did xsdk's three (xsdk:results/2026-10-16-vulkan4xenon-milestone-28/).
+- **xsdk_test passed 380 of 382,** the two left the controller's, no button pressed (`xsdk_test.log`).
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.8 to 30.0 fps,
+  99 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m28.log`); neither it nor Aurora uses
+  queries.
+
+Milestone 28 is done.
+
 ## 5. The Dusklight track
 
 An outline, made precise one milestone at a time. Each starts only when agreed.
