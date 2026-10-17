@@ -2199,7 +2199,7 @@ and the layer refuses samplers in vertex shaders, as both stages share the fetch
 
 Done when vulkan4xenon_test checks each by pixel.
 
-**Built in steps** (2026-10-16), none run on the console yet; the results are the console's to give.
+**Built in steps** (2026-10-16).
 
 **Step 1: a LOD and gradients the shader works out.** A Xenos fetch samples at the sum of the fetch constant's LOD
 bias, a register LOD `setTexLOD` sets if it reads it, and its own bias field, and works a LOD out from its coordinate's
@@ -2266,16 +2266,34 @@ with as many as 32 registers, isn't measured.
 - **The checks:** none in vulkan4xenon_test; xsdk's `build/probe_texel_rate.xex` logs a line a measurement, such as
   `texel rate: <layout>, 32 registers declared, split 96 pixel: bilinear: ... a clock`, for the reviewer to run.
 
-**Broken on purpose,** for the console's run: `results/2026-10-16-milestone-22/builds.sh` builds each set of
-`breaks.py` in a copy of xsdk and the layer, the test's shaders built again by the copy's xost, into
+**Broken on purpose,** for the console's run: `results/2026-10-16-milestone-22/builds.sh` builds each set of `breaks.py`
+in a copy of xsdk and the layer, the test's shaders built again by the copy's xost, into
 `vulkan4xenon_test_m22_broken_a.xex` to `_c`, and `changed.py` names the shaders each set reaches. Set a, a check each:
 textureGrad's gradients unread (shader_lod's gradients), a bias's register LOD unread (its bias), the bias field written
 0 (its constant LODs), a discard on a bool taken where the bool doesn't hold (facing's discard), and the fetch
 constants' limit one past 32 (vertex_textures' refusal). Set b: a pixel shader's explicit LOD added to the computed one
-(shader_lod's LOD per pixel and constant LODs), gl_FrontFacing inverted (all three of facing's), and the vertex
-shader's samplers bound at xost's slots though its fetches moved (vertex_textures' heights and levels). Set c: a vertex
-shader's register LOD unread (vertex_textures' levels alone). xsdk's `results/2026-10-16-milestone-22/` breaks
+(shader_lod's LOD per pixel and constant LODs), gl_FrontFacing inverted (all three of facing's), and the vertex shader's
+samplers bound at xost's slots though its fetches moved (vertex_textures' heights and levels). Set c: a vertex shader's
+register LOD unread (vertex_textures' levels alone). xsdk's `results/2026-10-16-vulkan4xenon-milestone-22/` breaks
 `xsdk_shader_move_textures` to write each constant back unmoved, which xsdk_test's texture test should catch.
+
+**On the console** (2026-10-16, the zero-fuse console; `results/2026-10-16-milestone-22/`):
+- **vulkan4xenon_test passed 322 of 322,** in four runs (`vulkan4xenon_test.log`, `_2`): a LOD, gradients and a bias
+  each pixel works out took the level Xenia's model says in all eight bands, and `textureLod` at 1.25 and 6.25 levels
+  1 and 6; `gl_FrontFacing` held on the face each front face makes front, and a `discard` on it with no interpolator
+  kept the front alone; a vertex shader's two textures moved each column and picked its level, `setTexLOD`'s value
+  holding across execs; and 16 samplers in each stage were refused, past the fetch constants, where 15 and 16 were
+  made (xsdk:docs/HARDWARE.md, "LODs, facing and vertex textures, vulkan4xenon milestone 22").
+- **One launch froze the console,** right after a clean run, before the title opened its log; three runs in a row
+  after a reboot passed, so what froze it isn't known.
+- **Broken on purpose,** each set failed the checks `breaks.py` names for it and only those
+  (`vulkan4xenon_test_broken_a.log` to `_c`); xsdk's move written back unmoved failed its texture check alone
+  (xsdk:results/2026-10-16-vulkan4xenon-milestone-22/).
+- **xsdk_test passed 329 of 329,** the user's pad in.
+- **Dusklight,** built clean against both, ran its title scene's attract loop for five minutes at 29.6 to 29.9 fps,
+  95 MB free, refusing only the 20x11 copy, as since milestone 14 (`dusklight_m22.log`).
+
+Milestone 22 is done.
 
 ### Milestone 23: cube and volume textures, and the rest of sampling
 

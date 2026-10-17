@@ -128,8 +128,8 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   sampler's LOD bias and clamps apply on top, as Vulkan's do. Gradients on a cube map, offsets (`textureOffset` and the
   like), a sample index and a minimum LOD are refused, as xost refuses them.
 - A fragment shader may read `gl_FrontFacing`, from the pixel parameters' sign, in an expression, an `if`/`else` or a
-  discard (milestone 22; xost:docs/xsc.md, "Facing"). It should hold on the face the pipeline's `frontFace` makes
-  front, as culling takes it; unconfirmed on the console.
+  discard (milestone 22; xost:docs/xsc.md, "Facing"). It holds on the face the pipeline's `frontFace` makes front,
+  as culling takes it, as it did on the console for both windings (milestone 22).
 - Vertex input location n feeds the usage xost gives it: 0 position, 1 colour, 2 and up texture coordinates
   (xsdk:src/xsc_resolve.c:344-346).
 - The literal constants xost pools are written when a pipeline is bound, at the registers after the shader's

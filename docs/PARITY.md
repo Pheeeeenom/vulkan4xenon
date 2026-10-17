@@ -23,12 +23,12 @@ software.
 | Constant arrays at a run-time index, as skinning palettes are | Yes | Yes (xost:docs/xsc.md:72) | Yes |
 | `if` and `else` | Yes: conditional execs and predicates (xenia:src/xenia/gpu/ucode.h:101-130) | Yes: selects on data, execs on the predicate where every pixel agrees; a `switch`, and a `break` or `return` in an arm, refused (xost:docs/xsc.md, "Control flow") | Yes |
 | Loops | Yes (xenia:src/xenia/gpu/ucode.h:132) | Partial: fixed counts unrolled, an `if` on data inside them; counts in a block as hardware loops, broken out of on a value every vertex or pixel shares; no break on data, `continue` or counted loop inside another (xost:docs/xsc.md, "Loops a block counts") | Partial, as xost; a count past 255 runs 255 (SUPPORT.md, Shaders) |
-| `discard` | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md:64) | Yes |
+| `discard` | Yes | Yes, confirmed on the console (xost:docs/xsc.md:64) | Yes |
 | Derivatives | Yes | Yes, confirmed on the console (xost:docs/xsc.md:373) | Yes |
-| A computed LOD and gradients (`texldl`, `texldd`) | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md, "LOD and gradients") | Yes |
-| The pixel's position and facing (`vPos`, `vFace`) | Yes | Yes: `gl_FragCoord.xy`, and `gl_FrontFacing`, not yet confirmed on the console (xost:docs/xsc.md:72, "Facing") | Yes |
+| A computed LOD and gradients (`texldl`, `texldd`) | Yes | Yes, confirmed on the console (xost:docs/xsc.md, "LOD and gradients") | Yes |
+| The pixel's position and facing (`vPos`, `vFace`) | Yes | Yes: `gl_FragCoord.xy`, and `gl_FrontFacing`, confirmed on the console (xost:docs/xsc.md:72, "Facing") | Yes |
 | Depth output | Yes | Yes: outside any `if`, or in both arms of one; written on one path alone, refused, as nothing else gives the pixel a depth (xost:docs/xsc.md, "Control flow") | Yes |
-| Vertex texture fetch | Yes | Yes, not yet confirmed on the console (xost:docs/xsc.md, "Vertex textures") | Yes, sharing the fetch constants with the fragment shader and the vertex streams (SUPPORT.md, Pipelines) |
+| Vertex texture fetch | Yes | Yes, confirmed on the console (xost:docs/xsc.md, "Vertex textures") | Yes, sharing the fetch constants with the fragment shader and the vertex streams (SUPPORT.md, Pipelines) |
 | 32 temporary registers | Yes | Yes: 64 a shader of each kind under xsdk's split, confirmed on the console (xsdk:docs/HARDWARE.md, "Pixel shaders past 16 registers, milestone 24") | Yes |
 
 ## Vertex input and draws
