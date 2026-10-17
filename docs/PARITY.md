@@ -10,7 +10,7 @@ docs/SUPPORT.md says exactly what the layer does; this page sums it up against D
 docs/ROADMAP.md close the gaps. Each row says whether Xenos has it, whether xsdk drives it (xost, for shaders), and
 whether the layer exposes it. As of 2026-10-16.
 
-Of the 47 rows, the layer has 34, part of 8 and none of 5. Milestone 26's two rows are built and wait for the console.
+Of the 47 rows, the layer has 35, part of 8 and none of 4. Milestone 26's three rows are built and wait for the console.
 Xenos has all but three: occlusion queries hang it today, its gamma only approximates sRGB, and whether it compares
 depth in a fetch hasn't been checked, which xost's comparison after the fetch doesn't need. Every other gap is
 software.
@@ -74,7 +74,7 @@ software.
 | Alpha test | Yes (xenia:src/xenia/gpu/registers.h:685-686) | No | Yes, through `discard`, as Vulkan has it |
 | Blending: separate alpha, a constant colour, min and max, write masks | Yes | Yes | Yes |
 | User clip planes | Yes (xenia:src/xenia/gpu/registers.h:539-544) | Yes, not yet confirmed on the console: `xsdk_gpu_set_clip_planes`, and xost takes `gl_ClipDistance` as `dot(gl_Position, a plane)` (xost:docs/xsc.md) | Yes, not yet confirmed on the console, in Direct3D 9's form: six planes from blocks (milestone 26) |
-| Point sprites with a size | Yes (xenia:src/xenia/gpu/registers.h:184-212) | No | No: points are 1 pixel |
+| Point sprites with a size | Yes (xenia:src/xenia/gpu/registers.h:184-212) | Yes, not yet confirmed on the console: xost exports `gl_PointSize` and reads `gl_PointCoord` (xost:docs/xsc.md), and xsdk leaves the size unclamped | Yes, not yet confirmed on the console, with `largePoints` (milestone 26) |
 | Wireframe and point fill | Yes (xenia:src/xenia/gpu/registers.h:463-469) | No (xsdk:TODO.md, "Wireframe and point fill") | No |
 | Scissor and viewport | Yes | Yes | Yes, one of each |
 
@@ -92,8 +92,8 @@ software.
 - **The layer alone,** as xsdk has it: multisampling. DXT, which most PC ports ship, the 16-bit and half-float texture
   formats, and the vertex formats came with milestone 20.
 - **xost:** breaks on data, and loops a block counts inside other loops. Almost every ported shader meets one.
-- **xsdk, then the layer:** predicated tiling, a volume texture's mips, point sprites and fill modes. Float targets
-  blending waits on the console.
+- **xsdk, then the layer:** predicated tiling, a volume texture's mips and fill modes. Float targets blending waits on
+  the console.
 
 ## Past Direct3D 9, for older consoles' ports
 

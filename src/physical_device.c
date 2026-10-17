@@ -35,6 +35,9 @@ enum {
 	DEPTH_IMAGE_BYTES = 4096,
 	// The GPU clock's 64 bits, which time stamps copy (xsdk:docs/HARDWARE.md, "Queries and events").
 	TIMESTAMP_BITS = 64,
+	// A point's radius in PA_SU_POINT_MINMAX: 12.4 fixed point, 16 bits.
+	MAX_POINT_RADIUS = 0xFFFF,
+	SUBPIXELS = 16,
 };
 
 // Nanoseconds a tick of the GPU's clock, which counts 498.75 a microsecond against the CPU's
@@ -110,8 +113,11 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties(
 			// Xenos's six user clip planes take the clip distances; it has no cull distances (milestone 26).
 			.maxClipDistances = XSDK_CLIP_PLANES,
 			.maxCombinedClipAndCullDistances = XSDK_CLIP_PLANES,
-			.pointSizeRange = { 1.0f, 1.0f },
+			// A vertex shader's point size is clamped to xsdk's PA_SU_POINT_MINMAX, radii of 0 to 0xFFFF sixteenths of
+			// a pixel (xenia:src/xenia/gpu/registers.h:433-442): widths in eighths up to 8191.875 (milestone 26).
+			.pointSizeRange = { 0.0f, MAX_POINT_RADIUS * 2.0f / SUBPIXELS },
 			.lineWidthRange = { 1.0f, 1.0f },
+			.pointSizeGranularity = 2.0f / SUBPIXELS,
 			.standardSampleLocations = VK_TRUE,
 			.optimalBufferCopyOffsetAlignment = 1,
 			.optimalBufferCopyRowPitchAlignment = 1,
@@ -127,10 +133,11 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures(
 {
 	(void)physicalDevice;
 	// Indirect draws read firstInstance at replay, as direct ones take it (queue.c); each colour target blends by its
-	// own RB_BLENDCONTROL (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_blends); Xenos's user clip planes take the clip
-	// distances (milestone 26).
+	// own RB_BLENDCONTROL (xsdk:include/xsdk/gpu.h, xsdk_gpu_set_blends); points are as wide as gl_PointSize, and
+	// Xenos's user clip planes take the clip distances (milestone 26).
 	*pFeatures = (VkPhysicalDeviceFeatures){ .drawIndirectFirstInstance = VK_TRUE,
 		.independentBlend = VK_TRUE,
+		.largePoints = VK_TRUE,
 		.samplerAnisotropy = VK_TRUE,
 		.shaderClipDistance = VK_TRUE };
 }

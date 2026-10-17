@@ -53,9 +53,9 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
 
 - One physical device, and one device at a time: a second `vkCreateDevice` returns `VK_ERROR_TOO_MANY_OBJECTS`, since
   the GPU has one owner. `vkCreateDevice` takes the GPU from XAM (`xsdk_gpu_open`) and shows the boot logo.
-- Features: `drawIndirectFirstInstance` (Commands), `independentBlend` (Pipelines), `samplerAnisotropy` (Samplers)
-  and `shaderClipDistance` (Shaders). Requesting any other returns `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires
-  `robustBufferAccess`; that's a deviation.
+- Features: `drawIndirectFirstInstance` (Commands), `independentBlend` and `largePoints` (Pipelines),
+  `samplerAnisotropy` (Samplers) and `shaderClipDistance` (Shaders). Requesting any other returns
+  `VK_ERROR_FEATURE_NOT_PRESENT`. Vulkan 1.0 requires `robustBufferAccess`; that's a deviation.
 - One queue family with one queue, `VK_QUEUE_GRAPHICS_BIT` only. Vulkan 1.0 requires a family with graphics and
   compute together; Xenos has no compute stage, so that's a deviation. There's no sparse binding either: the GPU
   addresses physical memory, and Xenia's registers show no GPU MMU (xenia:src/xenia/gpu/register_table.inc).
@@ -141,6 +141,10 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
   shader's blocks, which the bundle records as a `V4X_RESOURCE_INSTANCE_INDEX` resource, and the layer writes each
   instance's index into it before the instance's draw (Commands). A float holds it exactly up to 2^24. xost refuses
   `gl_VertexIndex` (xost:docs/xsc.md, "Interface conventions").
+- **Point sprites** (milestone 26): `gl_PointSize` goes to the point size Xenos's vertex shaders export, `oPts.x`, the
+  point's width in pixels (xenia:src/xenia/gpu/ucode.h:1813-1834), and `gl_PointCoord` reads the pixel parameters'
+  |zw|, a point sprite's coordinates from its top left (xenia:src/xenia/gpu/registers.h:184-212); xost:docs/xsc.md
+  has both.
 - **Clip distances,** with `shaderClipDistance` (milestone 26), in the form Direct3D 9's clip planes take: Xenos clips
   against six planes in clip space, keeping where dot(the exported position, plane) >= 0
   (xenia:src/xenia/gpu/registers.h:539-544, dxbc_shader_translator.cc:1033-1053). So `gl_ClipDistance[n]` written as
@@ -238,7 +242,10 @@ Some are there to refuse, as the features they need aren't reported. Each logs w
     differ;
   - `vkCmdSetBlendConstants` gives the constant colour;
   - a pipeline that doesn't take a state has its own, whatever the commands set before it.
-- **Deviation:** points are 1 pixel, xsdk's `PA_SU_POINT_SIZE`; the shader's `gl_PointSize` is ignored.
+- **Points,** with `largePoints` (milestone 26): a point is as wide as the vertex shader's `gl_PointSize`, which xsdk
+  leaves unclamped but by `PA_SU_POINT_MINMAX`'s range, radii of 0 to 0xFFFF sixteenths of a pixel
+  (xenia:src/xenia/gpu/registers.h:433-442): `pointSizeRange` 0 to 8191.875, `pointSizeGranularity` 0.125. Without
+  `gl_PointSize` written, a point is 1 pixel, xsdk's `PA_SU_POINT_SIZE`, as Vulkan says.
 - Pipeline caches hold nothing, since pipelines come from the shader bundle and the layer's own cache of compiled
   shaders (milestone 13). The data a cache is made with is ignored, `vkMergePipelineCaches` does nothing, and
   `vkGetPipelineCacheData` gives the 32-byte header alone, its words least significant byte first as the spec says,
@@ -688,7 +695,9 @@ hasn't been measured (xsdk:TODO.md).
 | `framebufferColorSampleCounts`, `framebufferDepthSampleCounts`, `framebufferStencilSampleCounts`, `sampledImageColorSampleCounts` | 1 |
 | `discreteQueuePriorities` | 2 |
 | `maxClipDistances`, `maxCombinedClipAndCullDistances` | 6 |
-| `pointSizeRange`, `lineWidthRange` | 1, 1 |
+| `pointSizeRange` | 0, 8191.875 |
+| `pointSizeGranularity` | 0.125 |
+| `lineWidthRange` | 1, 1 |
 | `standardSampleLocations` | true |
 | `optimalBufferCopyOffsetAlignment`, `optimalBufferCopyRowPitchAlignment` | 1 |
 | `nonCoherentAtomSize` | 128 |

@@ -2679,6 +2679,29 @@ docs/SUPPORT.md has the form as a deviation.
   without clip distances leaving the last one's planes on. xsdk's `s2a` drops the `ucp_ena` bits and has xost name the
   next plane, and `s2b` writes the planes a plane's registers on.
 
+**Step 3, point sprites** (built 2026-10-16, not yet run on the console). A Xenos vertex shader exports a point's
+size in `oPts.x`, its full width in pixels, clamped to `PA_SU_POINT_MINMAX`'s radii in sixteenths of a pixel
+(xenia:src/xenia/gpu/ucode.h:1813-1834, registers.h:433-453), and a pixel shader's parameters hold a point sprite's
+coordinates in their zw (registers.h:184-212), as Xenia fills them for a point list
+(xenia:src/xenia/gpu/dxbc_shader_translator.cc:735-748). xost exports `gl_PointSize` to `oPts.x` alone, setting the
+record's `vs_export_mode` to 2, a sprite's second position vector (xenia:src/xenia/gpu/xenos.h:790-800), and lowers
+`gl_PointCoord` to the parameters' |zw|, sharing their register with `gl_FragCoord`. xsdk's set-up leaves
+`PA_SU_POINT_MINMAX` at 0 to 0xFFFF, unclamped, and keeps `PA_SU_POINT_SIZE` at a pixel, which a point takes without a
+size; the register goes back as XAM had it at close. The layer reports `largePoints`, `pointSizeRange` 0 to
+8191.875 and `pointSizeGranularity` 0.125, and needs nothing more at draw time.
+- **The checks:** vulkan4xenon_test's `test_point_sprites.c` draws sprites of 16 and 48 pixels from `point.vert`,
+  coloured by `point_coord.frag`, each probed 3 pixels inside its corners for its coordinates, within 32 a channel as
+  where in a pixel Xenos takes them isn't known, and 3 pixels outside its edges for nothing; a point from `push.vert`,
+  which writes no size, must be its one pixel alone; and checks the feature and limits. xsdk_test's raster test
+  compiles xost's `vk_point_sprite.vert` and `vk_point_coord.frag` on the console, as the layer compiles what its
+  bundle lacks, and draws sprites of 24 and 64 pixels with them, probed the same way; its compiler check compiles both
+  into the PC's containers. xost's `tests/test_point_sprite.py` checks the size exported to x alone, the export mode,
+  and the coordinates' |zw| on the simulator.
+- **Broken on purpose** (`breaks.py`): `s3a`, xsdk's set-up clamping a vertex's size to a pixel and making a point
+  without one two, and the layer's granularity 1. xsdk's `s3a` clamps the size alone, `s3b` has xost read the
+  coordinates from the parameters' |xy|, and `s3c` leaves `vs_export_mode` 0, which fails the compiler check, and the
+  sprite check too if the console needs the mode.
+
 ### Milestone 27: copies on the GPU
 
 **Why.** `vkCmdBlitImage` runs on the CPU once the GPU is done (docs/SUPPORT.md, Commands), which stalls a port that

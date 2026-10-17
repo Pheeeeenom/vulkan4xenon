@@ -24,6 +24,7 @@ static bool features_off(const VkPhysicalDeviceFeatures *features)
 	others.independentBlend = VK_FALSE;
 	others.samplerAnisotropy = VK_FALSE;
 	others.shaderClipDistance = VK_FALSE;
+	others.largePoints = VK_FALSE;
 	VkBool32 flags[sizeof others / sizeof(VkBool32)];
 	memcpy(flags, &others, sizeof flags);
 	for (uint32_t i = 0; i < sizeof flags / sizeof flags[0]; i++) {

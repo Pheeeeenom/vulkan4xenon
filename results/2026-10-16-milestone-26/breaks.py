@@ -11,6 +11,7 @@ import sys
 PIPELINE_STATE = "vulkan4xenon/src/pipeline_state.c"
 QUEUE = "vulkan4xenon/src/queue.c"
 PHYSICAL_DEVICE = "vulkan4xenon/src/physical_device.c"
+XSDK_SETUP = "Xbox-360-SDK/src/gpu_setup.c"
 
 TWO_SIDED_STATIC = ("two-sided stencil: every frame's front and back faces pass the pipeline's own test for each, over "
                     "what each wrote with its own op and write mask")
@@ -24,6 +25,10 @@ CLIP_UNIFORM = ("clip distances: every frame's quads are cut by distances 1 and 
                 "buffer at each draw's offset")
 CLIP_AFTER = ("clip distances: every frame cuts nothing of a pipeline without them nor of vkCmdClearAttachments's "
               "rectangle, and cuts the draw after the clear again")
+POINT_LIMITS = "point sprites: largePoints reported, pointSizeRange 0 to 8191.875, granularity 0.125"
+POINT_SPRITES = ("point sprites: every frame's sprites are as wide as their gl_PointSize, 16 and 48 pixels, "
+                 "gl_PointCoord across each from its top left")
+POINT_PIXEL = "point sprites: every frame's point without gl_PointSize is 1 pixel"
 
 SETS = {
     # Step 1: a back face's dynamic compare mask and write mask taken from the front's.
@@ -75,6 +80,16 @@ SETS = {
         "checks": [CLIP_AFTER],
         "breaks": [
             (QUEUE, "if (!pipeline->clip_plane_count && !replay->clip_planes_on)", "if (!pipeline->clip_plane_count)"),
+        ],
+    },
+    # Step 3, in xsdk's set-up: a vertex shader's point size clamped to 1 pixel, a point without one 2 pixels wide; and
+    # the layer's granularity 1.
+    "s3a": {
+        "checks": [POINT_SPRITES, POINT_PIXEL, POINT_LIMITS],
+        "breaks": [
+            (XSDK_SETUP, "POINT_RADIUS_ANY = 0xFFFF0000,", "POINT_RADIUS_ANY = 0x00080000,"),
+            (XSDK_SETUP, "POINT_SIZE_ONE_PIXEL = 0x00080008,", "POINT_SIZE_ONE_PIXEL = 0x00100010,"),
+            (PHYSICAL_DEVICE, ".pointSizeGranularity = 2.0f / SUBPIXELS,", ".pointSizeGranularity = 1.0f,"),
         ],
     },
 }
